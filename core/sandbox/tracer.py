@@ -1066,7 +1066,7 @@ def _write_record(run_dir: Path, syscall_name: str, syscall_nr: int,
         # O_NOFOLLOW + O_APPEND match summary.record_denial exactly.
         fd = os.open(
             str(jsonl_path),
-            os.O_WRONLY | os.O_APPEND | os.O_CREAT | os.O_NOFOLLOW,
+            os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0),
             0o600,
         )
         with os.fdopen(fd, "a", encoding="utf-8") as f:
@@ -1095,7 +1095,7 @@ def _write_record_dict(run_dir: Path, record: dict,
         jsonl_path.parent.mkdir(parents=True, exist_ok=True)
         fd = os.open(
             str(jsonl_path),
-            os.O_WRONLY | os.O_APPEND | os.O_CREAT | os.O_NOFOLLOW,
+            os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0),
             0o600,
         )
         with os.fdopen(fd, "a", encoding="utf-8") as f:

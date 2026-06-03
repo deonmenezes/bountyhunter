@@ -27,7 +27,10 @@ egregious regressions.
 from __future__ import annotations
 
 import json
-import resource
+try:
+    import resource
+except ImportError:
+    resource = None
 import subprocess
 import sys
 import time
@@ -171,6 +174,8 @@ def _peak_rss_mb() -> float:
     Linux: ``ru_maxrss`` is in KiB. macOS: ``ru_maxrss`` is in bytes.
     Sniff via platform.
     """
+    if resource is None:
+        return 0.0
     rusage = resource.getrusage(resource.RUSAGE_CHILDREN)
     if sys.platform == "darwin":
         return rusage.ru_maxrss / (1024 * 1024)

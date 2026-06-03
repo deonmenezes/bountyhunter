@@ -14,7 +14,10 @@ restrict_self.
 import json
 import logging
 import os
-import resource
+try:
+    import resource
+except ImportError:
+    resource = None
 from pathlib import Path
 
 from . import state
@@ -199,6 +202,14 @@ def _make_preexec_fn(limits: dict, writable_paths: list = None,
     )
 
     def _set_limits():
+        if resource is None:
+            # Resource limits not supported on Windows/other non-POSIX platforms.
+            if landlock_fn:
+                landlock_fn()
+            if seccomp_fn:
+                seccomp_fn()
+            return
+
         # Fallbacks below must stay in sync with _DEFAULT_LIMITS. Callers
         # through context.sandbox() always pass the merged effective_limits
         # (DEFAULT + user config + caller overrides) so the fallbacks only

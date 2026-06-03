@@ -154,7 +154,7 @@ def sha256_tree(
         try:
             fd = __os.open(
                 str(p),
-                __os.O_RDONLY | __os.O_NOFOLLOW | getattr(__os, "O_CLOEXEC", 0),
+                __os.O_RDONLY | getattr(__os, "O_NOFOLLOW", 0) | getattr(__os, "O_CLOEXEC", 0),
             )
         except OSError:
             # ELOOP on race-introduced symlink, ENOENT on

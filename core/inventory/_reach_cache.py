@@ -204,7 +204,7 @@ def load_index(fingerprint: Optional[str]) -> Optional["_AdjacencyIndex"]:
     # is authoritative for the actually-opened inode.
     import stat as _stat
     try:
-        fd = os.open(str(path), os.O_RDONLY | os.O_NOFOLLOW)
+        fd = os.open(str(path), os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
     except FileNotFoundError:
         return None
     except OSError as exc:

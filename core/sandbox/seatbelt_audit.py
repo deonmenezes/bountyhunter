@@ -537,9 +537,9 @@ class LogStreamer:
             self._run_dir.mkdir(parents=True, exist_ok=True)
             self._dirfd = os.open(
                 str(self._run_dir),
-                os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0),
             )
-        flags = os.O_WRONLY | os.O_APPEND | os.O_CREAT | os.O_NOFOLLOW
+        flags = os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
         fd = os.open(self._filename, flags, mode=0o600,
                      dir_fd=self._dirfd)
         try:

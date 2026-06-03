@@ -602,7 +602,7 @@ def _process_single_file(
         # at the read site itself. ELOOP from a symlink → caught
         # under OSError below and the file is recorded excluded.
         try:
-            fd = os.open(str(filepath), os.O_RDONLY | os.O_NOFOLLOW)
+            fd = os.open(str(filepath), os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
         except OSError:
             return {"path": rel_path, "_excluded": True,
                     "_reason": "open_failed_or_symlink",

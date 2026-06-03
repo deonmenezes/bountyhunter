@@ -123,7 +123,10 @@ def save_checklist(output_dir, data):
 
     In standalone mode, writes directly to output_dir/checklist.json.
     """
-    import fcntl
+    try:
+        import fcntl
+    except ImportError:
+        fcntl = None
     import os
     from pathlib import Path
     from core.json import save_json
@@ -182,11 +185,18 @@ def save_checklist(output_dir, data):
         # OSError instead of silently mutating an unrelated file.
         flags = (
             os.O_WRONLY | os.O_CREAT | os.O_TRUNC
-            | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0)
+            | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0)
         )
         fd = os.open(lock_path, flags, 0o600)
         lock_file = os.fdopen(fd, "w")
-        fcntl.flock(lock_file, fcntl.LOCK_EX)
+        if fcntl is not None:
+            fcntl.flock(lock_file, fcntl.LOCK_EX)
+        else:
+            try:
+                import msvcrt
+                msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+            except (ImportError, OSError):
+                pass
         save_json(checklist_path, data)
     finally:
         if lock_file is not None:
@@ -198,7 +208,14 @@ def save_checklist(output_dir, data):
             import logging as _logging
             _local_logger = _logging.getLogger(__name__)
             try:
-                fcntl.flock(lock_file, fcntl.LOCK_UN)
+                if fcntl is not None:
+                    fcntl.flock(lock_file, fcntl.LOCK_UN)
+                else:
+                    try:
+                        import msvcrt
+                        msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+                    except (ImportError, OSError):
+                        pass
             except OSError:
                 _local_logger.warning(
                     "save_checklist: flock LOCK_UN failed for %s",

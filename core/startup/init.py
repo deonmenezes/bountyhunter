@@ -98,7 +98,7 @@ def _tighten_config_perms(path: Path) -> str | None:
     if not (st.st_mode & 0o077):
         return None
 
-    if st.st_uid != os.getuid():
+    if hasattr(os, "getuid") and st.st_uid != os.getuid():
         return (f"⚠ {path} not owned by current user "
                 f"(mode {oct(st.st_mode)[-3:]}). Fix perms manually.")
 
@@ -113,13 +113,14 @@ def _tighten_config_perms(path: Path) -> str | None:
     try:
         fd = os.open(
             str(path),
-            os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0),
+            os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0),
         )
     except OSError as e:
         return (f"⚠ {path} could not be opened for chmod: {e}. "
                 f"Run: chmod 600 {path}")
     try:
-        os.fchmod(fd, 0o600)
+        if hasattr(os, "fchmod"):
+            os.fchmod(fd, 0o600)
     except OSError as e:
         os.close(fd)
         return (f"⚠ {path} mode {oct(st.st_mode)[-3:]} and chmod failed: {e}. "
@@ -378,7 +379,7 @@ def check_env(unavailable_features: set) -> tuple[list, list]:
     warnings = []
 
     # Discourage running as root — MANTISHACK executes untrusted code
-    if os.getuid() == 0:
+    if hasattr(os, "getuid") and os.getuid() == 0:
         warnings.append("Running as root is strongly discouraged — MANTISHACK executes untrusted build commands, compiles PoCs, and runs fuzzing targets")
 
     # Python version. MANTISHACK requires 3.10+: ``packages/
@@ -451,14 +452,15 @@ def check_env(unavailable_features: set) -> tuple[list, list]:
     if not out_ok:
         warnings.append("out/ directory not writable")
 
+    import shutil
     try:
-        stat = os.statvfs(str(out_dir if out_dir.exists() else REPO_ROOT))
-        free_bytes = stat.f_bavail * stat.f_frsize
+        usage = shutil.disk_usage(str(out_dir if out_dir.exists() else REPO_ROOT))
+        free_bytes = usage.free
         free_gb = free_bytes / (1024 ** 3)
         parts.append(f"disk {free_gb:.0f} GB free" if free_gb >= 1 else f"disk {free_bytes / (1024**2):.0f} MB free")
         if free_gb < 5 and "/mantis-fuzz" not in unavailable_features:
             warnings.append(f"Low disk space ({free_gb:.1f} GB) — fuzzing may fail")
-    except OSError:
+    except (OSError, ValueError):
         pass
 
     # Operator-supplied env values flow into the startup banner that

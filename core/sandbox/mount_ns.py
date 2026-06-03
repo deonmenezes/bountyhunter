@@ -123,7 +123,8 @@ _SHADOW_PATHS = frozenset((
 # also rejects — but it rejects consistently with "no libc at all",
 # not "wrong libc name on this distro".
 import ctypes.util as _ctypes_util  # noqa: E402
-_libc = ctypes.CDLL(_ctypes_util.find_library("c"), use_errno=True)
+_libc_path = _ctypes_util.find_library("c")
+_libc = ctypes.CDLL(_libc_path, use_errno=True) if _libc_path else None
 
 
 def _mount(source: Optional[str], target: str,
@@ -339,7 +340,7 @@ def setup_mount_ns(target: Optional[str], output: Optional[str],
                     _step = b"open mount-point"
                     fd = os.open(
                         inside,
-                        os.O_CREAT | os.O_WRONLY | os.O_NOFOLLOW | os.O_EXCL,
+                        os.O_CREAT | os.O_WRONLY | getattr(os, "O_NOFOLLOW", 0) | os.O_EXCL,
                         0o600,
                     )
                     os.close(fd)
