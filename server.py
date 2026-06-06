@@ -33,11 +33,11 @@ Env overrides
 
 Safety
 ------
-  * Binds to localhost only by default. When bound to a non-loopback
-    address (e.g. ``MANTISHACK_SERVER_HOST=0.0.0.0``) the scan API
-    REQUIRES a bearer token — printed at startup, or pinned via
-    ``MANTISHACK_SERVER_TOKEN`` — so a LAN visitor cannot drive
-    arbitrary clone+scan+LLM spend.
+  * Binds to localhost only by default. The scan API is open (no token)
+    unless the operator pins ``MANTISHACK_SERVER_TOKEN``, in which case
+    POST /scan requires ``Authorization: Bearer <token>``. Rate limiting,
+    the job-store cap, and the clone/SSRF guards bound what an anonymous
+    caller can do.
   * On a loopback bind, a Host-header allowlist defeats DNS-rebinding
     (a malicious page that rebinds its domain to 127.0.0.1 still sends
     its own Host header, which is rejected).
@@ -96,16 +96,14 @@ def _is_loopback_bind(host: str) -> bool:
         return False
 
 
-# When the server is reachable off-box (non-loopback bind) the scan API
-# is unauthenticated-by-default's worst case: any LAN visitor could drive
-# arbitrary clone+scan+LLM spend. Require a bearer token in that mode —
-# operator-pinned via MANTISHACK_SERVER_TOKEN, else a random one printed
-# at startup. A loopback bind keeps the token empty (no token needed) and
-# leans on the Host-header allowlist below to defeat DNS-rebinding.
+# Optional bearer-token auth on the scan API: enforced only when the
+# operator explicitly pins MANTISHACK_SERVER_TOKEN. No token is required
+# by default, even on a non-loopback bind — rate limiting, the job-store
+# cap, and the clone/SSRF guards bound what an anonymous caller can do.
+# A loopback bind additionally leans on the Host-header allowlist below
+# to defeat DNS-rebinding.
 _BIND_IS_LOCAL = _is_loopback_bind(HOST)
 _AUTH_TOKEN = os.environ.get("MANTISHACK_SERVER_TOKEN", "").strip()
-if not _BIND_IS_LOCAL and not _AUTH_TOKEN:
-    _AUTH_TOKEN = secrets.token_urlsafe(32)
 
 # Host headers accepted on a loopback bind (anti-DNS-rebinding). A page
 # that rebinds its hostname to 127.0.0.1 still sends its own Host header,
@@ -533,7 +531,7 @@ class Handler(BaseHTTPRequestHandler):
         A page that rebinds its hostname to 127.0.0.1 still sends its own
         Host header, which is absent from the allowlist and so rejected.
         For non-loopback binds the legitimate Host varies (LAN IP /
-        hostname), so the bearer token is the control there instead.
+        hostname), so the gate is skipped there.
         """
         if not _BIND_IS_LOCAL:
             return True
@@ -700,11 +698,11 @@ def main() -> int:
     if not _BIND_IS_LOCAL:
         print()
         print("   ⚠️  bound to a non-loopback address — reachable off this host.")
-        print(f"   token  : {_AUTH_TOKEN}")
-        print("            send as  Authorization: Bearer <token>  on POST /scan")
-        print("            (pin your own with MANTISHACK_SERVER_TOKEN=…)")
+        if not _AUTH_TOKEN:
+            print("            scan API is open; pin MANTISHACK_SERVER_TOKEN=… "
+                  "to require a bearer token")
         print()
-    elif _AUTH_TOKEN:
+    if _AUTH_TOKEN:
         print(f"   token  : {_AUTH_TOKEN}  (Authorization: Bearer <token>)")
     print("   (Ctrl-C to stop)")
     try:
