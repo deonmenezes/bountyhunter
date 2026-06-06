@@ -2,7 +2,7 @@
 description: Inspect per-model reliability across decision classes; answer natural-language questions about model competence
 ---
 
-# /scorecard
+# /mantis-scorecard
 
 Read and maintain the **model scorecard** — a per-model track-record of how often each LLM model has been overruled by an authoritative signal (full ANALYSE comparison, judge review, multi-model consensus, tool evidence, operator feedback). The scorecard is what powers fast-tier short-circuit decisions: cells with a Wilson 95% upper-bound miss-rate at or below 5% are trusted; everything else falls through to full analysis.
 
@@ -11,13 +11,13 @@ The slash command is for **research and ops**, not a routing API. The actual rou
 ## Usage
 
 ```
-/scorecard                              # default: list all cells with derived columns
-/scorecard list [flags]                 # filtered / sorted views
-/scorecard compare <model-a> <model-b>  # side-by-side on shared decision_classes
-/scorecard samples <decision_class>     # disagreement-reasoning samples (the "why was it wrong?" view)
-/scorecard pin <decision_class> --model <m> --as <override>
-/scorecard unpin <decision_class> --model <m>
-/scorecard reset [<decision_class>] [--model <m>] [--older-than-days <n>] [--all]
+/mantis-scorecard                              # default: list all cells with derived columns
+/mantis-scorecard list [flags]                 # filtered / sorted views
+/mantis-scorecard compare <model-a> <model-b>  # side-by-side on shared decision_classes
+/mantis-scorecard samples <decision_class>     # disagreement-reasoning samples (the "why was it wrong?" view)
+/mantis-scorecard pin <decision_class> --model <m> --as <override>
+/mantis-scorecard unpin <decision_class> --model <m>
+/mantis-scorecard reset [<decision_class>] [--model <m>] [--older-than-days <n>] [--all]
 ```
 
 `list` flags: `--by-savings` `--by-miss-rate` `--untrusted` `--learning` `--consumer <prefix>` `--since <Nd|Nh>`.

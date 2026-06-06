@@ -2,7 +2,7 @@
 description: Run automated workflow tests for all commands
 ---
 
-# /test-workflows - Run MANTISHACK Test Suite
+# /mantis-test-workflows - Run MANTISHACK Test Suite
 
 Runs automated workflow tests to validate all commands and user scenarios.
 

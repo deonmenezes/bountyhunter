@@ -2,7 +2,7 @@
 description: Analyze existing SARIF findings with LLM
 ---
 
-# /analyze - MANTISHACK LLM Analysis
+# /mantis-analyze - MANTISHACK LLM Analysis
 
 Analyzes existing SARIF files with LLM (for findings from previous scans).
 
@@ -12,8 +12,8 @@ Use when you already have SARIF findings and want LLM analysis.
 
 ## Multi-model support
 
-The same `--model`, `--consensus`, `--judge`, and `--aggregate` flags from `/agentic`
-work here. When any role flag is provided, `/analyze` preps findings
+The same `--model`, `--consensus`, `--judge`, and `--aggregate` flags from `/mantis-agentic`
+work here. When any role flag is provided, `/mantis-analyze` preps findings
 then dispatches them through the parallel orchestrator:
 
 ```
@@ -29,6 +29,6 @@ python3 mantishack.py analyze --repo /path --sarif findings.sarif \
   --model claude-opus-4-6 --model gpt-5.4 --aggregate claude-sonnet-4-6
 ```
 
-Without role flags, `/analyze` runs the sequential single-model path as before.
+Without role flags, `/mantis-analyze` runs the sequential single-model path as before.
 
 ---

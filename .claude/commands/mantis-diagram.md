@@ -1,15 +1,15 @@
 ---
-description: Generate Mermaid visual maps from /understand or /validate output directories
+description: Generate Mermaid visual maps from /mantis-understand or /mantis-validate output directories
 ---
 
-# /diagram
+# /mantis-diagram
 
-Turn `/understand` and `/validate` JSON outputs into Mermaid diagrams. Instead of reading raw JSON, you get a visual map of entry points, trust boundaries, sinks, attack trees, and attack paths.
+Turn `/mantis-understand` and `/mantis-validate` JSON outputs into Mermaid diagrams. Instead of reading raw JSON, you get a visual map of entry points, trust boundaries, sinks, attack trees, and attack paths.
 
 ## Usage
 
 ```
-/diagram <out-dir> [--target <name>] [--type context-map|flow-trace|attack-tree|attack-paths|all]
+/mantis-diagram <out-dir> [--target <name>] [--type context-map|flow-trace|attack-tree|attack-paths|all]
 ```
 
 Omit `--type` to render everything in the directory.
@@ -27,17 +27,17 @@ Omit `--type` to render everything in the directory.
 ## Examples
 
 ```
-# Everything from a /understand run
-/diagram .out/code-understanding-20240101/
+# Everything from a /mantis-understand run
+/mantis-diagram .out/code-understanding-20240101/
 
 # Include a target name in the header
-/diagram .out/exploitability-validation-20240101/ --target myapp
+/mantis-diagram .out/exploitability-validation-20240101/ --target myapp
 
 # Just the flow traces
-/diagram .out/code-understanding-20240101/ --type flow-trace
+/mantis-diagram .out/code-understanding-20240101/ --type flow-trace
 
 # Print to stdout
-/diagram .out/code-understanding-20240101/ --stdout
+/mantis-diagram .out/code-understanding-20240101/ --stdout
 ```
 
 ## Output
@@ -55,8 +55,8 @@ Parse `$ARGS` for `<out-dir>` and `--target`, then run the command. Show the out
 ## When to run
 
 After any of:
-- `/understand --map` (produces `context-map.json`)
-- `/understand --trace <entry>` (produces `flow-trace-*.json`)
-- `/validate` (produces `attack-surface.json`, `attack-tree.json`, `attack-paths.json`)
+- `/mantis-understand --map` (produces `context-map.json`)
+- `/mantis-understand --trace <entry>` (produces `flow-trace-*.json`)
+- `/mantis-validate` (produces `attack-surface.json`, `attack-tree.json`, `attack-paths.json`)
 
 Point it at the same output directory. It picks up whatever JSON is there: no configuration needed.

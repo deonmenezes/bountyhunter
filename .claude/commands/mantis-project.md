@@ -2,14 +2,14 @@
 description: Manage MANTISHACK projects — create, list, status, coverage, findings, diff, merge, report, clean, export
 ---
 
-# /project — Project Management
+# /mantis-project — Project Management
 
 Manage projects — named workspaces that corral analysis runs into one directory.
 
 ## Usage
 
 ```
-/project <subcommand> [args]
+/mantis-project <subcommand> [args]
 ```
 
 ## Subcommands
@@ -55,6 +55,6 @@ Run the command via Bash, then output the result verbatim in a fenced code block
 
 ## Active project
 
-When a project is active (via `/project use <name>`), subsequent commands write their output to the project directory instead of generating timestamped dirs under `out/`.
+When a project is active (via `/mantis-project use <name>`), subsequent commands write their output to the project directory instead of generating timestamped dirs under `out/`.
 
 ARGUMENTS: $ARGS

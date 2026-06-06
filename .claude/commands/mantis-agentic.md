@@ -2,7 +2,7 @@
 description: Full autonomous security workflow — scan, dedup, prep, analyse, consensus, judge, exploit, patch, group
 ---
 
-# /agentic - MANTISHACK Full Autonomous Workflow
+# /mantis-agentic - MANTISHACK Full Autonomous Workflow
 
 🤖 **AGENTIC MODE** - This will autonomously:
 1. Scan code with Semgrep/CodeQL (parallel)
@@ -24,24 +24,24 @@ Execute: `libexec/mantishack-agentic --repo <path>`
 
 ## Optional enrichment flags
 
-By default, `/agentic` scans and analyses findings in isolation. Two optional flags add richer context for more thorough results. They are opt-in because they add time and cost, but if you are doing a proper security review rather than a quick scan, they are well worth it.
+By default, `/mantis-agentic` scans and analyses findings in isolation. Two optional flags add richer context for more thorough results. They are opt-in because they add time and cost, but if you are doing a proper security review rather than a quick scan, they are well worth it.
 
 | Flag | What it does |
 |------|-------------|
-| `--understand` | Runs `/understand --map` as a proper sibling run, producing `context-map.json` (entry points, trust boundaries, sinks). Two consumers: (a) the agentic checklist gets priority markers, so per-finding analysis prompts say things like *"Architectural role: entry_point"* — improving in-run analysis; (b) any `/validate` against the same target — including this run's `--validate` post-pass — picks the map up via the bridge. |
-| `--validate` | After the agentic pipeline completes, runs `/validate` on findings flagged `is_exploitable: true` or `confidence: "high"`. Creates a sibling validate run; the bridge auto-discovers any `/understand` sibling produced by `--understand`. |
+| `--understand` | Runs `/mantis-understand --map` as a proper sibling run, producing `context-map.json` (entry points, trust boundaries, sinks). Two consumers: (a) the agentic checklist gets priority markers, so per-finding analysis prompts say things like *"Architectural role: entry_point"* — improving in-run analysis; (b) any `/mantis-validate` against the same target — including this run's `--validate` post-pass — picks the map up via the bridge. |
+| `--validate` | After the agentic pipeline completes, runs `/mantis-validate` on findings flagged `is_exploitable: true` or `confidence: "high"`. Creates a sibling validate run; the bridge auto-discovers any `/mantis-understand` sibling produced by `--understand`. |
 
 You can use either flag on its own or combine them:
 
 ```
 # Recommended for thorough reviews — pair both flags
-/agentic --understand --validate
+/mantis-agentic --understand --validate
 
 # Just enrich this run's analysis with architectural priority markers
-/agentic --understand
+/mantis-agentic --understand
 
 # Just validate the findings that look exploitable (no pre-mapping)
-/agentic --validate
+/mantis-agentic --validate
 ```
 
 Pass both flags straight through to `libexec/mantishack-agentic`. The Python layer owns all orchestration and selection logic; you don't need to filter findings or invoke other skills yourself.
@@ -103,16 +103,16 @@ By default, the primary model is auto-detected from `~/.config/mantishack/models
 
 ```
 # Single model
-/agentic --model gemini-2.5-pro
+/mantis-agentic --model gemini-2.5-pro
 
 # Multi-model — each analyses independently, results correlated
-/agentic --model gemini-2.5-pro --model gpt-5 --model claude-opus-4-6
+/mantis-agentic --model gemini-2.5-pro --model gpt-5 --model claude-opus-4-6
 
 # Multi-model + downstream aggregation
-/agentic --model claude-opus-4-6 --model gpt-5.4 --aggregate claude-sonnet-4-6
+/mantis-agentic --model claude-opus-4-6 --model gpt-5.4 --aggregate claude-sonnet-4-6
 
 # Single model + consensus + judge
-/agentic --model gemini-2.5-pro --consensus gpt-5.4 --judge claude-opus-4-6
+/mantis-agentic --model gemini-2.5-pro --consensus gpt-5.4 --judge claude-opus-4-6
 ```
 
 Roles can also be set permanently in `models.json` instead of CLI flags.

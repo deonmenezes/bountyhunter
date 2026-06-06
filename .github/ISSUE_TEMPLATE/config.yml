@@ -1,0 +1,12 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/deonmenezes/mantishack/security/advisories/new
+    about: >-
+      Do NOT open a public issue for vulnerabilities in Mantishack itself.
+      Use GitHub Private Vulnerability Reporting (see SECURITY.md).
+  - name: Upstream project (RAPTOR)
+    url: https://github.com/gadievron/raptor/issues
+    about: >-
+      For core engine/framework bugs and feature requests that belong to
+      the upstream RAPTOR project.

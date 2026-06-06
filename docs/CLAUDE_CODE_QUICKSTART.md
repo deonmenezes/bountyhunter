@@ -8,13 +8,9 @@ Use MANTISHACK with plain English in Claude Code via slash commands!
 | Command | Use Case | Example |
 |---------|----------|---------|
 | `/mantishack` | General help | `/mantishack - I want to test my app` |
-| `/scan`   | Scan source code | `/scan - check this repo for bugs` |
-| `/fuzz`   | Fuzz binaries | `/fuzz - test ./myapp for crashes` |
-| `/web`    | Test web apps | `/web - scan https://myapp.com` |
-
-The longer `/mantishack-scan` / `/mantishack-fuzz` / `/mantishack-web` forms are
-retained as back-compat aliases — both work, but the short form is
-canonical going forward.
+| `/mantis-scan`   | Scan source code | `/mantis-scan - check this repo for bugs` |
+| `/mantis-fuzz`   | Fuzz binaries | `/mantis-fuzz - test ./myapp for crashes` |
+| `/mantis-web`    | Test web apps | `/mantis-web - scan https://myapp.com` |
 
 ## Natural Language Examples
 
@@ -22,23 +18,23 @@ Just talk naturally to Claude:
 
 ### Code Scanning
 ```
-/scan - scan this directory
-/scan - find secrets in my code
-/scan - check for SQL injection vulnerabilities
+/mantis-scan - scan this directory
+/mantis-scan - find secrets in my code
+/mantis-scan - check for SQL injection vulnerabilities
 ```
 
 ### Binary Fuzzing
 ```
-/fuzz - fuzz this binary
-/fuzz - test ./myapp for 5 minutes
-/fuzz - find crashes in /usr/local/bin/myapp
+/mantis-fuzz - fuzz this binary
+/mantis-fuzz - test ./myapp for 5 minutes
+/mantis-fuzz - find crashes in /usr/local/bin/myapp
 ```
 
 ### Web Testing
 ```
-/web - test my website
-/web - scan https://localhost:3000 for XSS
-/web - check this app for OWASP Top 10
+/mantis-web - test my website
+/mantis-web - scan https://localhost:3000 for XSS
+/mantis-web - check this app for OWASP Top 10
 ```
 
 ### General
@@ -60,7 +56,7 @@ Just talk naturally to Claude:
 ## Interactive Workflow
 
 ```
-You: /mantishack-scan - scan this code
+You: /mantis-scan - scan this code
 
 Claude: I'll scan the current directory with MANTISHACK...
         [Runs scan...]
@@ -114,9 +110,9 @@ claude
 "Install Ollama and pull deepseek-r1 model"       # Local/free
 
 # 4. Start using MANTISHACK
-/scan - Scan code for vulnerabilities
-/fuzz - Fuzz binaries (asks to install AFL++ if needed)
-/web  - Test web applications
+/mantis-scan - Scan code for vulnerabilities
+/mantis-fuzz - Fuzz binaries (asks to install AFL++ if needed)
+/mantis-web  - Test web applications
 ```
 
 **Optional tools** (Claude Code helps install when you use them):
@@ -130,17 +126,17 @@ Let Claude Code handle it!
 
 ### "I just cloned a new repo and want to check it"
 ```
-/mantishack-scan - scan this repository for all security issues
+/mantis-scan - scan this repository for all security issues
 ```
 
 ### "I have a binary and want to find bugs"
 ```
-/mantishack-fuzz - fuzz ./myapp for 30 minutes
+/mantis-fuzz - fuzz ./myapp for 30 minutes
 ```
 
 ### "I want to test my web app before deploying"
 ```
-/mantishack-web - test http://localhost:8000
+/mantis-web - test http://localhost:8000
 ```
 
 ### "I'm not sure what I need"

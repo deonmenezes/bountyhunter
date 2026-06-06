@@ -2,7 +2,7 @@
 description: Binary fuzzing with AFL++ integration
 ---
 
-# /fuzz - MANTISHACK Binary Fuzzer
+# /mantis-fuzz - MANTISHACK Binary Fuzzer
 
 You are helping the user fuzz a binary executable with MANTISHACK's AFL++ integration.
 

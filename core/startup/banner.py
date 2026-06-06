@@ -91,6 +91,7 @@ def format_banner(
         lines.append(f"  warn: {ordered[0]}")
         for w in ordered[1:]:
             lines.append(f"        {w}")
+        lines.append("        run 'mantishack doctor' for a full local-setup report")
         lines.append("")
 
     # Active project

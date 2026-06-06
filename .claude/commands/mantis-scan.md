@@ -2,7 +2,7 @@
 description: Scan a repository with Semgrep and CodeQL
 ---
 
-# /scan - MANTISHACK Code Security Scan
+# /mantis-scan - MANTISHACK Code Security Scan
 
 You are helping the user run MANTISHACK's autonomous security scanning on a code repository.
 

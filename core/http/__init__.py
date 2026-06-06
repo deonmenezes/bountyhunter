@@ -42,7 +42,7 @@ DEFAULT_TOTAL_TIMEOUT = 600            # seconds (whole-call deadline incl retri
 # Backends MUST cap the effective attempt count at their own schedule
 # length, and the urllib backend asserts the relationship at import.
 DEFAULT_RETRIES = 5
-DEFAULT_USER_AGENT = "mantishack/0.1 (+https://github.com/gadievron/raptor)"
+DEFAULT_USER_AGENT = "mantishack/0.1 (+https://github.com/deonmenezes/mantishack)"
 
 
 class HttpError(Exception):

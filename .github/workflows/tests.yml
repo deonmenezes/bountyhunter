@@ -338,7 +338,6 @@ jobs:
             --ignore=packages/llm_analysis/tests \
             --ignore=packages/cve_diff/tests \
             --ignore=packages/fuzzing/tests \
-            --ignore=packages/oss_forensics/tests \
             --ignore=packages/sca \
             --ignore=core/sage/tests \
             --ignore=core/orchestration/tests \

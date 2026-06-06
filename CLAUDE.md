@@ -48,6 +48,8 @@ Exception: when the skill itself shows the modification (e.g. a documented `| te
 /mantis-scorecard - Inspect per-model reliability across decision classes; ask natural-language questions about which model is good at what (see below)
 /mantis-create-skill - Save approaches (alpha)
 
+**Local setup check:** `python3 mantishack.py doctor` (or `mantishack doctor`) prints a no-LLM diagnostic of which external tools (Semgrep, CodeQL, AFL++, gdb, rr, tree-sitter) are present and which features degrade without them. Run it first when a command reports it is "unavailable". `--strict` exits non-zero on warnings (CI-friendly).
+
 ---
 
 ## PROJECTS

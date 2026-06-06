@@ -2,7 +2,7 @@
 description: Validate that vulnerability findings are real, reachable, and exploitable
 ---
 
-# /validate - Exploitability Validation Pipeline
+# /mantis-validate - Exploitability Validation Pipeline
 
 Validates that vulnerability findings are real, reachable, and exploitable before investing in exploit development.
 
@@ -27,7 +27,7 @@ Stage E only applies to memory corruption vulnerabilities. All others are mandat
 libexec/mantishack-validation-helper 0 --target "$TARGET_PATH"
 ```
 
-This starts the run lifecycle, builds the checklist, and imports any /understand output. The last line of output is `OUTPUT_DIR=<path>` — use that path for all subsequent stages.
+This starts the run lifecycle, builds the checklist, and imports any /mantis-understand output. The last line of output is `OUTPUT_DIR=<path>` — use that path for all subsequent stages.
 
 ### Stage A (Claude): One-Shot Assessment
 
@@ -129,22 +129,22 @@ the table has 7 columns, your output must have 7 columns.
 
 ```bash
 # Validate all vulnerability types in a codebase
-/validate ./src
+/mantis-validate ./src
 
 # Focus on a specific vulnerability type
-/validate ./webapp --vuln-type command_injection
+/mantis-validate ./webapp --vuln-type command_injection
 
 # Validate pre-existing scanner findings (skips Stage A discovery)
-/validate ./src --findings scanner-results.json
+/mantis-validate ./src --findings scanner-results.json
 
 # Validate memory corruption with binary path for Stage E
-/validate ./vuln_app --vuln-type format_string --binary ./build/vuln
+/mantis-validate ./vuln_app --vuln-type format_string --binary ./build/vuln
 
 # Skip feasibility analysis even for memory corruption
-/validate ./vuln_app --vuln-type buffer_overflow --skip-feasibility
+/mantis-validate ./vuln_app --vuln-type buffer_overflow --skip-feasibility
 
-# Use explicit output directory (e.g. shared with /understand)
-/validate ./src --out out/shared-run/
+# Use explicit output directory (e.g. shared with /mantis-understand)
+/mantis-validate ./src --out out/shared-run/
 ```
 
 ---
@@ -164,15 +164,15 @@ This command enforces strict validation gates. Full definitions are in `.claude/
 
 ## When to Use
 
-- After `/scan` or `/agentic` produces findings
-- Before investing time in `/exploit` development
+- After `/mantis-scan` or `/mantis-agentic` produces findings
+- Before investing time in `/mantis-exploit` development
 - When you suspect false positives from scanners
 - To validate third-party security reports
 
 ## Workflow Integration
 
 ```
-/scan -> /validate -> /exploit
+/mantis-scan -> /mantis-validate -> /mantis-exploit
    |         |           |
    v         v           v
  Finds    Confirms    Develops

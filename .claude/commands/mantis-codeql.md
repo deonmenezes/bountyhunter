@@ -2,7 +2,7 @@
 description: CodeQL deep static analysis with dataflow validation
 ---
 
-# /codeql - MANTISHACK CodeQL Analysis
+# /mantis-codeql - MANTISHACK CodeQL Analysis
 
 Runs CodeQL deep static analysis with dataflow validation. Slower but finds complex vulnerabilities that Semgrep misses (tainted flows, use-after-free, injection chains).
 
@@ -49,13 +49,13 @@ CWE-476 (null deref). String-based findings (CWE-89) fall through to LLM analysi
 
 ```bash
 # Scan only (default) — produces SARIF
-/codeql --repo /tmp/vulns
+/mantis-codeql --repo /tmp/vulns
 
 # Full autonomous analysis (includes SMT dataflow pre-check if z3 installed)
-/codeql --repo /tmp/vulns --analyze
+/mantis-codeql --repo /tmp/vulns --analyze
 
 # Specific language with custom build
-/codeql --repo /tmp/vulns --languages cpp --build-command "make"
+/mantis-codeql --repo /tmp/vulns --languages cpp --build-command "make"
 ```
 
 ---

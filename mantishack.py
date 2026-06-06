@@ -837,7 +837,7 @@ not before; the top-level parser does not declare them directly):
   python3 mantishack.py help fuzz
   python3 mantishack.py scan --help
 
-For more information, visit: https://github.com/gadievron/raptor
+For more information, visit: https://github.com/deonmenezes/mantishack
 """
 
 

@@ -4,34 +4,34 @@
 
 **Security testing:**
 ```
-/scan     - Static code analysis (Semgrep only — Semgrep + CodeQL + LLM is /agentic)
-/fuzz     - Binary fuzzing (AFL++ + crash analysis)
-/web      - Web application security testing
-/agentic  - Full autonomous workflow (most comprehensive)
-/codeql   - CodeQL-only deep analysis
-/analyze  - LLM analysis of existing SARIF files
-/validate - Exploitability validation pipeline
+/mantis-scan     - Static code analysis (Semgrep only — Semgrep + CodeQL + LLM is /mantis-agentic)
+/mantis-fuzz     - Binary fuzzing (AFL++ + crash analysis)
+/mantis-web      - Web application security testing
+/mantis-agentic  - Full autonomous workflow (most comprehensive)
+/mantis-codeql   - CodeQL-only deep analysis
+/mantis-analyze  - LLM analysis of existing SARIF files
+/mantis-validate - Exploitability validation pipeline
 ```
 
 **Exploit development & patching:**
 ```
-/exploit - Generate exploit proof-of-concepts (beta)
-/patch   - Generate security patches (beta)
+/mantis-exploit - Generate exploit proof-of-concepts (beta)
+/mantis-patch   - Generate security patches (beta)
 ```
 
 **Code understanding & forensics:**
 ```
-/understand     - Adversarial code comprehension (map attack surface, trace data flows)
-/oss-forensics  - Evidence-backed GitHub forensic investigation
-/crash-analysis - Autonomous crash root-cause analysis
+/mantis-understand     - Adversarial code comprehension (map attack surface, trace data flows)
+/mantis-oss-forensics  - Evidence-backed GitHub forensic investigation
+/mantis-crash-analysis - Autonomous crash root-cause analysis
 ```
 
 **Skill management:**
 ```
-/create-skill - Save custom approach for reuse (alpha)
+/mantis-create-skill - Save custom approach for reuse (alpha)
 ```
 
-**Note:** Skills are alpha - /create-skill creates skill definitions, but auto-loading and execution integration is not yet implemented.
+**Note:** Skills are alpha - /mantis-create-skill creates skill definitions, but auto-loading and execution integration is not yet implemented.
 
 ---
 
@@ -65,7 +65,7 @@ See `tiers/personas/` directory for complete persona files.
 ## Example Workflow
 
 ```
-User: /scan
+User: /mantis-scan
 
 Claude: [Python executes mantishack.py scan]
         [Scan completes]
@@ -98,7 +98,7 @@ User: Y
 
 Claude: [Applies patches using Edit tool]
         ✓ Patches applied successfully
-        Run /scan again to verify fixes? [Y/n]
+        Run /mantis-scan again to verify fixes? [Y/n]
 ```
 
 ---
@@ -121,7 +121,7 @@ Claude: [Applies patches using Edit tool]
 ## Interaction Flow
 
 ```
-User: /scan
+User: /mantis-scan
    ↓
 CLAUDE.md loads (360t)
 Session greeting: "MANTISHACK ready..."
@@ -171,7 +171,7 @@ out/scan_<repo>_<timestamp>/
 After successful custom approach:
 
 ```
-User: /create-skill
+User: /mantis-create-skill
 
 Claude: What successful approach should we save?
 

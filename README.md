@@ -69,6 +69,16 @@ The `--privileged` flag is required for the `rr` deterministic debugger. The ima
 
 Once inside, just say "hi" to get started, or jump straight to a command.
 
+### Check your setup
+
+Not sure what's installed? Run the built-in diagnostic. It needs no LLM and reports which external tools (Semgrep, CodeQL, AFL++, …) are present and which features degrade without them:
+
+```bash
+python3 mantishack.py doctor
+```
+
+If `/mantis-scan` or `/mantis-agentic` says it is unavailable, this is the first thing to run — it tells you exactly what is missing.
+
 ---
 
 ## What Mantishack can do

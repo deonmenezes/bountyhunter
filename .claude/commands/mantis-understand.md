@@ -2,7 +2,7 @@
 description: Map attack surface, trace data flows, hunt vulnerability variants
 ---
 
-# /understand - MANTISHACK Code Understanding
+# /mantis-understand - MANTISHACK Code Understanding
 
 You cannot find bugs if you don't have a deep, adversarial code understanding and comprehension for said codebase. This helps map the attack surface, trace data flows, hunt for vulnerability variants and so much more.....
 
@@ -11,8 +11,8 @@ It is a work in progress, remember that.
 ## Usage
 
 ```
-/understand <target> [--map] [--trace <entry>] [--hunt <pattern>] [--teach <subject>]
-                     [--out <dir>] [--model <name> ...]
+/mantis-understand <target> [--map] [--trace <entry>] [--hunt <pattern>] [--teach <subject>]
+                            [--out <dir>] [--model <name> ...]
 ```
 
 If no mode flag is given, default to `--map`.
@@ -25,8 +25,8 @@ Each model produces its own findings; the substrate identifies items
 where models agree (high confidence) vs. disagree (worth a closer look).
 
 ```
-/understand <target> --hunt "<pattern>" --model claude-opus-4-7 --model gpt-5
-/understand <target> --trace traces.json --model claude-opus-4-7 --model gpt-5
+/mantis-understand <target> --hunt "<pattern>" --model claude-opus-4-7 --model gpt-5
+/mantis-understand <target> --trace traces.json --model claude-opus-4-7 --model gpt-5
 ```
 
 **When to dispatch to libexec instead of running in-session:** if the
@@ -122,27 +122,27 @@ Modes combine and run in order: map → trace → hunt → teach. This matches t
 
 ```
 # Understand a codebase before scanning it
-/understand ./src --map
+/mantis-understand ./src --map
 
 # Trace a specific endpoint's data flow
-/understand ./src --trace "POST /api/v2/query"
+/mantis-understand ./src --trace "POST /api/v2/query"
 
 # Find all variants of a finding from validation
-/understand ./src --hunt FIND-001
+/mantis-understand ./src --hunt FIND-001
 
 # Understand an unfamiliar pattern before tracing
-/understand ./src --teach SQLAlchemy
+/mantis-understand ./src --teach SQLAlchemy
 
 # Full workflow: map, then trace highest-risk flow
-/understand ./src --map --trace EP-001
+/mantis-understand ./src --map --trace EP-001
 
 # Hunt for variants, write output for validator to consume
-/understand ./src --hunt "cursor.execute with f-string" --out .out/my-validation/
+/mantis-understand ./src --hunt "cursor.execute with f-string" --out .out/my-validation/
 ```
 
 ## Integration with Validation Pipeline
 
-**Shared inventory:** `--map` runs `build_checklist()` first (MAP-0 step) to produce `checklist.json` with SHA-256 checksums. This is the same inventory used by `/validate` Stage 0. Coverage tracking is cumulative across both skills.
+**Shared inventory:** `--map` runs `build_checklist()` first (MAP-0 step) to produce `checklist.json` with SHA-256 checksums. This is the same inventory used by `/mantis-validate` Stage 0. Coverage tracking is cumulative across both skills.
 
 Understanding output feeds into Gadi & JC's epic exploitability validation:
 
@@ -151,10 +151,10 @@ Understanding output feeds into Gadi & JC's epic exploitability validation:
 - `flow-trace-*.json` → confirms reachability for Stage C
 - `variants.json` → expands `checklist.json` scope for Stage 0
 
-**Automatic bridge:** `/validate` Stage 0 automatically finds and imports `/understand` output. No `--out` alignment needed — the bridge searches co-located files, project siblings, and global `out/` (matching by target path and SHA-256 freshness). Just run both commands:
+**Automatic bridge:** `/mantis-validate` Stage 0 automatically finds and imports `/mantis-understand` output. No `--out` alignment needed — the bridge searches co-located files, project siblings, and global `out/` (matching by target path and SHA-256 freshness). Just run both commands:
 ```
-/understand ./src --map
-/validate ./src
+/mantis-understand ./src --map
+/mantis-validate ./src
 ```
 
 This works with or without a project. With a project, sibling runs are found first. Without a project, the bridge matches by `checklist.json` target path across `out/`.

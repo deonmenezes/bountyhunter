@@ -2,7 +2,7 @@
 description: Evidence-backed forensic investigation for GitHub repositories
 ---
 
-# /oss-forensics - OSS GitHub Forensic Investigation
+# /mantis-oss-forensics - OSS GitHub Forensic Investigation
 
 You are about to orchestrate a forensic investigation on a public GitHub repository.
 
@@ -18,7 +18,7 @@ You are the ORCHESTRATOR for this investigation. You will spawn specialist agent
 2. **Follow the workflow** defined in that skill exactly
 
 3. **The user's investigation request is:**
-   {rest of command arguments after /oss-forensics}
+   {rest of command arguments after /mantis-oss-forensics}
 
 4. **Parse any flags:**
    - `--max-followups N` (default: 3) - Maximum evidence collection rounds
@@ -68,13 +68,13 @@ Key outputs:
 ## Examples
 
 ```
-/oss-forensics "Investigate lkmanka58's activity on aws/aws-toolkit-vscode"
+/mantis-oss-forensics "Investigate lkmanka58's activity on aws/aws-toolkit-vscode"
 
-/oss-forensics "Validate claims in this vendor report: https://example.com/report"
+/mantis-oss-forensics "Validate claims in this vendor report: https://example.com/report"
 
-/oss-forensics "What happened with the stability tag on aws/aws-toolkit-vscode on July 13, 2025?"
+/mantis-oss-forensics "What happened with the stability tag on aws/aws-toolkit-vscode on July 13, 2025?"
 
-/oss-forensics "Investigate the July 13 incident on aws/aws-toolkit-vscode" --max-followups 5
+/mantis-oss-forensics "Investigate the July 13 incident on aws/aws-toolkit-vscode" --max-followups 5
 ```
 
 ## Important Notes

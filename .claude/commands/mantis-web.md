@@ -2,9 +2,9 @@
 description: Web application security scanner (alpha)
 ---
 
-# /web - MANTISHACK Web Application Scanner
+# /mantis-web - MANTISHACK Web Application Scanner
 
-WARNING: `/web` is in alpha — expect false positives and incomplete
+WARNING: `/mantis-web` is in alpha — expect false positives and incomplete
 coverage. Use against test endpoints you own.
 
 You are helping the user scan a web application for security vulnerabilities.

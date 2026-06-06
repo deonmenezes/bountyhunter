@@ -2,7 +2,7 @@
 description: Save a custom approach as a reusable skill
 ---
 
-# /create-skill - Save Custom Approach as Reusable Skill
+# /mantis-create-skill - Save Custom Approach as Reusable Skill
 
 Save a successful custom approach as a reusable specialist skill.
 
@@ -149,7 +149,7 @@ User: Y
 Claude: ✓ Created: .claude/skills/api_auth_priority/SKILL.md
         Will auto-load when keywords match: API, authentication
 
-        Test it now? Run /scan on API codebase
+        Test it now? Run /mantis-scan on API codebase
 ```
 
 ---

@@ -2,7 +2,7 @@
 description: Add, list, edit, or remove per-function annotations attached to source files
 ---
 
-# /annotate
+# /mantis-annotate
 
 Per-function prose annotations stored as markdown mirroring the source tree.
 Annotations capture audit-style notes on individual functions: a manual
@@ -10,18 +10,18 @@ Annotations capture audit-style notes on individual functions: a manual
 free-form prose.
 
 Operator-driven adds default to ``metadata.source=human``, so subsequent
-LLM passes (`/agentic`, `/understand` post-processor) that pass
+LLM passes (`/mantis-agentic`, `/mantis-understand` post-processor) that pass
 ``overwrite=respect-manual`` will not silently clobber operator notes.
 
 ## Usage
 
 ```
-/annotate add <file> <function> [options]
-/annotate ls [options]
-/annotate show <file> <function> [options]
-/annotate edit <file> <function> [options]
-/annotate rm <file> <function> [options]
-/annotate stale [options]
+/mantis-annotate add <file> <function> [options]
+/mantis-annotate ls [options]
+/mantis-annotate show <file> <function> [options]
+/mantis-annotate edit <file> <function> [options]
+/mantis-annotate rm <file> <function> [options]
+/mantis-annotate stale [options]
 ```
 
 ## Subcommands
@@ -76,31 +76,31 @@ LLM passes (`/agentic`, `/understand` post-processor) that pass
 
 ```
 # Manual clean review
-/annotate add src/auth.py check_password \
+/mantis-annotate add src/auth.py check_password \
     --status clean -m "Reviewed: constant-time compare, no taint"
 
 # Manual finding with CWE + staleness hash
-/annotate add src/exec.py run_cmd \
+/mantis-annotate add src/exec.py run_cmd \
     --status finding --cwe CWE-78 \
     --lines 42-58 --target ~/repos/myproj \
     -m "Confirmed shell injection via subprocess(shell=True)"
 
 # Quick listing
-/annotate ls
-/annotate ls --status finding
-/annotate ls --source human
+/mantis-annotate ls
+/mantis-annotate ls --status finding
+/mantis-annotate ls --source human
 
 # Inspect one record
-/annotate show src/auth.py check_password
+/mantis-annotate show src/auth.py check_password
 
 # Edit (opens .md in $EDITOR)
-/annotate edit src/auth.py check_password
+/mantis-annotate edit src/auth.py check_password
 
 # Remove a record
-/annotate rm src/auth.py old_function
+/mantis-annotate rm src/auth.py old_function
 
 # Find stale annotations after source edits
-/annotate stale --target ~/repos/myproj
+/mantis-annotate stale --target ~/repos/myproj
 ```
 
 ## Execution
@@ -113,7 +113,7 @@ libexec/mantishack-annotate <subcommand> [args]
 
 For `add` calls invoked through this slash command, the operator's intent
 is implicit — keep the default `--source human`. Do **not** pass
-`--source llm` from `/annotate` unless the operator explicitly asks for
+`--source llm` from `/mantis-annotate` unless the operator explicitly asks for
 scripted, non-human-attributable behaviour.
 
 ## Output
@@ -129,17 +129,17 @@ The CLI resolves the annotation base in this order:
 2. Active project's `<output_dir>/annotations`
 3. Exit 2 with a hint to set `--base` or activate a project
 
-So when a project is active (`/project use foo`), `/annotate ls` "just
+So when a project is active (`/mantis-project use foo`), `/mantis-annotate ls` "just
 works" without arguments.
 
 ## Conventions
 
 - **`metadata.source=human`** marks a manual entry. LLM-driven callers
-  (e.g. `/agentic`'s annotation emitter) pass `overwrite=respect-manual`
+  (e.g. `/mantis-agentic`'s annotation emitter) pass `overwrite=respect-manual`
   so they will skip rather than overwrite a human-source record.
 - **`metadata.hash`**: a short sha256 prefix of the function's source
   lines, captured at add time when `--lines N-M --target REPO_ROOT` is
-  provided. Used by `/annotate stale` to detect annotations whose source
+  provided. Used by `/mantis-annotate stale` to detect annotations whose source
   has drifted.
 - **Function names**: top-level functions use bare names (`process`);
   class methods use dotted form (`MyClass.process`).
