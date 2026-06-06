@@ -77,10 +77,6 @@
   .field-wrap button:hover{background:var(--accent-hi);}
   .field-wrap button:active{transform:translateY(1px);}
   .field-wrap button[disabled]{opacity:.5;cursor:not-allowed;}
-  .consent{display:flex;align-items:flex-start;gap:10px;margin-top:16px;font-size:13px;
-    color:var(--dim);line-height:1.5;cursor:pointer;}
-  .consent input{accent-color:var(--accent);width:16px;height:16px;margin-top:1px;flex-shrink:0;}
-  .consent strong{color:var(--text);font-weight:600;}
   .err{color:var(--high);font-size:13px;margin-top:12px;min-height:1em;text-align:center;}
   .hint-row{text-align:center;margin-top:14px;color:var(--dim-2);font-size:12.5px;}
   .hint-row code{font-family:var(--font-mono);color:var(--dim);background:var(--surface-2);
@@ -224,11 +220,6 @@
             spellcheck="false" placeholder="app.example.com" />
           <button type="submit" id="go">Scan now →</button>
         </div>
-        <label class="consent">
-          <input id="consent" type="checkbox" />
-          <span>I own this target or have <strong>written authorization</strong> to test it.
-            Mantishack is offensive tooling — unauthorized use is illegal.</span>
-        </label>
         <div class="err" id="err"></div>
       </form>
       <div class="hint-row" id="repo-hint" style="display:none;">
@@ -348,7 +339,6 @@
     $("err").textContent = "";
     var v = normalize($("target").value);
     if(!v.ok){ $("err").textContent = v.reason; return; }
-    if(!$("consent").checked){ $("err").textContent = "Please confirm authorization first."; return; }
     $("go").disabled = true;
     var body = kind==="repo" ? {repo:v.value, type:"repo"} : {url:v.value, type:"web"};
     fetch("/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
@@ -477,7 +467,7 @@
     return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;","/":"&#47;"}[c]; }); }
 
   $("again").addEventListener("click", function(){
-    $("target").value=""; $("consent").checked=false; $("err").textContent="";
+    $("target").value=""; $("err").textContent="";
     show("stage-input");
   });
   $("copy").addEventListener("click", function(){
