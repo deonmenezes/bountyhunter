@@ -14,18 +14,6 @@ Upstream: [github.com/gadievron/raptor](https://github.com/gadievron/raptor)
 
 ---
 
-## Built on top of RAPTOR
-
-**Mantishack is a fork of [RAPTOR](https://github.com/gadievron/raptor)** — the Recursive Autonomous Penetration Testing and Observation Robot by Gadi Evron, Daniel Cuthbert, Thomas Dullien (Halvar Flake), Michael Bargury, and John Cartwright. The agentic workflow, the Semgrep + CodeQL pipeline, the multi-stage validation methodology, the persona library, and the offline registry packs all come from RAPTOR. Mantishack carries that work forward, rebrands the user-facing surface to the `/mantis-*` slash-command vocabulary, adds an automatic auth + logging audit lane (JWT, cookies, audit-log coverage), and ships under MIT with two coexisting copyrights.
-
-> **Upstream licence:** MIT © 2025-2026 Gadi Evron, Daniel Cuthbert, Thomas Dullien (Halvar Flake), Michael Bargury, John Cartwright — see [`LICENSE`](./LICENSE).
-> **Fork-modification licence:** MIT © 2026 Deon Menezes — see [`LICENSE-MANTISHACK`](./LICENSE-MANTISHACK).
-> Combined attribution and modification log in [`NOTICE`](./NOTICE).
-
-If you came here looking for the canonical project, please visit [github.com/gadievron/raptor](https://github.com/gadievron/raptor) — that is where upstream development happens. If you want to make the framework better, open a PR upstream.
-
----
-
 ## What is Mantishack?
 
 Mantishack is an autonomous security research framework built on top of Claude Code (but not tied to it — you can plug in your own analysis layer too). It chains together static analysis, binary analysis, LLM-powered vulnerability validation, exploit generation, and patch writing into a single workflow you can run against a codebase or binary.
@@ -263,6 +251,18 @@ tiers/                 adversarial thinking, recovery, expert personas
 ```
 
 The split means you can run the Python layer from a CI pipeline (`python3 mantishack.py scan --repo ...`) and get structured SARIF output without Claude Code, or run it interactively with the full agentic workflow.
+
+---
+
+## Built on top of RAPTOR
+
+**Mantishack is a fork of [RAPTOR](https://github.com/gadievron/raptor)** — the Recursive Autonomous Penetration Testing and Observation Robot by Gadi Evron, Daniel Cuthbert, Thomas Dullien (Halvar Flake), Michael Bargury, and John Cartwright. The agentic workflow, the Semgrep + CodeQL pipeline, the multi-stage validation methodology, the persona library, and the offline registry packs all come from RAPTOR. Mantishack carries that work forward, rebrands the user-facing surface to the `/mantis-*` slash-command vocabulary, adds an automatic auth + logging audit lane (JWT, cookies, audit-log coverage), and ships under MIT with two coexisting copyrights.
+
+> **Upstream licence:** MIT © 2025-2026 Gadi Evron, Daniel Cuthbert, Thomas Dullien (Halvar Flake), Michael Bargury, John Cartwright — see [`LICENSE`](./LICENSE).
+> **Fork-modification licence:** MIT © 2026 Deon Menezes — see [`LICENSE-MANTISHACK`](./LICENSE-MANTISHACK).
+> Combined attribution and modification log in [`NOTICE`](./NOTICE).
+
+If you came here looking for the canonical project, please visit [github.com/gadievron/raptor](https://github.com/gadievron/raptor) — that is where upstream development happens. If you want to make the framework better, open a PR upstream.
 
 ---
 
