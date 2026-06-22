@@ -1,8 +1,8 @@
 # MANTISHACK — Autonomous Offensive/Defensive Research Framework
 
-> A fork of [RAPTOR](https://github.com/gadievron/raptor) (Recursive Autonomous
-> Penetration Testing and Observation Robot). See the root README.md and NOTICE
-> for attribution.
+> Inspired by [RAPTOR](https://github.com/gadievron/raptor) on GitHub (Recursive
+> Autonomous Penetration Testing and Observation Robot). See the root README.md
+> and NOTICE for attribution.
 
 **Version**: 2.0 (Modular)
 **Purpose**: Autonomous security testing for codebases and binaries
