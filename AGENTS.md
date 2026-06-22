@@ -1,6 +1,6 @@
 # Mantishack
 
-An autonomous security research framework (fork of [RAPTOR](https://github.com/gadievron/raptor)) that chains together static analysis, binary analysis, LLM-powered vulnerability validation, exploit generation, and patch writing into a single agentic workflow. Run against a codebase or binary to discover and validate vulnerabilities end-to-end.
+An autonomous security research framework (inspired by [RAPTOR](https://github.com/gadievron/raptor) on GitHub) that chains together static analysis, binary analysis, LLM-powered vulnerability validation, exploit generation, and patch writing into a single agentic workflow. Run against a codebase or binary to discover and validate vulnerabilities end-to-end.
 
 ## Tech Stack
 
@@ -89,13 +89,13 @@ CLAUDE.md                 Claude Code project instructions
 - `core/llm/` abstracts LLM calls; supports both Anthropic (Claude) and OpenAI-compatible providers.
 - `core/reporting/` outputs findings in SARIF format and human-readable reports.
 - Trust-marker system: `libexec/` scripts refuse to run without `CLAUDECODE`, `_MANTISHACK_TRUSTED`, or `MANTISHACK_DIR` set — prevents accidental execution outside the framework.
-- Upstream: [github.com/gadievron/raptor](https://github.com/gadievron/raptor). This fork adds `/mantis-*` slash-command vocabulary and auth/logging audit lane.
+- Upstream: [github.com/gadievron/raptor](https://github.com/gadievron/raptor). Mantishack adds the `/mantis-*` slash-command vocabulary and auth/logging audit lane.
 
 ## Conventions & Notes for Agents
 
 - **Dependency pins are intentional** (`requirements.txt` uses exact versions). Upgrade via dedicated PRs only — do not loosen pins.
 - `libexec/` scripts are trust-gated; tests set the trust marker via `conftest.py`. If adding a new `libexec/` script, follow the existing trust-marker pattern.
-- Do not modify `LICENSE` or `NOTICE` — dual copyright (upstream RAPTOR MIT + fork MIT) must be preserved.
+- Do not modify `LICENSE` or `NOTICE` — dual copyright (upstream RAPTOR MIT + Mantishack MIT) must be preserved.
 - The `CLAUDE.md` in this repo contains additional Claude Code-specific instructions — read it before making agentic changes.
 - Claude Code is a **required** runtime dependency, not optional.
-- Upstream PRs for framework improvements should go to [gadievron/raptor](https://github.com/gadievron/raptor/issues), not this fork.
+- Upstream PRs for framework improvements should go to [gadievron/raptor](https://github.com/gadievron/raptor/issues), not Mantishack.
