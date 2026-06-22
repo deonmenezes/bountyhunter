@@ -16,10 +16,10 @@ Upstream: [github.com/gadievron/raptor](https://github.com/gadievron/raptor)
 
 ## Built on top of RAPTOR
 
-**Mantishack is a fork of [RAPTOR](https://github.com/gadievron/raptor)** — the Recursive Autonomous Penetration Testing and Observation Robot by Gadi Evron, Daniel Cuthbert, Thomas Dullien (Halvar Flake), Michael Bargury, and John Cartwright. The agentic workflow, the Semgrep + CodeQL pipeline, the multi-stage validation methodology, the persona library, and the offline registry packs all come from RAPTOR. Mantishack carries that work forward, rebrands the user-facing surface to the `/mantis-*` slash-command vocabulary, adds an automatic auth + logging audit lane (JWT, cookies, audit-log coverage), and ships under MIT with two coexisting copyrights.
+**Mantishack is inspired by [RAPTOR](https://github.com/gadievron/raptor) on GitHub** — the Recursive Autonomous Penetration Testing and Observation Robot by Gadi Evron, Daniel Cuthbert, Thomas Dullien (Halvar Flake), Michael Bargury, and John Cartwright. The agentic workflow, the Semgrep + CodeQL pipeline, the multi-stage validation methodology, the persona library, and the offline registry packs all draw on RAPTOR. Mantishack carries that work forward, rebrands the user-facing surface to the `/mantis-*` slash-command vocabulary, adds an automatic auth + logging audit lane (JWT, cookies, audit-log coverage), and ships under MIT with two coexisting copyrights.
 
 > **Upstream licence:** MIT © 2025-2026 Gadi Evron, Daniel Cuthbert, Thomas Dullien (Halvar Flake), Michael Bargury, John Cartwright — see [`LICENSE`](./LICENSE).
-> **Fork-modification licence:** MIT © 2026 Deon Menezes — see [`LICENSE-MANTISHACK`](./LICENSE-MANTISHACK).
+> **Modification licence:** MIT © 2026 Deon Menezes — see [`LICENSE-MANTISHACK`](./LICENSE-MANTISHACK).
 > Combined attribution and modification log in [`NOTICE`](./NOTICE).
 
 If you came here looking for the canonical project, please visit [github.com/gadievron/raptor](https://github.com/gadievron/raptor) — that is where upstream development happens. If you want to make the framework better, open a PR upstream.
@@ -30,7 +30,7 @@ If you came here looking for the canonical project, please visit [github.com/gad
 
 Mantishack is an autonomous security research framework built on top of Claude Code (but not tied to it — you can plug in your own analysis layer too). It chains together static analysis, binary analysis, LLM-powered vulnerability validation, exploit generation, and patch writing into a single workflow you can run against a codebase or binary.
 
-It is not polished software. The upstream is held together with enthusiasm and duct tape, and it works well enough that the upstream maintainers can't stop using it. This fork is the same — usable in the field, rough in the corners. Open issues upstream at [gadievron/raptor](https://github.com/gadievron/raptor/issues).
+It is not polished software. The upstream is held together with enthusiasm and duct tape, and it works well enough that the upstream maintainers can't stop using it. Mantishack is the same — usable in the field, rough in the corners. Open issues upstream at [gadievron/raptor](https://github.com/gadievron/raptor/issues).
 
 ---
 
@@ -77,7 +77,7 @@ Once inside, just say "hi" to get started, or jump straight to a command.
 |---------|--------------|--------|
 | `/mantis-agentic` | Full autonomous workflow: scan, **auth+logging audit**, validate, exploit, patch | Stable |
 | `/mantis-scan` | Static analysis with Semgrep and CodeQL | Stable |
-| `/mantis-auth-audit` | **Automatic JWT + cookie + audit-log security check** | Stable (fork addition) |
+| `/mantis-auth-audit` | **Automatic JWT + cookie + audit-log security check** | Stable (Mantishack addition) |
 | `/mantis-understand` | Map attack surface, trace data flows, hunt vulnerability variants | Stable |
 | `/mantis-validate` | Multi-stage exploitability validation pipeline (Stages 0–F) | Stable |
 | `/mantis-codeql` | CodeQL-only deep analysis with SMT dataflow pre-screening | Stable |
@@ -118,7 +118,7 @@ Findings that clear validation get exploit PoCs and patches generated. A cross-f
 
 ---
 
-## Authentication + logging audit (fork addition)
+## Authentication + logging audit (Mantishack addition)
 
 Mantishack automatically runs an **auth + logging audit** on every `/mantis-agentic` invocation. The same checks are also exposed as a standalone `/mantis-auth-audit` slash command for faster, more-targeted runs.
 
@@ -261,13 +261,13 @@ The split means you can run the Python layer from a CI pipeline (`python3 mantis
 MIT, dual-copyright:
 
 - **Upstream RAPTOR code** — Copyright (c) 2025-2026 Gadi Evron, Daniel Cuthbert, Thomas Dullien (Halvar Flake), Michael Bargury, John Cartwright. See [`LICENSE`](./LICENSE).
-- **Fork modifications** (mantishack branding, `/mantis-*` rename, auth + logging audit rules, pytest fixtures, README/NOTICE) — Copyright (c) 2026 Deon Menezes. See [`LICENSE-MANTISHACK`](./LICENSE-MANTISHACK).
+- **Mantishack modifications** (mantishack branding, `/mantis-*` rename, auth + logging audit rules, pytest fixtures, README/NOTICE) — Copyright (c) 2026 Deon Menezes. See [`LICENSE-MANTISHACK`](./LICENSE-MANTISHACK).
 
-Both files are MIT; the fork-modification licence sits alongside the upstream RAPTOR licence and does not supersede it. See [`NOTICE`](./NOTICE) for combined attribution and the fork-modification log. Review the licences for all dependencies before commercial use — **CodeQL in particular does not permit commercial use**.
+Both files are MIT; the Mantishack modification licence sits alongside the upstream RAPTOR licence and does not supersede it. See [`NOTICE`](./NOTICE) for combined attribution and the modification log. Review the licences for all dependencies before commercial use — **CodeQL in particular does not permit commercial use**.
 
 **Upstream:** https://github.com/gadievron/raptor — please file framework-level issues and PRs upstream.
 
-**Mantishack fork issues:** https://github.com/deonmenezes/mantishack/issues
+**Mantishack issues:** https://github.com/deonmenezes/mantishack/issues
 
 ---
 

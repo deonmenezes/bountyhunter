@@ -1,9 +1,9 @@
 # MANTISHACK - Autonomous Offensive/Defensive Research Framework
 
-> Mantishack is a fork of [RAPTOR](https://github.com/gadievron/raptor) (MIT) by
+> Mantishack is inspired by [RAPTOR](https://github.com/gadievron/raptor) (MIT) by
 > Gadi Evron, Daniel Cuthbert, Thomas Dullien, Michael Bargury, and John Cartwright.
-> The scan/analysis engine, agentic workflow, and validation methodology all come
-> from RAPTOR; the fork rebrands it and adds the auth/logging audit lane. See
+> The scan/analysis engine, agentic workflow, and validation methodology draw on
+> RAPTOR; Mantishack rebrands it and adds the auth/logging audit lane. See
 > README.md, NOTICE, and LICENSE for full attribution.
 
 Safe operations (install, scan, read, generate): DO IT.

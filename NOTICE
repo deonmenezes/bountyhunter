@@ -1,8 +1,9 @@
 Mantishack
 ==========
 
-This repository (https://github.com/deonmenezes/mantishack) is a fork built on
-top of RAPTOR.
+This repository (https://github.com/deonmenezes/mantishack) is built on
+top of RAPTOR. It ships the RAPTOR source tree with a repository-wide
+rebrand — see "Modifications" below for the full provenance disclosure.
 
 Upstream project
 ----------------
@@ -24,12 +25,12 @@ This repository ships under MIT with two coexisting copyrights:
      Daniel Cuthbert, Thomas Dullien (Halvar Flake), Michael Bargury,
      and John Cartwright. See LICENSE.
 
-  2. Fork-specific modifications (mantishack branding, /mantis-*
+  2. Mantishack-specific modifications (mantishack branding, /mantis-*
      command rename, auth + logging audit rules, pytest fixtures,
      README/NOTICE) — Copyright (c) 2026 Deon Menezes. See
      LICENSE-MANTISHACK.
 
-Both files are MIT. The fork-specific licence does not supersede the
+Both files are MIT. The Mantishack-specific licence does not supersede the
 upstream RAPTOR licence; it sits alongside it. The MIT licence
 requires that the copyright notice and permission notice below be
 included in all copies or substantial portions of the Software,
@@ -85,4 +86,4 @@ credit the RAPTOR authors. Other files — including CLAUDE.md, agent prompts,
 skills, and source modules — were modified by the rebrand and are NOT
 preserved unmodified relative to the upstream commit. Attribution to RAPTOR
 is retained through this NOTICE, the LICENSE file, CITATION.cff, and the
-top-level README, which identifies this repository as a fork.
+top-level README, which credits RAPTOR as the upstream project this builds on.
