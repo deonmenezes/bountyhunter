@@ -1,0 +1,24 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/mantishack_cvss",
+]
+
+# Shared profile: optimise the static-analysis hot paths that motivated the
+# migration (call graph / reachability). Faithful ports first; perf is free.
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+rust-version = "1.74"
+
+# PyO3 is shared across every ported crate so Python keeps orchestrating while
+# the compute moves to Rust. Gated behind each crate's `python` feature so plain
+# `cargo test` (parity oracle) builds without linking libpython.
+[workspace.dependencies]
+pyo3 = { version = "0.22", features = ["extension-module"] }

@@ -1,0 +1,11 @@
+# Rust build artifacts
+target/
+**/*.rs.bk
+Cargo.lock
+
+# Generated context bundles (regenerated on demand by the orchestrator)
+phases/phase*/*.task.md
+
+# maturin / python build
+*.so
+__pycache__/
