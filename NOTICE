@@ -85,5 +85,4 @@ The upstream LICENSE and CITATION.cff are preserved byte-for-byte and still
 credit the RAPTOR authors. Other files — including CLAUDE.md, agent prompts,
 skills, and source modules — were modified by the rebrand and are NOT
 preserved unmodified relative to the upstream commit. Attribution to RAPTOR
-is retained through this NOTICE, the LICENSE file, CITATION.cff, and the
-top-level README, which credits RAPTOR as the upstream project this builds on.
+is retained through this NOTICE, the LICENSE file, and CITATION.cff.

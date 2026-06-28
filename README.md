@@ -7,22 +7,9 @@
 `stalk · wait · strike · hold`
 **Ethically hack and discover vulnerabilities in any software with the power of AI.**
 
-[mantishack.com](https://mantishack.com) ·
-Upstream: [github.com/gadievron/raptor](https://github.com/gadievron/raptor)
+[mantishack.com](https://mantishack.com)
 
 </div>
-
----
-
-## Built on top of RAPTOR
-
-**Mantishack is inspired by [RAPTOR](https://github.com/gadievron/raptor) on GitHub** — the Recursive Autonomous Penetration Testing and Observation Robot by Gadi Evron, Daniel Cuthbert, Thomas Dullien (Halvar Flake), Michael Bargury, and John Cartwright. The agentic workflow, the Semgrep + CodeQL pipeline, the multi-stage validation methodology, the persona library, and the offline registry packs all draw on RAPTOR. Mantishack carries that work forward, rebrands the user-facing surface to the `/mantis-*` slash-command vocabulary, adds an automatic auth + logging audit lane (JWT, cookies, audit-log coverage), and ships under MIT with two coexisting copyrights.
-
-> **Upstream licence:** MIT © 2025-2026 Gadi Evron, Daniel Cuthbert, Thomas Dullien (Halvar Flake), Michael Bargury, John Cartwright — see [`LICENSE`](./LICENSE).
-> **Modification licence:** MIT © 2026 Deon Menezes — see [`LICENSE-MANTISHACK`](./LICENSE-MANTISHACK).
-> Combined attribution and modification log in [`NOTICE`](./NOTICE).
-
-If you came here looking for the canonical project, please visit [github.com/gadievron/raptor](https://github.com/gadievron/raptor) — that is where upstream development happens. If you want to make the framework better, open a PR upstream.
 
 ---
 
@@ -30,7 +17,7 @@ If you came here looking for the canonical project, please visit [github.com/gad
 
 Mantishack is an autonomous security research framework built on top of Claude Code (but not tied to it — you can plug in your own analysis layer too). It chains together static analysis, binary analysis, LLM-powered vulnerability validation, exploit generation, and patch writing into a single workflow you can run against a codebase or binary.
 
-It is not polished software. The upstream is held together with enthusiasm and duct tape, and it works well enough that the upstream maintainers can't stop using it. Mantishack is the same — usable in the field, rough in the corners. Open issues upstream at [gadievron/raptor](https://github.com/gadievron/raptor/issues).
+It is not polished software. It is held together with enthusiasm and duct tape, and it works well enough that we can't stop using it — usable in the field, rough in the corners.
 
 ---
 
@@ -165,7 +152,7 @@ python3 mantishack.py scan --repo /path/to/code --policy-groups auth,logging
 
 ## Z3 SMT integration
 
-Mantishack inherits RAPTOR's two-layer Z3 integration (`pip install z3-solver`). It is optional. Everything works without it, but the results are better with it.
+Mantishack has a two-layer Z3 integration (`pip install z3-solver`). It is optional. Everything works without it, but the results are better with it.
 
 **Dataflow pre-screening (CodeQL)** — When CodeQL produces a path result, the path constraints are checked for satisfiability before any LLM call is made. Paths that are provably unreachable get dropped immediately. For paths that are reachable, Z3 produces concrete candidate inputs that go into the analysis prompt.
 
@@ -187,7 +174,7 @@ CodeQL needs network access only during initial setup to download the CLI and qu
 
 ## Using a different LLM
 
-Mantishack has two separate model layers, inherited from RAPTOR:
+Mantishack has two separate model layers:
 
 The **orchestration layer** is always Claude Code. The CLAUDE.md, skills, and commands all run as Claude Code instructions. To change which Claude model orchestrates Mantishack, use Claude Code's `--model` flag or the `/model` command inside a session.
 
@@ -260,12 +247,10 @@ The split means you can run the Python layer from a CI pipeline (`python3 mantis
 
 MIT, dual-copyright:
 
-- **Upstream RAPTOR code** — Copyright (c) 2025-2026 Gadi Evron, Daniel Cuthbert, Thomas Dullien (Halvar Flake), Michael Bargury, John Cartwright. See [`LICENSE`](./LICENSE).
+- **Upstream framework code** — see [`LICENSE`](./LICENSE) for the full copyright notice.
 - **Mantishack modifications** (mantishack branding, `/mantis-*` rename, auth + logging audit rules, pytest fixtures, README/NOTICE) — Copyright (c) 2026 Deon Menezes. See [`LICENSE-MANTISHACK`](./LICENSE-MANTISHACK).
 
-Both files are MIT; the Mantishack modification licence sits alongside the upstream RAPTOR licence and does not supersede it. See [`NOTICE`](./NOTICE) for combined attribution and the modification log. Review the licences for all dependencies before commercial use — **CodeQL in particular does not permit commercial use**.
-
-**Upstream:** https://github.com/gadievron/raptor — please file framework-level issues and PRs upstream.
+Both files are MIT; the Mantishack modification licence sits alongside the upstream licence and does not supersede it. See [`NOTICE`](./NOTICE) for combined attribution and the modification log. Review the licences for all dependencies before commercial use — **CodeQL in particular does not permit commercial use**.
 
 **Mantishack issues:** https://github.com/deonmenezes/mantishack/issues
 
@@ -273,7 +258,7 @@ Both files are MIT; the Mantishack modification licence sits alongside the upstr
 
 ## Project history
 
-Earlier mantishack versions ran as an independent Rust daemon + MCP agent stack and **drew from many open-source projects**. That architecture has been retired and removed from this repository; the codebase you see here is a full rebrand of [RAPTOR](https://github.com/gadievron/raptor) (MIT). The acknowledgements below are historical — none of these projects ship as code in this tree today (RAPTOR has its own dependency set listed in [`requirements.txt`](./requirements.txt)) — but they shaped what mantishack used to be and we credit them here in good faith.
+Earlier mantishack versions ran as an independent Rust daemon + MCP agent stack and **drew from many open-source projects**. That architecture has been retired and removed from this repository; the codebase you see here is a full rebrand of an upstream MIT framework — see [`LICENSE`](./LICENSE) and [`NOTICE`](./NOTICE) for its attribution. The acknowledgements below are historical — none of these projects ship as code in this tree today (the upstream framework has its own dependency set listed in [`requirements.txt`](./requirements.txt)) — but they shaped what mantishack used to be and we credit them here in good faith.
 
 **Primary derivation:**
 - [vmihalis/hacker-bob](https://github.com/vmihalis/hacker-bob) (Apache-2.0) — agent prompts, role prompts, slash commands, capability playbook conventions, chain-attempt outcome enum, severity-ladder rules, and `bob-hunt` workflow shape were derived from Hacker Bob.
