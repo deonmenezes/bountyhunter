@@ -1,0 +1,1897 @@
+{
+  "packages": {
+    "core": {
+      "name": "core",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.annotations": {
+      "name": "core.annotations",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.annotations.tests": {
+      "name": "core.annotations.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.archive": {
+      "name": "core.archive",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.archive.tests": {
+      "name": "core.archive.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.ast": {
+      "name": "core.ast",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 3,
+      "notes": "",
+      "parity": {}
+    },
+    "core.ast.tests": {
+      "name": "core.ast.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.ast.tests.fixtures": {
+      "name": "core.ast.tests.fixtures",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.binary": {
+      "name": "core.binary",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.binary.tests": {
+      "name": "core.binary.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.config": {
+      "name": "core.config",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "core.config.tests": {
+      "name": "core.config.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.coverage": {
+      "name": "core.coverage",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "core.coverage.tests": {
+      "name": "core.coverage.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.cve": {
+      "name": "core.cve",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 3,
+      "notes": "",
+      "parity": {}
+    },
+    "core.cve.tests": {
+      "name": "core.cve.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.dataflow": {
+      "name": "core.dataflow",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "core.dataflow.adapters": {
+      "name": "core.dataflow.adapters",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "core.dataflow.scripts": {
+      "name": "core.dataflow.scripts",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "core.dataflow.tests": {
+      "name": "core.dataflow.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.dataflow.tests.fixtures.cvefix_cmdi_py.after": {
+      "name": "core.dataflow.tests.fixtures.cvefix_cmdi_py.after",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.dataflow.tests.fixtures.cvefix_cmdi_py.before": {
+      "name": "core.dataflow.tests.fixtures.cvefix_cmdi_py.before",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.dockerfile": {
+      "name": "core.dockerfile",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.dockerfile.tests": {
+      "name": "core.dockerfile.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.function_taxonomy": {
+      "name": "core.function_taxonomy",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.function_taxonomy.tests": {
+      "name": "core.function_taxonomy.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.git": {
+      "name": "core.git",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 3,
+      "notes": "",
+      "parity": {}
+    },
+    "core.git.tests": {
+      "name": "core.git.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.hash": {
+      "name": "core.hash",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 3,
+      "notes": "",
+      "parity": {}
+    },
+    "core.hash.tests": {
+      "name": "core.hash.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.http": {
+      "name": "core.http",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 3,
+      "notes": "",
+      "parity": {}
+    },
+    "core.http.tests": {
+      "name": "core.http.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.inventory": {
+      "name": "core.inventory",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 3,
+      "notes": "",
+      "parity": {}
+    },
+    "core.inventory.tests": {
+      "name": "core.inventory.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.json": {
+      "name": "core.json",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 2,
+      "notes": "",
+      "parity": {}
+    },
+    "core.json.tests": {
+      "name": "core.json.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.llm": {
+      "name": "core.llm",
+      "disposition": "keep-python",
+      "status": "skipped",
+      "crate": "",
+      "phase": 5,
+      "notes": "",
+      "parity": {}
+    },
+    "core.llm.cwe_strategies": {
+      "name": "core.llm.cwe_strategies",
+      "disposition": "keep-python",
+      "status": "skipped",
+      "crate": "",
+      "phase": 5,
+      "notes": "",
+      "parity": {}
+    },
+    "core.llm.cwe_strategies.tests": {
+      "name": "core.llm.cwe_strategies.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.llm.dispatcher": {
+      "name": "core.llm.dispatcher",
+      "disposition": "keep-python",
+      "status": "skipped",
+      "crate": "",
+      "phase": 5,
+      "notes": "",
+      "parity": {}
+    },
+    "core.llm.dispatcher.tests": {
+      "name": "core.llm.dispatcher.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.llm.multi_model": {
+      "name": "core.llm.multi_model",
+      "disposition": "keep-python",
+      "status": "skipped",
+      "crate": "",
+      "phase": 5,
+      "notes": "",
+      "parity": {}
+    },
+    "core.llm.multi_model.tests": {
+      "name": "core.llm.multi_model.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.llm.scorecard": {
+      "name": "core.llm.scorecard",
+      "disposition": "keep-python",
+      "status": "skipped",
+      "crate": "",
+      "phase": 5,
+      "notes": "",
+      "parity": {}
+    },
+    "core.llm.scorecard.tests": {
+      "name": "core.llm.scorecard.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.llm.tests": {
+      "name": "core.llm.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.llm.tool_use": {
+      "name": "core.llm.tool_use",
+      "disposition": "keep-python",
+      "status": "skipped",
+      "crate": "",
+      "phase": 5,
+      "notes": "",
+      "parity": {}
+    },
+    "core.llm.tool_use.tests": {
+      "name": "core.llm.tool_use.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.logging": {
+      "name": "core.logging",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.logging.tests": {
+      "name": "core.logging.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.oci": {
+      "name": "core.oci",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.oci.tests": {
+      "name": "core.oci.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.orchestration": {
+      "name": "core.orchestration",
+      "disposition": "keep-python",
+      "status": "skipped",
+      "crate": "",
+      "phase": 5,
+      "notes": "",
+      "parity": {}
+    },
+    "core.orchestration.tests": {
+      "name": "core.orchestration.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.progress": {
+      "name": "core.progress",
+      "disposition": "keep-python",
+      "status": "skipped",
+      "crate": "",
+      "phase": 5,
+      "notes": "",
+      "parity": {}
+    },
+    "core.progress.tests": {
+      "name": "core.progress.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.project": {
+      "name": "core.project",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "core.project.tests": {
+      "name": "core.project.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.reporting": {
+      "name": "core.reporting",
+      "disposition": "keep-python",
+      "status": "skipped",
+      "crate": "",
+      "phase": 5,
+      "notes": "",
+      "parity": {}
+    },
+    "core.reporting.tests": {
+      "name": "core.reporting.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.run": {
+      "name": "core.run",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "core.run.tests": {
+      "name": "core.run.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.sage": {
+      "name": "core.sage",
+      "disposition": "keep-python",
+      "status": "skipped",
+      "crate": "",
+      "phase": 5,
+      "notes": "",
+      "parity": {}
+    },
+    "core.sage.scripts": {
+      "name": "core.sage.scripts",
+      "disposition": "keep-python",
+      "status": "skipped",
+      "crate": "",
+      "phase": 5,
+      "notes": "",
+      "parity": {}
+    },
+    "core.sage.tests": {
+      "name": "core.sage.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.sandbox": {
+      "name": "core.sandbox",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.sandbox.tests": {
+      "name": "core.sandbox.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.sarif": {
+      "name": "core.sarif",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 3,
+      "notes": "",
+      "parity": {}
+    },
+    "core.sarif.tests": {
+      "name": "core.sarif.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.schema_constants": {
+      "name": "core.schema_constants",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.schema_constants.tests": {
+      "name": "core.schema_constants.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.security": {
+      "name": "core.security",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "core.security.tests": {
+      "name": "core.security.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.sentinels": {
+      "name": "core.sentinels",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.sentinels.tests": {
+      "name": "core.sentinels.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.smt_solver": {
+      "name": "core.smt_solver",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "core.smt_solver.tests": {
+      "name": "core.smt_solver.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.startup": {
+      "name": "core.startup",
+      "disposition": "keep-python",
+      "status": "skipped",
+      "crate": "",
+      "phase": 5,
+      "notes": "",
+      "parity": {}
+    },
+    "core.startup.tests": {
+      "name": "core.startup.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.status": {
+      "name": "core.status",
+      "disposition": "keep-python",
+      "status": "skipped",
+      "crate": "",
+      "phase": 5,
+      "notes": "",
+      "parity": {}
+    },
+    "core.status.tests": {
+      "name": "core.status.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.tar": {
+      "name": "core.tar",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.tar.tests": {
+      "name": "core.tar.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.tuning": {
+      "name": "core.tuning",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 2,
+      "notes": "",
+      "parity": {}
+    },
+    "core.tuning.tests": {
+      "name": "core.tuning.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.upstream_latest": {
+      "name": "core.upstream_latest",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.upstream_latest.tests": {
+      "name": "core.upstream_latest.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.url_patterns": {
+      "name": "core.url_patterns",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.url_patterns.tests": {
+      "name": "core.url_patterns.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.verified_outcome": {
+      "name": "core.verified_outcome",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "core.verified_outcome.tests": {
+      "name": "core.verified_outcome.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.witness": {
+      "name": "core.witness",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 2,
+      "notes": "",
+      "parity": {}
+    },
+    "core.witness.scripts": {
+      "name": "core.witness.scripts",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 3,
+      "notes": "",
+      "parity": {}
+    },
+    "core.witness.tests": {
+      "name": "core.witness.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.zip": {
+      "name": "core.zip",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "core.zip.tests": {
+      "name": "core.zip.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "engine.semgrep.tools": {
+      "name": "engine.semgrep.tools",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "packages": {
+      "name": "packages",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.autonomous": {
+      "name": "packages.autonomous",
+      "disposition": "keep-python",
+      "status": "skipped",
+      "crate": "",
+      "phase": 5,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.autonomous.tests": {
+      "name": "packages.autonomous.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.binary_analysis": {
+      "name": "packages.binary_analysis",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.binary_analysis.tests": {
+      "name": "packages.binary_analysis.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.checker_synthesis": {
+      "name": "packages.checker_synthesis",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.checker_synthesis.tests": {
+      "name": "packages.checker_synthesis.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.coccinelle": {
+      "name": "packages.coccinelle",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.coccinelle.tests": {
+      "name": "packages.coccinelle.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.code_understanding": {
+      "name": "packages.code_understanding",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.code_understanding.dispatch": {
+      "name": "packages.code_understanding.dispatch",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.code_understanding.prompts": {
+      "name": "packages.code_understanding.prompts",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.code_understanding.tests": {
+      "name": "packages.code_understanding.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.code_understanding.tests.dispatch": {
+      "name": "packages.code_understanding.tests.dispatch",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.codeql": {
+      "name": "packages.codeql",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.codeql.scripts": {
+      "name": "packages.codeql.scripts",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.codeql.tests": {
+      "name": "packages.codeql.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.cve_diff": {
+      "name": "packages.cve_diff.cve_diff",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.cve_diff.acquisition": {
+      "name": "packages.cve_diff.cve_diff.acquisition",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.cve_diff.agent": {
+      "name": "packages.cve_diff.cve_diff.agent",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.cve_diff.analysis": {
+      "name": "packages.cve_diff.cve_diff.analysis",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.cve_diff.cli": {
+      "name": "packages.cve_diff.cve_diff.cli",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.cve_diff.core": {
+      "name": "packages.cve_diff.cve_diff.core",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.cve_diff.diffing": {
+      "name": "packages.cve_diff.cve_diff.diffing",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.cve_diff.discovery": {
+      "name": "packages.cve_diff.cve_diff.discovery",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.cve_diff.infra": {
+      "name": "packages.cve_diff.cve_diff.infra",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.cve_diff.llm": {
+      "name": "packages.cve_diff.cve_diff.llm",
+      "disposition": "keep-python",
+      "status": "skipped",
+      "crate": "",
+      "phase": 5,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.cve_diff.oracle": {
+      "name": "packages.cve_diff.cve_diff.oracle",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.cve_diff.report": {
+      "name": "packages.cve_diff.cve_diff.report",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.cve_diff.security": {
+      "name": "packages.cve_diff.cve_diff.security",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.tests": {
+      "name": "packages.cve_diff.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.tests.integration": {
+      "name": "packages.cve_diff.tests.integration",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.tests.unit": {
+      "name": "packages.cve_diff.tests.unit",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.tests.unit.agent": {
+      "name": "packages.cve_diff.tests.unit.agent",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.tests.unit.cli": {
+      "name": "packages.cve_diff.tests.unit.cli",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.tests.unit.diffing": {
+      "name": "packages.cve_diff.tests.unit.diffing",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.tests.unit.discovery": {
+      "name": "packages.cve_diff.tests.unit.discovery",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.tests.unit.infra": {
+      "name": "packages.cve_diff.tests.unit.infra",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.tests.unit.llm": {
+      "name": "packages.cve_diff.tests.unit.llm",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.tests.unit.oracle": {
+      "name": "packages.cve_diff.tests.unit.oracle",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.tests.unit.report": {
+      "name": "packages.cve_diff.tests.unit.report",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cve_diff.tests.unit.security": {
+      "name": "packages.cve_diff.tests.unit.security",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.cvss": {
+      "name": "packages.cvss",
+      "disposition": "rust-port",
+      "status": "verified",
+      "crate": "rust-migration/crates/mantishack_cvss",
+      "phase": 1,
+      "notes": "",
+      "parity": {
+        "rust": "pass (10 golden vectors)",
+        "python_oracle": "pending maturin"
+      }
+    },
+    "packages.cvss.tests": {
+      "name": "packages.cvss.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.diagram": {
+      "name": "packages.diagram",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.diagram.tests": {
+      "name": "packages.diagram.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.exploit_feasibility": {
+      "name": "packages.exploit_feasibility",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.exploit_feasibility.scripts": {
+      "name": "packages.exploit_feasibility.scripts",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.exploit_feasibility.tests": {
+      "name": "packages.exploit_feasibility.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.exploitability_validation": {
+      "name": "packages.exploitability_validation",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.exploitability_validation.scripts": {
+      "name": "packages.exploitability_validation.scripts",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.exploitability_validation.tests": {
+      "name": "packages.exploitability_validation.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.exploitation": {
+      "name": "packages.exploitation",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.exploitation.tests": {
+      "name": "packages.exploitation.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.fuzzing": {
+      "name": "packages.fuzzing",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.fuzzing.tests": {
+      "name": "packages.fuzzing.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.hypothesis_validation": {
+      "name": "packages.hypothesis_validation",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.hypothesis_validation.adapters": {
+      "name": "packages.hypothesis_validation.adapters",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.hypothesis_validation.tests": {
+      "name": "packages.hypothesis_validation.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.llm_analysis": {
+      "name": "packages.llm_analysis",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.llm_analysis.prompts": {
+      "name": "packages.llm_analysis.prompts",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.llm_analysis.scripts": {
+      "name": "packages.llm_analysis.scripts",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.llm_analysis.tests": {
+      "name": "packages.llm_analysis.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.llm_analysis.tests.fixtures.iris_e2e.src": {
+      "name": "packages.llm_analysis.tests.fixtures.iris_e2e.src",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.nvd": {
+      "name": "packages.nvd",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 3,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.nvd.tests": {
+      "name": "packages.nvd.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.osv": {
+      "name": "packages.osv",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 3,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.osv.tests": {
+      "name": "packages.osv.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.recon": {
+      "name": "packages.recon",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.recon.tests": {
+      "name": "packages.recon.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca": {
+      "name": "packages.sca",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 3,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.bump": {
+      "name": "packages.sca.bump",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.bump.tests": {
+      "name": "packages.sca.bump.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.calibration": {
+      "name": "packages.sca.calibration",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 3,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.calibration.tests": {
+      "name": "packages.sca.calibration.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.llm": {
+      "name": "packages.sca.llm",
+      "disposition": "keep-python",
+      "status": "skipped",
+      "crate": "",
+      "phase": 5,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.llm.tests": {
+      "name": "packages.sca.llm.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.parsers": {
+      "name": "packages.sca.parsers",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 2,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.parsers.inline_installs": {
+      "name": "packages.sca.parsers.inline_installs",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.parsers.inline_installs.tests": {
+      "name": "packages.sca.parsers.inline_installs.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.parsers.tests": {
+      "name": "packages.sca.parsers.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.platform_matrix": {
+      "name": "packages.sca.platform_matrix",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 3,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.platform_matrix.tests": {
+      "name": "packages.sca.platform_matrix.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.reachability": {
+      "name": "packages.sca.reachability",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 3,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.reachability.tests": {
+      "name": "packages.sca.reachability.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.registries": {
+      "name": "packages.sca.registries",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 3,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.registries.tests": {
+      "name": "packages.sca.registries.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.resolvers": {
+      "name": "packages.sca.resolvers",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 3,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.resolvers.tests": {
+      "name": "packages.sca.resolvers.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.rewriters": {
+      "name": "packages.sca.rewriters",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 3,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.rewriters.tests": {
+      "name": "packages.sca.rewriters.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.supply_chain": {
+      "name": "packages.sca.supply_chain",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 2,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.supply_chain.tests": {
+      "name": "packages.sca.supply_chain.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.tests": {
+      "name": "packages.sca.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.transitive_drop": {
+      "name": "packages.sca.transitive_drop",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 3,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.transitive_drop.tests": {
+      "name": "packages.sca.transitive_drop.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.versions": {
+      "name": "packages.sca.versions",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.versions.tests": {
+      "name": "packages.sca.versions.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.wheel_compat": {
+      "name": "packages.sca.wheel_compat",
+      "disposition": "rust-port",
+      "status": "pending",
+      "crate": "",
+      "phase": 3,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.sca.wheel_compat.tests": {
+      "name": "packages.sca.wheel_compat.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.semgrep": {
+      "name": "packages.semgrep",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.semgrep.tests": {
+      "name": "packages.semgrep.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.source_intel": {
+      "name": "packages.source_intel",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.source_intel.tests": {
+      "name": "packages.source_intel.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.static-analysis": {
+      "name": "packages.static-analysis",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.static-analysis.codeql": {
+      "name": "packages.static-analysis.codeql",
+      "disposition": "rust-glue",
+      "status": "pending",
+      "crate": "",
+      "phase": 4,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.static-analysis.tests": {
+      "name": "packages.static-analysis.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.strategy_eval": {
+      "name": "packages.strategy_eval",
+      "disposition": "keep-python",
+      "status": "skipped",
+      "crate": "",
+      "phase": 5,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.strategy_eval.tests": {
+      "name": "packages.strategy_eval.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.web": {
+      "name": "packages.web",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.web.tests": {
+      "name": "packages.web.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.zkpox": {
+      "name": "packages.zkpox",
+      "disposition": "review",
+      "status": "pending",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    },
+    "packages.zkpox.tests": {
+      "name": "packages.zkpox.tests",
+      "disposition": "skip-test",
+      "status": "skipped",
+      "crate": "",
+      "phase": -1,
+      "notes": "",
+      "parity": {}
+    }
+  }
+}
