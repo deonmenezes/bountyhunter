@@ -27,6 +27,7 @@ pub use exclusions::{
 };
 pub use languages::{detect_language, LANGUAGE_MAP};
 pub use lookup::{lookup_function, normalise_path};
+pub use module_load_abort::{detect_module_load_abort, ModuleLoadAbort};
 pub use fixture_detection::{is_fixture_path, FixtureVerdict, HarnessEvidence};
 pub use reach_witness::{
     blocker_for, prompt_verdict_for, verdict_from_classification, Reachability,
