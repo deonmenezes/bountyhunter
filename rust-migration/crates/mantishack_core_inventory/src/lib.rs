@@ -13,6 +13,7 @@ pub mod fixture_detection;
 pub mod languages;
 pub mod lookup;
 pub mod module_load_abort;
+pub mod reach_cache;
 pub mod translation_view;
 pub mod reach_witness;
 
