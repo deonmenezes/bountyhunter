@@ -11,14 +11,16 @@
 use tree_sitter::{Language, Parser, Tree};
 
 /// Language names recognised so far. Grows as extractor branches are ported.
-pub const SUPPORTED_LANGUAGES: &[&str] = &["python"];
+pub const SUPPORTED_LANGUAGES: &[&str] = &["python", "javascript"];
 
 /// The tree-sitter [`Language`] for a language name, or `None` if no grammar is
 /// wired yet (graceful degradation — callers treat absence as "no parse",
-/// matching the Python `_ts_language` returning `None`).
+/// matching the Python `_ts_language` returning `None`). Grammar choice matches
+/// the Python `_ts_language` mapping.
 pub fn language_for(language: &str) -> Option<Language> {
     match language {
         "python" => Some(tree_sitter_python::LANGUAGE.into()),
+        "javascript" => Some(tree_sitter_javascript::LANGUAGE.into()),
         _ => None,
     }
 }
@@ -56,6 +58,19 @@ mod tests {
         let root = tree.root_node();
         assert_eq!(root.kind(), "module");
         assert!(!root.has_error());
+    }
+
+    #[test]
+    fn javascript_parses_and_finds_function() {
+        let tree = parse("javascript", "function add(a, b) { return a + b; }\n").expect("parse");
+        let root = tree.root_node();
+        assert_eq!(root.kind(), "program");
+        assert!(!root.has_error());
+        let mut cursor = root.walk();
+        let has_func = root
+            .children(&mut cursor)
+            .any(|c| c.kind() == "function_declaration");
+        assert!(has_func);
     }
 
     #[test]
