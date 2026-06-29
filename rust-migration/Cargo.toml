@@ -2,6 +2,9 @@
 resolver = "2"
 members = [
     "crates/mantishack_cvss",
+    "crates/mantishack_core_url_patterns",
+    "crates/mantishack_core_schema_constants",
+    "crates/mantishack_core_function_taxonomy",
 ]
 
 # Shared profile: optimise the static-analysis hot paths that motivated the
@@ -22,3 +25,5 @@ rust-version = "1.74"
 # `cargo test` (parity oracle) builds without linking libpython.
 [workspace.dependencies]
 pyo3 = { version = "0.22", features = ["extension-module"] }
+regex = "1"
+url = "2"

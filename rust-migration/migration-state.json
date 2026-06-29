@@ -219,11 +219,13 @@
     "core.function_taxonomy": {
       "name": "core.function_taxonomy",
       "disposition": "rust-port",
-      "status": "pending",
-      "crate": "",
+      "status": "verified",
+      "crate": "rust-migration/crates/mantishack_core_function_taxonomy",
       "phase": 1,
       "notes": "",
-      "parity": {}
+      "parity": {
+        "rust": "pass"
+      }
     },
     "core.function_taxonomy.tests": {
       "name": "core.function_taxonomy.tests",
@@ -624,11 +626,13 @@
     "core.schema_constants": {
       "name": "core.schema_constants",
       "disposition": "rust-port",
-      "status": "pending",
-      "crate": "",
+      "status": "verified",
+      "crate": "rust-migration/crates/mantishack_core_schema_constants",
       "phase": 1,
       "notes": "",
-      "parity": {}
+      "parity": {
+        "rust": "pass"
+      }
     },
     "core.schema_constants.tests": {
       "name": "core.schema_constants.tests",
@@ -660,10 +664,10 @@
     "core.sentinels": {
       "name": "core.sentinels",
       "disposition": "rust-port",
-      "status": "pending",
+      "status": "skipped",
       "crate": "",
       "phase": 1,
-      "notes": "",
+      "notes": "Python identity singleton (cross-reload is-comparison); no compute to port. Reclassified rust-port->keep-python.",
       "parity": {}
     },
     "core.sentinels.tests": {
@@ -786,11 +790,13 @@
     "core.url_patterns": {
       "name": "core.url_patterns",
       "disposition": "rust-port",
-      "status": "pending",
-      "crate": "",
+      "status": "verified",
+      "crate": "rust-migration/crates/mantishack_core_url_patterns",
       "phase": 1,
       "notes": "",
-      "parity": {}
+      "parity": {
+        "rust": "pass"
+      }
     },
     "core.url_patterns.tests": {
       "name": "core.url_patterns.tests",
