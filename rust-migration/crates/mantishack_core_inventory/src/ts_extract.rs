@@ -11,7 +11,10 @@
 
 use tree_sitter::Node;
 
-use crate::extractors::KIND_FUNCTION;
+use crate::extractors::{CodeItem, KIND_FUNCTION, KIND_GLOBAL, KIND_TOP_LEVEL};
+
+const ASSIGN_NODE_TYPES: &[&str] = &["assignment", "assignment_expression", "augmented_assignment"];
+const CALL_NODE_TYPES: &[&str] = &["call", "call_expression"];
 
 /// Security-relevant metadata extracted from a function definition. Mirrors the
 /// Python `FunctionMetadata` dataclass.
@@ -221,6 +224,144 @@ fn extract_return_type(node: Node, src: &[u8]) -> Option<String> {
     None
 }
 
+// ---------------------------------------------------------------------------
+// Module-scope globals + top-level executable statements (Python branch).
+// ---------------------------------------------------------------------------
+
+/// `_ts_contains_call`: any `call`/`call_expression` within depth 5.
+fn ts_contains_call(node: Node, depth: u32) -> bool {
+    if CALL_NODE_TYPES.contains(&node.kind()) {
+        return true;
+    }
+    if depth > 5 {
+        return false;
+    }
+    children(node).into_iter().any(|c| ts_contains_call(c, depth + 1))
+}
+
+/// Module-scope executable statements (run at import) as `top_level` items —
+/// a root-level `expression_statement` containing a call but not an assignment.
+/// Faithful port of `_extract_top_level_ts` for Python.
+pub fn extract_python_top_level(content: &str) -> Vec<CodeItem> {
+    let Some(tree) = mantishack_ts::parse("python", content) else {
+        return Vec::new();
+    };
+    let root = tree.root_node();
+    let mut out: Vec<CodeItem> = Vec::new();
+    for child in children(root) {
+        if child.kind() != "expression_statement" {
+            continue;
+        }
+        if children(child).iter().any(|c| ASSIGN_NODE_TYPES.contains(&c.kind())) {
+            continue;
+        }
+        if ts_contains_call(child, 0) {
+            let line = child.start_position().row as i64 + 1;
+            out.push(CodeItem::new(
+                format!("top_level:{line}"),
+                KIND_TOP_LEVEL,
+                line,
+                Some(child.end_position().row as i64 + 1),
+            ));
+        }
+    }
+    out
+}
+
+/// Module-scope global variables/constants. Faithful port of
+/// `_extract_globals_ts` for Python (UPPER/TitleCase assignments only, with
+/// nested chained-assignment handling).
+pub fn extract_python_globals(content: &str) -> Vec<CodeItem> {
+    let Some(tree) = mantishack_ts::parse("python", content) else {
+        return Vec::new();
+    };
+    let src = content.as_bytes();
+    let root = tree.root_node();
+    let mut out: Vec<CodeItem> = Vec::new();
+    for child in children(root) {
+        if !matches!(child.kind(), "expression_statement" | "assignment") {
+            continue;
+        }
+        for name in global_names_python(child, src) {
+            out.push(CodeItem::new(
+                name,
+                KIND_GLOBAL,
+                child.start_position().row as i64 + 1,
+                Some(child.end_position().row as i64 + 1),
+            ));
+        }
+    }
+    out
+}
+
+fn global_names_python(node: Node, src: &[u8]) -> Vec<String> {
+    // Unwrap expression_statement → assignment.
+    let target = if node.kind() == "expression_statement" {
+        children(node).into_iter().find(|c| c.kind() == "assignment")
+    } else {
+        Some(node)
+    };
+    let mut out: Vec<String> = Vec::new();
+    let Some(t) = target else { return out };
+    if t.kind() != "assignment" {
+        return out;
+    }
+    // Walk the NESTED chained-assignment shape `A = B = 1`, yielding the
+    // leading identifiers at each level that pass the UPPER/TitleCase filter.
+    let mut current = Some(t);
+    while let Some(cur) = current {
+        if cur.kind() != "assignment" {
+            break;
+        }
+        let mut next_assignment = None;
+        for c in children(cur) {
+            if c.kind() == "identifier" {
+                let nm = text(c, src);
+                if !nm.is_empty() && (py_isupper(nm) || (first_isupper(nm) && !py_islower(nm))) {
+                    out.push(nm.to_string());
+                }
+            } else if c.kind() == "assignment" {
+                next_assignment = Some(c);
+                break;
+            }
+        }
+        current = next_assignment;
+    }
+    out
+}
+
+/// `str.isupper()`: at least one cased char, no lowercase.
+fn py_isupper(s: &str) -> bool {
+    let mut has_cased = false;
+    for c in s.chars() {
+        if c.is_lowercase() {
+            return false;
+        }
+        if c.is_uppercase() {
+            has_cased = true;
+        }
+    }
+    has_cased
+}
+
+/// `str.islower()`: at least one cased char, no uppercase.
+fn py_islower(s: &str) -> bool {
+    let mut has_cased = false;
+    for c in s.chars() {
+        if c.is_uppercase() {
+            return false;
+        }
+        if c.is_lowercase() {
+            has_cased = true;
+        }
+    }
+    has_cased
+}
+
+fn first_isupper(s: &str) -> bool {
+    s.chars().next().is_some_and(char::is_uppercase)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -282,5 +423,31 @@ mod tests {
     #[test]
     fn no_functions() {
         assert!(extract_python_functions("x = 1\ny = 2\n").is_empty());
+    }
+
+    fn item_names(items: &[CodeItem]) -> Vec<&str> {
+        items.iter().map(|c| c.name.as_str()).collect()
+    }
+
+    #[test]
+    fn globals_only_upper_or_titlecase() {
+        let src = "GLOBAL = 1\nx = 2\nConfig = {}\n_PRIVATE = 3\nmyVar = 4\n";
+        let g = extract_python_globals(src);
+        assert_eq!(item_names(&g), vec!["GLOBAL", "Config", "_PRIVATE"]);
+    }
+
+    #[test]
+    fn globals_chained_assignment() {
+        let g = extract_python_globals("A = B = C = 1\n");
+        assert_eq!(item_names(&g), vec!["A", "B", "C"]);
+    }
+
+    #[test]
+    fn top_level_call_not_assignment() {
+        let src = "import os\nos.system(\"x\")\nY = compute()\nprint(1)\n";
+        let t = extract_python_top_level(src);
+        // os.system(...) on line 2 and print(1) on line 4; the Y = compute()
+        // assignment is a global, not top_level.
+        assert_eq!(item_names(&t), vec!["top_level:2", "top_level:4"]);
     }
 }
