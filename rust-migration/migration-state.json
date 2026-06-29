@@ -93,11 +93,13 @@
     "core.config": {
       "name": "core.config",
       "disposition": "rust-glue",
-      "status": "pending",
-      "crate": "",
-      "phase": 4,
-      "notes": "",
-      "parity": {}
+      "status": "verified",
+      "crate": "rust-migration/crates/mantishack_core_config",
+      "phase": 2,
+      "notes": "depends on security+tuning; install_security_injection breaks cycle",
+      "parity": {
+        "rust": "pass (11 tests)"
+      }
     },
     "core.config.tests": {
       "name": "core.config.tests",
@@ -439,10 +441,10 @@
     "core.logging": {
       "name": "core.logging",
       "disposition": "review",
-      "status": "pending",
+      "status": "skipped",
       "crate": "",
       "phase": -1,
-      "notes": "",
+      "notes": "Python logging-module infra for the Python orchestrator; keep-python (review->keep-python)",
       "parity": {}
     },
     "core.logging.tests": {
@@ -648,10 +650,10 @@
     "core.security": {
       "name": "core.security",
       "disposition": "rust-glue",
-      "status": "pending",
-      "crate": "",
-      "phase": 4,
-      "notes": "",
+      "status": "ported",
+      "crate": "rust-migration/crates/mantishack_core_security",
+      "phase": 2,
+      "notes": "PARTIAL: env_sanitisation+cc_trust+codeql_trust ported (41 tests, cycle-critical). Remaining: prompt_envelope(~1641 LOC), redaction, llm_family, envelope_probe, prompt_telemetry, rule_of_two.",
       "parity": {}
     },
     "core.security.tests": {
@@ -684,11 +686,13 @@
     "core.smt_solver": {
       "name": "core.smt_solver",
       "disposition": "rust-glue",
-      "status": "pending",
-      "crate": "",
+      "status": "verified",
+      "crate": "rust-migration/crates/mantishack_smt_solver",
       "phase": 4,
       "notes": "",
-      "parity": {}
+      "parity": {
+        "rust": "pass (108 tests)"
+      }
     },
     "core.smt_solver.tests": {
       "name": "core.smt_solver.tests",

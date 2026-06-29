@@ -10,6 +10,9 @@ members = [
     "crates/mantishack_core_tuning",
     "crates/mantishack_semgrep",
     "crates/mantishack_core_witness",
+    "crates/mantishack_core_security",
+    "crates/mantishack_core_config",
+    "crates/mantishack_smt_solver",
 ]
 
 # Shared profile: optimise the static-analysis hot paths that motivated the
