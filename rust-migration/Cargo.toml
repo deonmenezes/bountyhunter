@@ -13,6 +13,10 @@ members = [
     "crates/mantishack_core_security",
     "crates/mantishack_core_config",
     "crates/mantishack_smt_solver",
+    "crates/mantishack_core_hash",
+    "crates/mantishack_core_inventory",
+    "crates/mantishack_coccinelle",
+    "crates/mantishack_static_codeql",
 ]
 
 # Shared profile: optimise the static-analysis hot paths that motivated the

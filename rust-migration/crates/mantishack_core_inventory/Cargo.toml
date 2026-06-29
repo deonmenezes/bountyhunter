@@ -1,0 +1,25 @@
+[package]
+name = "mantishack_core_inventory"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "mantishack_core_inventory"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python = ["dep:pyo3"]
+
+[dependencies]
+mantishack_core_hash = { path = "../mantishack_core_hash" }
+mantishack_core_json = { path = "../mantishack_core_json" }
+mantishack_core_tuning = { path = "../mantishack_core_tuning" }
+pyo3 = { workspace = true, optional = true }
+regex = { workspace = true }
+serde_json = "1"
+
+[dev-dependencies]
+tempfile = "3"

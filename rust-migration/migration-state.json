@@ -259,11 +259,14 @@
     "core.hash": {
       "name": "core.hash",
       "disposition": "rust-port",
-      "status": "pending",
-      "crate": "",
+      "status": "verified",
+      "crate": "rust-migration/crates/mantishack_core_hash",
       "phase": 3,
       "notes": "",
-      "parity": {}
+      "parity": {
+        "rust": "pass",
+        "python_oracle": "pass"
+      }
     },
     "core.hash.tests": {
       "name": "core.hash.tests",
@@ -295,8 +298,8 @@
     "core.inventory": {
       "name": "core.inventory",
       "disposition": "rust-port",
-      "status": "pending",
-      "crate": "",
+      "status": "in_progress",
+      "crate": "rust-migration/crates/mantishack_core_inventory",
       "phase": 3,
       "notes": "",
       "parity": {}
