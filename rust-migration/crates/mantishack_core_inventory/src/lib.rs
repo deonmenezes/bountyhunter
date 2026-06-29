@@ -30,6 +30,7 @@ pub use exclusions::{
 pub use languages::{detect_language, LANGUAGE_MAP};
 pub use lookup::{lookup_function, normalise_path};
 pub use module_load_abort::{detect_module_load_abort, ModuleLoadAbort};
+pub use reach_cache::{compute_fingerprint, is_valid_fingerprint, CACHE_VERSION};
 pub use translation_view::{
     detect_macro_call_targets, detect_preprocessor_dead_ranges, preprocess_view, LineMap,
     MacroConfig, TranslationView, C_FAMILY,
