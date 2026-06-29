@@ -14,3 +14,4 @@ rust-version.workspace = true
 tree-sitter = "0.25"
 tree-sitter-python = "0.25"
 tree-sitter-javascript = "0.25"
+tree-sitter-c = "0.24"

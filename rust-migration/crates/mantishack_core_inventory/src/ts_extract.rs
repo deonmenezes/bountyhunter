@@ -77,6 +77,11 @@ pub fn extract_javascript_functions(content: &str) -> Vec<FunctionInfo> {
     extract_functions("javascript", content)
 }
 
+/// C convenience wrapper.
+pub fn extract_c_functions(content: &str) -> Vec<FunctionInfo> {
+    extract_functions("c", content)
+}
+
 fn is_js_family(language: &str) -> bool {
     matches!(language, "javascript" | "typescript" | "tsx")
 }
@@ -88,6 +93,7 @@ fn func_types(language: &str) -> &'static [&'static str] {
         "javascript" | "typescript" | "tsx" => {
             &["function_declaration", "method_definition", "arrow_function"]
         }
+        "c" | "cpp" => &["function_definition"],
         _ => &[],
     }
 }
@@ -149,7 +155,7 @@ fn walk(
                             class_name: class_name.map(str::to_string),
                             visibility: ts_member_visibility(child, src, language),
                             attributes: ts_decorators(child, src, language),
-                            parameters: extract_parameters(arrow, src),
+                            parameters: extract_parameters(arrow, src, language),
                             class_attributes: class_attributes.to_vec(),
                             ..Default::default()
                         }),
@@ -177,7 +183,7 @@ fn walk(
                         metadata: Some(FunctionMetadata {
                             class_name: class_name.map(str::to_string),
                             visibility: if exported { Some("exported".to_string()) } else { None },
-                            parameters: extract_parameters(arrow, src),
+                            parameters: extract_parameters(arrow, src, language),
                             ..Default::default()
                         }),
                         checked_by: Vec::new(),
@@ -294,8 +300,21 @@ fn extract_visibility(
     if node.kind() == "method_definition" {
         visibility = ts_member_visibility(node, src, language);
     }
-    // (csharp / java modifiers / c storage-class / go branches: added with
-    // those languages.)
+    // (csharp / java modifiers / go branches: added with those languages.)
+
+    // C/C++: storage-class linkage. `extern` (external linkage) takes priority
+    // over `static` (internal linkage); a following `inline` must not mask it.
+    let specs: Vec<&str> = children(node)
+        .iter()
+        .filter(|c| c.kind() == "storage_class_specifier")
+        .map(|c| text(*c, src))
+        .collect();
+    if specs.contains(&"extern") {
+        visibility = Some("extern".to_string());
+    } else if specs.contains(&"static") {
+        visibility = Some("static".to_string());
+    }
+
     if let Some(parent) = node.parent() {
         if parent.kind() == "export_statement" {
             visibility = Some("exported".to_string());
@@ -318,6 +337,17 @@ fn get_name(node: Node, src: &[u8], _language: &str) -> Option<String> {
             "property_identifier" => return Some(text(child, src).to_string()),
             "constant" if is_class_decl => return Some(text(child, src).to_string()),
             "type_identifier" if is_class_decl => return Some(text(child, src).to_string()),
+            // C/C++: the name is nested inside the (possibly pointer-wrapped)
+            // function_declarator; field_identifier names in-class methods.
+            "function_declarator" | "pointer_declarator" => {
+                return get_name(child, src, _language)
+            }
+            "field_identifier" => return Some(text(child, src).to_string()),
+            "parenthesized_declarator" => {
+                if let Some(inner) = get_name(child, src, _language) {
+                    return Some(inner);
+                }
+            }
             _ => {}
         }
     }
@@ -335,7 +365,7 @@ fn extract_function(
     let name = get_name(node, src, language)?;
     let (visibility, class_name) = extract_visibility(node, src, language, class_name);
     let _ = &mut attrs; // attrs is mutated by Java/C# branches (added later)
-    let parameters = extract_parameters(node, src);
+    let parameters = extract_parameters(node, src, language);
     let return_type = extract_return_type(node, src);
 
     let param_strs: Vec<String> = parameters
@@ -369,23 +399,30 @@ fn extract_function(
     })
 }
 
-fn extract_parameters(node: Node, src: &[u8]) -> Vec<(String, Option<String>)> {
+fn extract_parameters(node: Node, src: &[u8], language: &str) -> Vec<(String, Option<String>)> {
     let mut params: Vec<(String, Option<String>)> = Vec::new();
     for child in children(node) {
         if matches!(child.kind(), "parameters" | "formal_parameters" | "parameter_list") {
             for param in children(child) {
-                if let (Some(name), ptype) = parse_param(param, src) {
+                if let (Some(name), ptype) = parse_param(param, src, language) {
                     if !matches!(name.as_str(), "(" | ")" | "," | "self" | "this") {
                         params.push((name, ptype));
                     }
                 }
             }
         }
+        // C/C++: params are inside function_declarator → parameter_list. This
+        // only recurses through a DIRECT function_declarator child, so a
+        // pointer-return function (function_declarator nested in
+        // pointer_declarator) yields no params — matching the Python quirk.
+        if child.kind() == "function_declarator" {
+            params.extend(extract_parameters(child, src, language));
+        }
     }
     params
 }
 
-fn parse_param(node: Node, src: &[u8]) -> (Option<String>, Option<String>) {
+fn parse_param(node: Node, src: &[u8], language: &str) -> (Option<String>, Option<String>) {
     let mut name: Option<String> = None;
     let mut ptype: Option<String> = None;
     for child in children(node) {
@@ -394,6 +431,23 @@ fn parse_param(node: Node, src: &[u8]) -> (Option<String>, Option<String>) {
             name = Some(text(child, src).to_string());
         } else if TYPE_NODE_KINDS.contains(&k) {
             ptype = Some(lstrip_colon_space(text(child, src)));
+        } else if k == "pointer_declarator" {
+            // C: the pointer wraps the identifier; the type gains a `*`.
+            name = get_name(child, src, language);
+            if let Some(t) = ptype.take() {
+                ptype = Some(format!("{t}*"));
+            }
+        }
+    }
+    // Fallback: parse the full text for typed params like "String data" /
+    // "const char *buf" when no identifier child was found.
+    if name.is_none() && matches!(node.kind(), "formal_parameter" | "parameter_declaration") {
+        let t = text(node, src).trim().trim_end_matches(',').to_string();
+        let spaced = t.replace('*', "* ");
+        let parts: Vec<&str> = spaced.split_whitespace().collect();
+        if parts.len() >= 2 {
+            name = Some(parts[parts.len() - 1].trim_start_matches('*').to_string());
+            ptype = Some(parts[..parts.len() - 1].join(" ").replace("  ", " "));
         }
     }
     // `if not name and ptype: name = "_anon"` (anonymous typed param).
@@ -409,11 +463,34 @@ fn lstrip_colon_space(s: &str) -> String {
 }
 
 fn extract_return_type(node: Node, src: &[u8]) -> Option<String> {
-    // Python has no function_declarator, so func_decl_pos is None and only the
-    // ("type"|"return_type") branch can fire.
-    for child in children(node) {
+    let kids = children(node);
+    // C/C++: the return type is a sibling before the function_declarator.
+    let func_decl_pos = kids.iter().position(|c| c.kind() == "function_declarator");
+    for (i, child) in kids.iter().enumerate() {
+        if let Some(fp) = func_decl_pos {
+            if i < fp
+                && matches!(child.kind(), "primitive_type" | "type_identifier" | "sized_type_specifier")
+            {
+                return Some(text(*child, src).to_string());
+            }
+        }
+        // Java/Python/Go: type after params.
         if matches!(child.kind(), "type" | "return_type") {
-            return Some(lstrip_colon_space(text(child, src)));
+            return Some(lstrip_colon_space(text(*child, src)));
+        }
+        if func_decl_pos.is_none()
+            && matches!(
+                child.kind(),
+                "type_identifier" | "generic_type" | "void_type" | "pointer_type" | "array_type"
+            )
+        {
+            let params_seen = kids.iter().any(|c| {
+                matches!(c.kind(), "parameters" | "formal_parameters" | "parameter_list")
+                    && c.start_byte() < child.start_byte()
+            });
+            if params_seen {
+                return Some(text(*child, src).to_string());
+            }
         }
     }
     None
@@ -668,5 +745,44 @@ mod tests {
         // the find_child(arrow_function|function) miss drops — matching Python.
         assert_eq!(names(&fns), vec!["f"]);
         assert_eq!(fns[0].signature.as_deref(), Some("f = (x) => x * 2"));
+    }
+
+    // --- C ---------------------------------------------------------------
+
+    #[test]
+    fn c_typed_params_and_return() {
+        let fns = extract_c_functions("int add(int a, int b) {\n    return a + b;\n}\n");
+        let f = &fns[0];
+        assert_eq!(f.name, "add");
+        assert_eq!(f.signature.as_deref(), Some("add(a: int, b: int) -> int"));
+        let m = f.metadata.as_ref().unwrap();
+        assert_eq!(m.return_type.as_deref(), Some("int"));
+        assert_eq!(
+            m.parameters,
+            vec![("a".to_string(), Some("int".to_string())), ("b".to_string(), Some("int".to_string()))]
+        );
+    }
+
+    #[test]
+    fn c_pointer_return_drops_params_and_return_type() {
+        // function_declarator nested in pointer_declarator → no params/return.
+        let fns = extract_c_functions("static char *get_name(const char *path) {\n    return 0;\n}\n");
+        let f = &fns[0];
+        assert_eq!(f.name, "get_name");
+        assert_eq!(f.signature.as_deref(), Some("get_name()"));
+        let m = f.metadata.as_ref().unwrap();
+        assert_eq!(m.visibility.as_deref(), Some("static"));
+        assert!(m.parameters.is_empty());
+        assert_eq!(m.return_type, None);
+    }
+
+    #[test]
+    fn c_double_pointer_param_type() {
+        let fns = extract_c_functions("int main(int argc, char **argv) { return 0; }\n");
+        let m = fns[0].metadata.as_ref().unwrap();
+        assert_eq!(
+            m.parameters,
+            vec![("argc".to_string(), Some("int".to_string())), ("argv".to_string(), Some("char*".to_string()))]
+        );
     }
 }

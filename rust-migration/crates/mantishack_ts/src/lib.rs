@@ -11,7 +11,7 @@
 use tree_sitter::{Language, Parser, Tree};
 
 /// Language names recognised so far. Grows as extractor branches are ported.
-pub const SUPPORTED_LANGUAGES: &[&str] = &["python", "javascript"];
+pub const SUPPORTED_LANGUAGES: &[&str] = &["python", "javascript", "c"];
 
 /// The tree-sitter [`Language`] for a language name, or `None` if no grammar is
 /// wired yet (graceful degradation — callers treat absence as "no parse",
@@ -21,6 +21,7 @@ pub fn language_for(language: &str) -> Option<Language> {
     match language {
         "python" => Some(tree_sitter_python::LANGUAGE.into()),
         "javascript" => Some(tree_sitter_javascript::LANGUAGE.into()),
+        "c" => Some(tree_sitter_c::LANGUAGE.into()),
         _ => None,
     }
 }
