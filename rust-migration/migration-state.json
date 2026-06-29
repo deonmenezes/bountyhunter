@@ -832,11 +832,13 @@
     "core.witness": {
       "name": "core.witness",
       "disposition": "rust-port",
-      "status": "pending",
-      "crate": "",
+      "status": "verified",
+      "crate": "rust-migration/crates/mantishack_core_witness",
       "phase": 2,
       "notes": "",
-      "parity": {}
+      "parity": {
+        "rust": "pass (51 tests)"
+      }
     },
     "core.witness.scripts": {
       "name": "core.witness.scripts",
@@ -1791,11 +1793,13 @@
     "packages.semgrep": {
       "name": "packages.semgrep",
       "disposition": "rust-glue",
-      "status": "pending",
-      "crate": "",
+      "status": "verified",
+      "crate": "rust-migration/crates/mantishack_semgrep",
       "phase": 4,
       "notes": "",
-      "parity": {}
+      "parity": {
+        "rust": "pass (25 tests)"
+      }
     },
     "packages.semgrep.tests": {
       "name": "packages.semgrep.tests",
