@@ -18,7 +18,7 @@ for i in $(seq 1 20); do
 done
 
 if ! command -v cloudflared >/dev/null 2>&1; then
-  echo "✖ cloudflared not found. Install:  brew install cloudflared"
+  echo "✖ cloudflared not found. Install:  brew install cloudflared@2026.6.1"
   echo "  Server is still running locally at http://127.0.0.1:$PORT"
   wait $SERVER_PID
 fi
