@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mantis scan — test client</title>
+<style>
+  body { font: 15px/1.5 -apple-system, system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; background:#0b0e13; color:#e6e9ef; }
+  h1 { font-size: 1.3rem; }
+  input { width: 100%; padding: 10px; border-radius: 8px; border:1px solid #2a313c; background:#11151c; color:#e6e9ef; box-sizing:border-box; margin:6px 0; }
+  button { padding:10px 18px; border-radius:8px; border:0; background:#34d399; color:#04130c; font-weight:600; cursor:pointer; }
+  pre { background:#11151c; border:1px solid #222; border-radius:8px; padding:12px; white-space:pre-wrap; word-break:break-word; max-height:340px; overflow:auto; }
+  label { font-size:.85rem; color:#9aa4b2; }
+</style>
+</head>
+<body>
+  <h1>Mantis scan — test client</h1>
+  <p>Points at your laptop's scan endpoint (the cloudflared URL, or http://127.0.0.1:8787 locally).</p>
+  <label>Endpoint base</label>
+  <input id="endpoint" value="http://127.0.0.1:8787" />
+  <label>Scan token (leave blank if OPEN=1)</label>
+  <input id="token" placeholder="paste SCAN_TOKEN printed at server start" />
+  <label>Target URL</label>
+  <input id="target" value="https://mantishack.com" />
+  <button id="go">Scan</button>
+  <pre id="out">ready.</pre>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const out = $("out");
+let timer = null;
+
+$("go").onclick = async () => {
+  clearInterval(timer);
+  const base = $("endpoint").value.replace(/\/+$/, "");
+  out.textContent = "submitting…";
+  let r;
+  try {
+    r = await fetch(base + "/api/scan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Scan-Token": $("token").value },
+      body: JSON.stringify({ target: $("target").value }),
+    });
+  } catch (e) { out.textContent = "network error: " + e.message; return; }
+  const j = await r.json();
+  if (!r.ok) { out.textContent = "rejected (" + r.status + "): " + (j.error || ""); return; }
+  out.textContent = "queued: " + j.id + " — polling…";
+  timer = setInterval(async () => {
+    const s = await (await fetch(base + "/api/scan/" + j.id)).json();
+    out.textContent = JSON.stringify(s, null, 2);
+    if (["done", "error", "timeout"].includes(s.status)) clearInterval(timer);
+  }, 2000);
+};
+</script>
+</body>
+</html>
