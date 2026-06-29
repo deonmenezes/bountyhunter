@@ -82,6 +82,11 @@ pub fn extract_c_functions(content: &str) -> Vec<FunctionInfo> {
     extract_functions("c", content)
 }
 
+/// Go convenience wrapper.
+pub fn extract_go_functions(content: &str) -> Vec<FunctionInfo> {
+    extract_functions("go", content)
+}
+
 fn is_js_family(language: &str) -> bool {
     matches!(language, "javascript" | "typescript" | "tsx")
 }
@@ -94,6 +99,7 @@ fn func_types(language: &str) -> &'static [&'static str] {
             &["function_declaration", "method_definition", "arrow_function"]
         }
         "c" | "cpp" => &["function_definition"],
+        "go" => &["function_declaration", "method_declaration"],
         _ => &[],
     }
 }
@@ -294,13 +300,15 @@ fn extract_visibility(
     node: Node,
     src: &[u8],
     language: &str,
+    name: &str,
     class_name: Option<&str>,
 ) -> (Option<String>, Option<String>) {
     let mut visibility = None;
+    let mut class_name_out = class_name.map(str::to_string);
     if node.kind() == "method_definition" {
         visibility = ts_member_visibility(node, src, language);
     }
-    // (csharp / java modifiers / go branches: added with those languages.)
+    // (csharp / java modifiers branches: added with those languages.)
 
     // C/C++: storage-class linkage. `extern` (external linkage) takes priority
     // over `static` (internal linkage); a following `inline` must not mask it.
@@ -315,12 +323,38 @@ fn extract_visibility(
         visibility = Some("static".to_string());
     }
 
+    // Go: exported from a capitalised name; the receiver param_list (which
+    // precedes the method name) supplies class_name.
+    if language == "go" {
+        if first_isupper(name) {
+            visibility = Some("exported".to_string());
+        }
+        let kids = children(node);
+        let name_byte = kids.iter().find_map(|c| {
+            if c.kind() == "field_identifier" || (c.kind() == "identifier" && text(*c, src) == name) {
+                Some(c.start_byte())
+            } else {
+                None
+            }
+        });
+        if let Some(nb) = name_byte {
+            for child in &kids {
+                if child.kind() == "parameter_list" && child.start_byte() < nb {
+                    let recv = text(*child, src).trim_matches(|c| c == '(' || c == ')');
+                    if let Some(last) = recv.split_whitespace().last() {
+                        class_name_out = Some(last.trim_start_matches('*').to_string());
+                    }
+                }
+            }
+        }
+    }
+
     if let Some(parent) = node.parent() {
         if parent.kind() == "export_statement" {
             visibility = Some("exported".to_string());
         }
     }
-    (visibility, class_name.map(str::to_string))
+    (visibility, class_name_out)
 }
 
 /// The first `identifier`/`name`/`property_identifier` (and class-decl-only
@@ -363,7 +397,7 @@ fn extract_function(
     class_attributes: &[String],
 ) -> Option<FunctionInfo> {
     let name = get_name(node, src, language)?;
-    let (visibility, class_name) = extract_visibility(node, src, language, class_name);
+    let (visibility, class_name) = extract_visibility(node, src, language, &name, class_name);
     let _ = &mut attrs; // attrs is mutated by Java/C# branches (added later)
     let parameters = extract_parameters(node, src, language);
     let return_type = extract_return_type(node, src);
@@ -543,24 +577,138 @@ pub fn extract_python_top_level(content: &str) -> Vec<CodeItem> {
 /// Module-scope global variables/constants. Faithful port of
 /// `_extract_globals_ts` for Python (UPPER/TitleCase assignments only, with
 /// nested chained-assignment handling).
-pub fn extract_python_globals(content: &str) -> Vec<CodeItem> {
-    let Some(tree) = mantishack_ts::parse("python", content) else {
+/// Node types that hold global declarations per language (`global_types`).
+fn global_types(language: &str) -> &'static [&'static str] {
+    match language {
+        "python" => &["expression_statement", "assignment"],
+        "javascript" | "typescript" | "tsx" => &["lexical_declaration", "variable_declaration"],
+        "c" | "cpp" => &["declaration"],
+        "go" => &["var_declaration", "const_declaration"],
+        _ => &[],
+    }
+}
+
+/// Module-scope globals from a tree-sitter parse (`_extract_globals_ts`),
+/// generalized over language. (Java's class-body scan is added with Java.)
+pub fn extract_globals(language: &str, content: &str) -> Vec<CodeItem> {
+    let target_types = global_types(language);
+    if target_types.is_empty() {
+        return Vec::new();
+    }
+    let Some(tree) = mantishack_ts::parse(language, content) else {
         return Vec::new();
     };
     let src = content.as_bytes();
-    let root = tree.root_node();
     let mut out: Vec<CodeItem> = Vec::new();
-    for child in children(root) {
-        if !matches!(child.kind(), "expression_statement" | "assignment") {
+    for child in children(tree.root_node()) {
+        if !target_types.contains(&child.kind()) {
             continue;
         }
-        for name in global_names_python(child, src) {
+        for name in global_names(child, language, src) {
             out.push(CodeItem::new(
                 name,
                 KIND_GLOBAL,
                 child.start_position().row as i64 + 1,
                 Some(child.end_position().row as i64 + 1),
             ));
+        }
+    }
+    out
+}
+
+/// Python globals convenience wrapper.
+pub fn extract_python_globals(content: &str) -> Vec<CodeItem> {
+    extract_globals("python", content)
+}
+
+/// Go globals convenience wrapper.
+pub fn extract_go_globals(content: &str) -> Vec<CodeItem> {
+    extract_globals("go", content)
+}
+
+fn global_names(node: Node, language: &str, src: &[u8]) -> Vec<String> {
+    match language {
+        "python" => global_names_python(node, src),
+        "go" => global_names_go(node, src),
+        "javascript" | "typescript" | "tsx" => global_names_js(node, src),
+        "c" | "cpp" => global_names_c(node, src),
+        _ => Vec::new(),
+    }
+}
+
+/// C/C++ global name. Function prototypes (a direct `function_declarator`
+/// child) are skipped; otherwise descend the declarator wrappers to the
+/// declared identifier (`_global_name` C branch + `_c_declarator_name`).
+fn global_names_c(node: Node, src: &[u8]) -> Vec<String> {
+    if children(node).iter().any(|c| c.kind() == "function_declarator") {
+        return Vec::new();
+    }
+    match c_declarator_name(node, src, 0) {
+        Some(n) => vec![n],
+        None => Vec::new(),
+    }
+}
+
+fn c_declarator_name(node: Node, src: &[u8], depth: u32) -> Option<String> {
+    if depth > 6 {
+        return None;
+    }
+    if node.kind() == "identifier" {
+        return Some(text(node, src).to_string());
+    }
+    for child in children(node) {
+        match child.kind() {
+            "identifier" => return Some(text(child, src).to_string()),
+            "init_declarator" => {
+                // Follow only the declarator side, never the RHS init value.
+                let decl = child
+                    .child_by_field_name("declarator")
+                    .or_else(|| children(child).into_iter().next());
+                if let Some(d) = decl {
+                    if let Some(name) = c_declarator_name(d, src, depth + 1) {
+                        return Some(name);
+                    }
+                }
+            }
+            "array_declarator" | "pointer_declarator" | "parenthesized_declarator"
+            | "function_declarator" => {
+                if let Some(name) = c_declarator_name(child, src, depth + 1) {
+                    return Some(name);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+/// JS/TS global name — the first `variable_declarator`'s identifier (the Python
+/// `_global_name` JS branch yields a single name per declaration node).
+fn global_names_js(node: Node, src: &[u8]) -> Vec<String> {
+    for child in children(node) {
+        if child.kind() == "variable_declarator" {
+            for sub in children(child) {
+                if matches!(sub.kind(), "identifier" | "name") {
+                    return vec![text(sub, src).to_string()];
+                }
+            }
+        }
+    }
+    Vec::new()
+}
+
+/// Go `var_spec`/`const_spec` identifier names. A `var ( … )` block nests its
+/// specs in a `var_spec_list` (not a direct child), so those names are dropped
+/// — faithful to the Python `_global_names` Go branch.
+fn global_names_go(node: Node, src: &[u8]) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for child in children(node) {
+        if matches!(child.kind(), "var_spec" | "const_spec") {
+            for sub in children(child) {
+                if sub.kind() == "identifier" {
+                    out.push(text(sub, src).to_string());
+                }
+            }
         }
     }
     out
@@ -784,5 +932,34 @@ mod tests {
             m.parameters,
             vec![("argc".to_string(), Some("int".to_string())), ("argv".to_string(), Some("char*".to_string()))]
         );
+    }
+
+    // --- Go --------------------------------------------------------------
+
+    #[test]
+    fn go_exported_capitalization_and_return() {
+        let fns = extract_go_functions("func Add(a int, b int) int { return a + b }\n");
+        let f = &fns[0];
+        assert_eq!(f.signature.as_deref(), Some("Add(a: int, b: int) -> int"));
+        assert_eq!(f.metadata.as_ref().unwrap().visibility.as_deref(), Some("exported"));
+    }
+
+    #[test]
+    fn go_method_receiver_is_class_name() {
+        let src = "func (t *T) Method(n int) error {\n    return nil\n}\n";
+        let fns = extract_go_functions(src);
+        let m = fns[0].metadata.as_ref().unwrap();
+        assert_eq!(fns[0].name, "Method");
+        assert_eq!(m.class_name.as_deref(), Some("T"));
+        // Receiver `t *T` is included as the first parameter.
+        assert_eq!(m.parameters[0], ("t".to_string(), Some("*T".to_string())));
+    }
+
+    #[test]
+    fn go_block_var_globals_dropped() {
+        // Single var/const captured; `var ( … )` block specs nest in
+        // var_spec_list and are dropped — matching Python.
+        let g = extract_go_globals("var Global = 1\nconst Max = 9\nvar (\n  a int\n)\n");
+        assert_eq!(item_names(&g), vec!["Global", "Max"]);
     }
 }
