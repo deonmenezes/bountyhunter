@@ -1,0 +1,22 @@
+[package]
+name = "mantishack_core_tuning"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "mantishack_core_tuning"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python = ["dep:pyo3"]
+
+[dependencies]
+pyo3 = { workspace = true, optional = true }
+mantishack_core_json = { path = "../mantishack_core_json" }
+serde_json = "1"
+
+[dev-dependencies]
+tempfile = "3"

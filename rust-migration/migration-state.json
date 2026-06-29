@@ -3,10 +3,10 @@
     "core": {
       "name": "core",
       "disposition": "review",
-      "status": "pending",
+      "status": "skipped",
       "crate": "",
       "phase": -1,
-      "notes": "",
+      "notes": "PEP562 lazy re-export shim (import machinery); reclassified review->keep-python",
       "parity": {}
     },
     "core.annotations": {
@@ -311,11 +311,13 @@
     "core.json": {
       "name": "core.json",
       "disposition": "rust-port",
-      "status": "pending",
-      "crate": "",
+      "status": "verified",
+      "crate": "rust-migration/crates/mantishack_core_json",
       "phase": 2,
-      "notes": "",
-      "parity": {}
+      "notes": "cycle with tuning broken: json exposes set_max_memo_mb injection instead of calling tuning",
+      "parity": {
+        "rust": "pass (67 tests)"
+      }
     },
     "core.json.tests": {
       "name": "core.json.tests",
@@ -754,11 +756,13 @@
     "core.tuning": {
       "name": "core.tuning",
       "disposition": "rust-port",
-      "status": "pending",
-      "crate": "",
+      "status": "verified",
+      "crate": "rust-migration/crates/mantishack_core_tuning",
       "phase": 2,
-      "notes": "",
-      "parity": {}
+      "notes": "depends on mantishack_core_json",
+      "parity": {
+        "rust": "pass (19 tests)"
+      }
     },
     "core.tuning.tests": {
       "name": "core.tuning.tests",
