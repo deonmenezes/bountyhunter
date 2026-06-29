@@ -1,0 +1,15 @@
+[package]
+name = "mantishack_ts"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+# Tree-sitter parsing foundation shared by the inventory extractors, call
+# graph, and reachability ports. Grammar crate versions are pinned to match
+# the Python oracle's installed grammars (tree-sitter-python 0.25, etc.) so
+# parse trees — and therefore extracted items — match byte-for-byte.
+
+[dependencies]
+tree-sitter = "0.25"
+tree-sitter-python = "0.25"
