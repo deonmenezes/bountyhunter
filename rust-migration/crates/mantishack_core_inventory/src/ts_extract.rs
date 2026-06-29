@@ -54,18 +54,59 @@ const TYPE_NODE_KINDS: &[&str] = &[
     "sized_type_specifier",
 ];
 
-/// Extract functions from Python `content` via tree-sitter, matching the
-/// Python `TreeSitterExtractor.extract` for the Python branch. Returns an empty
-/// vec if parsing fails (caller falls back), mirroring the Python behaviour.
-pub fn extract_python_functions(content: &str) -> Vec<FunctionInfo> {
-    let Some(tree) = mantishack_ts::parse("python", content) else {
+/// Extract functions from `content` via tree-sitter, matching the Python
+/// `TreeSitterExtractor.extract`. Returns an empty vec if the grammar isn't
+/// wired or parsing fails (caller falls back), mirroring the Python behaviour.
+pub fn extract_functions(language: &str, content: &str) -> Vec<FunctionInfo> {
+    let Some(tree) = mantishack_ts::parse(language, content) else {
         return Vec::new();
     };
     let src = content.as_bytes();
     let mut out: Vec<FunctionInfo> = Vec::new();
-    walk(tree.root_node(), src, &mut out, None, &[]);
+    walk(tree.root_node(), src, language, &mut out, None, &[]);
     out
 }
+
+/// Python convenience wrapper (kept for the existing call sites/tests).
+pub fn extract_python_functions(content: &str) -> Vec<FunctionInfo> {
+    extract_functions("python", content)
+}
+
+/// JavaScript convenience wrapper.
+pub fn extract_javascript_functions(content: &str) -> Vec<FunctionInfo> {
+    extract_functions("javascript", content)
+}
+
+fn is_js_family(language: &str) -> bool {
+    matches!(language, "javascript" | "typescript" | "tsx")
+}
+
+/// Node types that represent functions/methods per language (`_FUNC_TYPES`).
+fn func_types(language: &str) -> &'static [&'static str] {
+    match language {
+        "python" => &["function_definition"],
+        "javascript" | "typescript" | "tsx" => {
+            &["function_declaration", "method_definition", "arrow_function"]
+        }
+        _ => &[],
+    }
+}
+
+/// Node types that represent classes per language (`_CLASS_TYPES`).
+fn class_types(language: &str) -> &'static [&'static str] {
+    match language {
+        "python" => &["class_definition"],
+        "javascript" => &["class_declaration"],
+        "typescript" | "tsx" => &["class_declaration", "abstract_class_declaration"],
+        _ => &[],
+    }
+}
+
+/// Sibling node types allowed between a JS/TS decorator and its declaration.
+const TS_DECORATOR_SKIP: &[&str] = &[
+    "export", "default", "abstract", "async", "static", "readonly",
+    "accessibility_modifier", "comment", "override",
+];
 
 fn children<'a>(node: Node<'a>) -> Vec<Node<'a>> {
     let mut cursor = node.walk();
@@ -79,38 +120,97 @@ fn text<'a>(node: Node<'a>, src: &'a [u8]) -> &'a str {
 fn walk(
     node: Node,
     src: &[u8],
+    language: &str,
     out: &mut Vec<FunctionInfo>,
     class_name: Option<&str>,
     class_attributes: &[String],
 ) {
+    let fts = func_types(language);
+    let cts = class_types(language);
     for child in children(node) {
-        match child.kind() {
-            "class_definition" => {
-                let cname = get_name(child, src);
-                // Python: class_attributes = ts_decorators (JS/TS only) +
-                // class_annotations (modifiers/superclass — none for Python) = [].
-                walk(child, src, out, cname.as_deref(), &[]);
+        let k = child.kind();
+        if cts.contains(&k) {
+            let cname = get_name(child, src, language);
+            // class_attributes = ts_decorators (JS/TS) + class_annotations.
+            let mut cattrs = ts_decorators(child, src, language);
+            cattrs.extend(class_annotations(child, src));
+            walk(child, src, language, out, cname.as_deref(), &cattrs);
+        } else if k == "public_field_definition" {
+            // TS class property holding an arrow/function (handler = (x) => {…}).
+            if let Some(arrow) = find_child(child, &["arrow_function", "function"]) {
+                if let Some(name) = get_name(child, src, language) {
+                    out.push(FunctionInfo {
+                        name,
+                        kind: KIND_FUNCTION.to_string(),
+                        line_start: child.start_position().row as i64 + 1,
+                        line_end: Some(child.end_position().row as i64 + 1),
+                        signature: Some(sig_from_text(child, src)),
+                        metadata: Some(FunctionMetadata {
+                            class_name: class_name.map(str::to_string),
+                            visibility: ts_member_visibility(child, src, language),
+                            attributes: ts_decorators(child, src, language),
+                            parameters: extract_parameters(arrow, src),
+                            class_attributes: class_attributes.to_vec(),
+                            ..Default::default()
+                        }),
+                        checked_by: Vec::new(),
+                    });
+                }
             }
-            "function_definition" => {
-                let mut attrs: Vec<String> = Vec::new();
-                if let Some(parent) = child.parent() {
-                    if parent.kind() == "decorated_definition" {
-                        for sib in children(parent) {
-                            if sib.kind() == "decorator" {
-                                attrs.push(lstrip_at(text(sib, src)));
-                            }
+            walk(child, src, language, out, class_name, class_attributes);
+        } else if matches!(k, "lexical_declaration" | "variable_declaration") {
+            walk(child, src, language, out, class_name, class_attributes);
+        } else if k == "variable_declarator" {
+            // JS/TS: const f = () => {} / const g = function() {}
+            if let Some(arrow) = find_child(child, &["arrow_function", "function"]) {
+                if let Some(name) = get_name(child, src, language) {
+                    let exported = child
+                        .parent()
+                        .and_then(|p| p.parent())
+                        .is_some_and(|gp| gp.kind() == "export_statement");
+                    out.push(FunctionInfo {
+                        name,
+                        kind: KIND_FUNCTION.to_string(),
+                        line_start: child.start_position().row as i64 + 1,
+                        line_end: Some(child.end_position().row as i64 + 1),
+                        signature: Some(sig_from_text(child, src)),
+                        metadata: Some(FunctionMetadata {
+                            class_name: class_name.map(str::to_string),
+                            visibility: if exported { Some("exported".to_string()) } else { None },
+                            parameters: extract_parameters(arrow, src),
+                            ..Default::default()
+                        }),
+                        checked_by: Vec::new(),
+                    });
+                }
+                // arrow found → do not recurse (matches the Python `continue`).
+            } else {
+                walk(child, src, language, out, class_name, class_attributes);
+            }
+        } else if fts.contains(&k) {
+            // JS/TS decorators are preceding siblings; Python uses a
+            // decorated_definition wrapper.
+            let mut attrs = ts_decorators(child, src, language);
+            let mut fnode = child;
+            if let Some(parent) = child.parent() {
+                if parent.kind() == "decorated_definition" {
+                    for sib in children(parent) {
+                        if sib.kind() == "decorator" {
+                            attrs.push(lstrip_at(text(sib, src)));
                         }
                     }
+                    fnode = find_child(parent, fts).unwrap_or(child);
                 }
-                if let Some(fi) = extract_function(child, src, class_name, attrs, class_attributes) {
-                    out.push(fi);
-                }
-                walk(child, src, out, class_name, class_attributes);
             }
-            // Python: walk into the decorated wrapper (the inner
-            // function_definition handles decorator collection via its parent).
-            "decorated_definition" => walk(child, src, out, class_name, class_attributes),
-            _ => walk(child, src, out, class_name, class_attributes),
+            if let Some(fi) = extract_function(fnode, src, language, class_name, attrs, class_attributes)
+            {
+                out.push(fi);
+            }
+            walk(child, src, language, out, class_name, class_attributes);
+        } else {
+            // Includes `decorated_definition` (Python): walk into the wrapper;
+            // the inner function_definition collects decorators via its parent.
+            walk(child, src, language, out, class_name, class_attributes);
         }
     }
 }
@@ -120,11 +220,105 @@ fn lstrip_at(s: &str) -> String {
     s.trim_start_matches('@').to_string()
 }
 
-/// Python branch of `_get_name`: the first `identifier`/`name` child.
-fn get_name(node: Node, src: &[u8]) -> Option<String> {
+fn find_child<'a>(node: Node<'a>, types: &[&str]) -> Option<Node<'a>> {
+    children(node).into_iter().find(|c| types.contains(&c.kind()))
+}
+
+/// `child.text[:200].split("{")[0].strip()` — the declarator's signature.
+fn sig_from_text(node: Node, src: &[u8]) -> String {
+    let t: String = text(node, src).chars().take(200).collect();
+    t.split('{').next().unwrap_or("").trim().to_string()
+}
+
+/// JS/TS decorators on a class or method — preceding `decorator` siblings,
+/// stored `@`-stripped. `[]` for non-JS-family languages (`_ts_decorators`).
+fn ts_decorators(node: Node, src: &[u8], language: &str) -> Vec<String> {
+    if !is_js_family(language) {
+        return Vec::new();
+    }
+    let mut out: Vec<String> = Vec::new();
+    let mut sib = node.prev_sibling();
+    while let Some(s) = sib {
+        if s.kind() == "decorator" {
+            out.push(lstrip_at(text(s, src)).trim().to_string());
+        } else if s.is_named() && !TS_DECORATOR_SKIP.contains(&s.kind()) {
+            break;
+        }
+        sib = s.prev_sibling();
+    }
+    out.reverse();
+    out
+}
+
+/// JS/TS class-member visibility (`accessibility_modifier`, default `public`);
+/// `None` for non-JS-family languages (`_ts_member_visibility`).
+fn ts_member_visibility(node: Node, src: &[u8], language: &str) -> Option<String> {
+    if !is_js_family(language) {
+        return None;
+    }
     for child in children(node) {
-        if matches!(child.kind(), "identifier" | "name") {
-            return Some(text(child, src).to_string());
+        if child.kind() == "accessibility_modifier" {
+            return Some(text(child, src).trim().to_string());
+        }
+    }
+    Some("public".to_string())
+}
+
+/// Annotations declared on a class (Java `modifiers`, etc.). `[]` for
+/// Python/JS classes (none of those nodes appear). Partial port of
+/// `_class_annotations` — extended as Java/C#/Ruby are wired.
+fn class_annotations(node: Node, src: &[u8]) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for child in children(node) {
+        if child.kind() == "modifiers" {
+            for m in children(child) {
+                if matches!(m.kind(), "marker_annotation" | "annotation") {
+                    out.push(lstrip_at(text(m, src)));
+                }
+            }
+        }
+    }
+    out
+}
+
+/// Extract visibility and (possibly updated) class_name. Python branch returns
+/// `(None, class_name)`; JS sets member visibility for `method_definition` and
+/// `exported` for an `export_statement` parent (`_extract_visibility`).
+fn extract_visibility(
+    node: Node,
+    src: &[u8],
+    language: &str,
+    class_name: Option<&str>,
+) -> (Option<String>, Option<String>) {
+    let mut visibility = None;
+    if node.kind() == "method_definition" {
+        visibility = ts_member_visibility(node, src, language);
+    }
+    // (csharp / java modifiers / c storage-class / go branches: added with
+    // those languages.)
+    if let Some(parent) = node.parent() {
+        if parent.kind() == "export_statement" {
+            visibility = Some("exported".to_string());
+        }
+    }
+    (visibility, class_name.map(str::to_string))
+}
+
+/// The first `identifier`/`name`/`property_identifier` (and class-decl-only
+/// `constant`/`type_identifier`) child. Python/JS subset of `_get_name`;
+/// C/Go/Java/C++ branches are added as those languages are wired.
+fn get_name(node: Node, src: &[u8], _language: &str) -> Option<String> {
+    let is_class_decl = matches!(
+        node.kind(),
+        "class_declaration" | "abstract_class_declaration" | "interface_declaration" | "class" | "module"
+    );
+    for child in children(node) {
+        match child.kind() {
+            "identifier" | "name" => return Some(text(child, src).to_string()),
+            "property_identifier" => return Some(text(child, src).to_string()),
+            "constant" if is_class_decl => return Some(text(child, src).to_string()),
+            "type_identifier" if is_class_decl => return Some(text(child, src).to_string()),
+            _ => {}
         }
     }
     None
@@ -133,13 +327,14 @@ fn get_name(node: Node, src: &[u8]) -> Option<String> {
 fn extract_function(
     node: Node,
     src: &[u8],
+    language: &str,
     class_name: Option<&str>,
-    attrs: Vec<String>,
+    mut attrs: Vec<String>,
     class_attributes: &[String],
 ) -> Option<FunctionInfo> {
-    let name = get_name(node, src)?;
-    // Python branch: visibility stays None and class_name is unchanged
-    // (the modifiers/storage-class/go branches don't apply to Python).
+    let name = get_name(node, src, language)?;
+    let (visibility, class_name) = extract_visibility(node, src, language, class_name);
+    let _ = &mut attrs; // attrs is mutated by Java/C# branches (added later)
     let parameters = extract_parameters(node, src);
     let return_type = extract_return_type(node, src);
 
@@ -163,8 +358,8 @@ fn extract_function(
         line_end: Some(node.end_position().row as i64 + 1),
         signature: Some(sig),
         metadata: Some(FunctionMetadata {
-            class_name: class_name.map(str::to_string),
-            visibility: None,
+            class_name,
+            visibility,
             attributes: attrs,
             return_type,
             parameters,
@@ -449,5 +644,29 @@ mod tests {
         // os.system(...) on line 2 and print(1) on line 4; the Y = compute()
         // assignment is a global, not top_level.
         assert_eq!(item_names(&t), vec!["top_level:2", "top_level:4"]);
+    }
+
+    // --- JavaScript ------------------------------------------------------
+
+    #[test]
+    fn js_class_method_public_and_export() {
+        let src = "class C {\n  method(a) { return a; }\n}\nexport function pub(x) {}\n";
+        let fns = extract_javascript_functions(src);
+        assert_eq!(names(&fns), vec!["method", "pub"]);
+        let m0 = fns[0].metadata.as_ref().unwrap();
+        assert_eq!(m0.class_name.as_deref(), Some("C"));
+        assert_eq!(m0.visibility.as_deref(), Some("public"));
+        let m1 = fns[1].metadata.as_ref().unwrap();
+        assert_eq!(m1.visibility.as_deref(), Some("exported"));
+    }
+
+    #[test]
+    fn js_arrow_in_declarator_function_expression_skipped() {
+        let src = "const f = (x) => x * 2;\nconst g = function(y) { return y; };\n";
+        let fns = extract_javascript_functions(src);
+        // Arrow `f` captured; `function(y)` is a function_expression node, which
+        // the find_child(arrow_function|function) miss drops — matching Python.
+        assert_eq!(names(&fns), vec!["f"]);
+        assert_eq!(fns[0].signature.as_deref(), Some("f = (x) => x * 2"));
     }
 }
