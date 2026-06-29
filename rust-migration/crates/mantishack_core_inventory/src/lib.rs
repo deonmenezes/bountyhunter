@@ -8,6 +8,7 @@ pub mod build_membership;
 pub mod coverage;
 pub mod dead_scope;
 pub mod diff;
+pub mod extractors;
 pub mod exclusions;
 pub mod fixture_detection;
 pub mod languages;
@@ -27,6 +28,7 @@ pub use exclusions::{
     is_binary_file, is_generated_file, match_exclusion_reason, should_exclude, DEFAULT_EXCLUDES,
     GENERATED_MARKERS, ROOT_ANCHORED_EXCLUDE_DIRS,
 };
+pub use extractors::{compute_interstitial_items, CodeItem};
 pub use languages::{detect_language, LANGUAGE_MAP};
 pub use lookup::{lookup_function, normalise_path};
 pub use module_load_abort::{detect_module_load_abort, ModuleLoadAbort};

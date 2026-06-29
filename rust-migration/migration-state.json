@@ -301,12 +301,13 @@
       "status": "in_progress",
       "crate": "rust-migration/crates/mantishack_core_inventory",
       "phase": 3,
-      "notes": "Ported (oracle-verified): build_membership, coverage, diff, exclusions, fixture_detection, languages, lookup, reach_witness, dead_scope, module_load_abort, translation_view. PARTIAL: reach_cache (compute_fingerprint + is_valid_fingerprint ported & byte-verified; load_index/save_index NOT ported — they pickle reachability._AdjacencyIndex). HARD-BLOCKED ON TREE-SITTER FOUNDATION (every remaining unit): extractors, call_graph, reachability use Python `ast` (Python branch) + tree_sitter grammars (js/ts/c/cpp/go/java); reach_audit depends on reachability; builder orchestrates all of them plus core.build.macro_config + core.build.rust_modules (outside core.inventory). All non-tree-sitter work is now exhausted — finishing core.inventory requires adding tree-sitter + grammar crates to the workspace and a Python-AST strategy (e.g. rustpython-parser), a separate multi-session effort deferred by owner decision 2026-06-28.",
+      "notes": "Ported (oracle-verified): build_membership, coverage, diff, exclusions, fixture_detection, languages, lookup, reach_witness, dead_scope, module_load_abort, translation_view. PARTIAL: reach_cache (compute_fingerprint + is_valid_fingerprint ported & byte-verified; load_index/save_index NOT ported — they pickle reachability._AdjacencyIndex). IN PROGRESS (owner greenlit tree-sitter work 2026-06-29): extractors partially ported — compute_interstitial_items (the pure coverage safety net) done & oracle-verified; the tree-sitter extraction core (TreeSitterExtractor + per-language CodeItem/global/top-level extraction) and the Python-`ast` branch remain, gated on adding tree-sitter + grammar crates to the workspace. call_graph + reachability follow the same foundation. reach_audit depends on reachability; builder orchestrates all of them plus core.build.macro_config + core.build.rust_modules (outside core.inventory).",
       "parity": {
         "dead_scope": "pass (45-case differential vs Python oracle)",
         "module_load_abort": "pass (37-case differential vs Python oracle)",
         "translation_view": "pass (36-case differential vs Python oracle)",
-        "reach_cache.compute_fingerprint": "pass (10-case byte-for-byte differential vs Python oracle)"
+        "reach_cache.compute_fingerprint": "pass (10-case byte-for-byte differential vs Python oracle)",
+        "extractors.compute_interstitial_items": "pass (12-case differential vs Python oracle)"
       }
     },
     "core.inventory.tests": {
