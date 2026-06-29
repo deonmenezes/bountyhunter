@@ -1749,11 +1749,13 @@
     "packages.sca.versions": {
       "name": "packages.sca.versions",
       "disposition": "rust-port",
-      "status": "pending",
-      "crate": "",
+      "status": "verified",
+      "crate": "rust-migration/crates/mantishack_sca_versions",
       "phase": 1,
       "notes": "",
-      "parity": {}
+      "parity": {
+        "rust": "pass (77 golden vectors)"
+      }
     },
     "packages.sca.versions.tests": {
       "name": "packages.sca.versions.tests",

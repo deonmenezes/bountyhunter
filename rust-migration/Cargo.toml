@@ -5,6 +5,7 @@ members = [
     "crates/mantishack_core_url_patterns",
     "crates/mantishack_core_schema_constants",
     "crates/mantishack_core_function_taxonomy",
+    "crates/mantishack_sca_versions",
 ]
 
 # Shared profile: optimise the static-analysis hot paths that motivated the
