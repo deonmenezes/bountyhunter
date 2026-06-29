@@ -6,6 +6,7 @@
 
 pub mod build_membership;
 pub mod coverage;
+pub mod dead_scope;
 pub mod diff;
 pub mod exclusions;
 pub mod fixture_detection;
@@ -17,6 +18,7 @@ pub use build_membership::{
     crate_module_excluded, detect_build_excluded, tu_membership_excluded, BuildExcluded,
 };
 pub use coverage::{format_coverage_summary, get_coverage_stats, update_coverage};
+pub use dead_scope::{detect_dead_scopes, DeadRange};
 pub use diff::compare_inventories;
 pub use exclusions::{
     is_binary_file, is_generated_file, match_exclusion_reason, should_exclude, DEFAULT_EXCLUDES,
@@ -137,6 +139,11 @@ mod python {
     }
 
     #[pyfunction]
+    fn detect_dead_scopes(language: &str, content: &str) -> Vec<(usize, usize)> {
+        super::detect_dead_scopes(language, content)
+    }
+
+    #[pyfunction]
     #[pyo3(signature = (checklist, file_path, line, repo_root=""))]
     fn lookup_function(
         py: Python<'_>,
@@ -173,6 +180,7 @@ mod python {
         m.add_function(wrap_pyfunction!(format_coverage_summary, m)?)?;
         m.add_function(wrap_pyfunction!(normalise_path, m)?)?;
         m.add_function(wrap_pyfunction!(lookup_function, m)?)?;
+        m.add_function(wrap_pyfunction!(detect_dead_scopes, m)?)?;
         Ok(())
     }
 }

@@ -301,8 +301,10 @@
       "status": "in_progress",
       "crate": "rust-migration/crates/mantishack_core_inventory",
       "phase": 3,
-      "notes": "",
-      "parity": {}
+      "notes": "Ported: build_membership, coverage, diff, exclusions, fixture_detection, languages, lookup, reach_witness, dead_scope. Pending: builder, call_graph, reachability, extractors, module_load_abort, translation_view, reach_audit, _reach_cache.",
+      "parity": {
+        "dead_scope": "pass (45-case differential vs Python oracle)"
+      }
     },
     "core.inventory.tests": {
       "name": "core.inventory.tests",
