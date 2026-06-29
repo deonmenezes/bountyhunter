@@ -301,10 +301,11 @@
       "status": "in_progress",
       "crate": "rust-migration/crates/mantishack_core_inventory",
       "phase": 3,
-      "notes": "Ported: build_membership, coverage, diff, exclusions, fixture_detection, languages, lookup, reach_witness, dead_scope, module_load_abort. Pending: builder, call_graph, reachability, extractors, translation_view, reach_audit, _reach_cache.",
+      "notes": "Ported (oracle-verified): build_membership, coverage, diff, exclusions, fixture_detection, languages, lookup, reach_witness, dead_scope, module_load_abort, translation_view. BLOCKED ON TREE-SITTER FOUNDATION: extractors, call_graph, reachability use Python `ast` (Python branch) + tree_sitter grammars (js/ts/c/cpp/go/java); reach_audit depends on reachability; builder orchestrates all of them plus core.build.macro_config + core.build.rust_modules (outside core.inventory). Finishing core.inventory requires adding tree-sitter + grammar crates to the workspace and a Python-AST strategy (e.g. rustpython-parser) — a separate multi-session effort, deferred by owner decision 2026-06-28. _reach_cache is a pickle-based cache (Rust port = serde reimplementation, behavioral parity only).",
       "parity": {
         "dead_scope": "pass (45-case differential vs Python oracle)",
-        "module_load_abort": "pass (37-case differential vs Python oracle)"
+        "module_load_abort": "pass (37-case differential vs Python oracle)",
+        "translation_view": "pass (36-case differential vs Python oracle)"
       }
     },
     "core.inventory.tests": {

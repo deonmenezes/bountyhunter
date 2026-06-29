@@ -13,6 +13,7 @@ pub mod fixture_detection;
 pub mod languages;
 pub mod lookup;
 pub mod module_load_abort;
+pub mod translation_view;
 pub mod reach_witness;
 
 pub use build_membership::{
@@ -28,6 +29,10 @@ pub use exclusions::{
 pub use languages::{detect_language, LANGUAGE_MAP};
 pub use lookup::{lookup_function, normalise_path};
 pub use module_load_abort::{detect_module_load_abort, ModuleLoadAbort};
+pub use translation_view::{
+    detect_macro_call_targets, detect_preprocessor_dead_ranges, preprocess_view, LineMap,
+    MacroConfig, TranslationView, C_FAMILY,
+};
 pub use fixture_detection::{is_fixture_path, FixtureVerdict, HarnessEvidence};
 pub use reach_witness::{
     blocker_for, prompt_verdict_for, verdict_from_classification, Reachability,
