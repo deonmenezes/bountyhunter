@@ -2054,6 +2054,364 @@ impl CppCallGraph {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Rust call-graph extractor — port of extract_call_graph_rust / _RustCallGraph.
+// ---------------------------------------------------------------------------
+
+struct RustCallGraph {
+    graph: FileCallGraph,
+    enclosing: Vec<String>,
+    class_stack: Vec<usize>, // indices into graph.classes
+    mod_depth: i32,
+}
+
+impl RustCallGraph {
+    fn walk(&mut self, node: Node, src: &[u8]) {
+        match node.kind() {
+            "function_item" => {
+                let name = first_child_of_type(node, &["identifier"])
+                    .map(|n| cg_text(n, src).to_string())
+                    .unwrap_or_else(|| "<anon>".to_string());
+                if !self.class_stack.is_empty() && self.enclosing.is_empty() {
+                    let idx = *self.class_stack.last().unwrap();
+                    self.graph.classes[idx].methods.push((name.clone(), node.start_position().row as i64 + 1));
+                }
+                self.enclosing.push(name);
+                for c in cg_children(node) {
+                    self.walk(c, src);
+                }
+                self.enclosing.pop();
+                return;
+            }
+            "function_signature_item" => {
+                if let Some(name) = first_child_of_type(node, &["identifier"]) {
+                    if let Some(&idx) = self.class_stack.last() {
+                        self.graph.classes[idx]
+                            .methods
+                            .push((cg_text(name, src).to_string(), node.start_position().row as i64 + 1));
+                    }
+                }
+                return;
+            }
+            "use_declaration" => {
+                self.handle_use(node, src);
+                return;
+            }
+            "mod_item" => {
+                self.mod_depth += 1;
+                for c in cg_children(node) {
+                    self.walk(c, src);
+                }
+                self.mod_depth -= 1;
+                return;
+            }
+            "struct_item" | "enum_item" | "union_item" | "trait_item" => {
+                self.visit_type_item(node, src);
+                return;
+            }
+            "impl_item" => {
+                self.visit_impl(node, src);
+                return;
+            }
+            "call_expression" => {
+                if let Some(chain) = self.call_chain(node, src) {
+                    let caller = self.enclosing.last().cloned();
+                    let mut receiver_class = None;
+                    if !self.class_stack.is_empty()
+                        && !self.enclosing.is_empty()
+                        && chain.len() == 2
+                        && chain[0] == "self"
+                    {
+                        receiver_class = Some(self.graph.classes[*self.class_stack.last().unwrap()].name.clone());
+                    }
+                    self.graph.calls.push(CallSite {
+                        line: node.start_position().row as i64 + 1,
+                        chain,
+                        caller,
+                        receiver_class,
+                        ..Default::default()
+                    });
+                }
+                for c in cg_children(node) {
+                    self.walk(c, src);
+                }
+                return;
+            }
+            _ => {}
+        }
+        for c in cg_children(node) {
+            self.walk(c, src);
+        }
+    }
+
+    fn visit_type_item(&mut self, node: Node, src: &[u8]) {
+        let name_node = first_child_of_type(node, &["type_identifier"]);
+        let mut bases: Vec<String> = Vec::new();
+        if node.kind() == "trait_item" {
+            if let Some(bounds) = first_child_of_type(node, &["trait_bounds"]) {
+                for sub in cg_children(bounds) {
+                    if sub.kind() == "type_identifier" {
+                        bases.push(cg_text(sub, src).to_string());
+                    }
+                }
+            }
+        }
+        let Some(name_node) = name_node else {
+            for c in cg_children(node) {
+                self.walk(c, src);
+            }
+            return;
+        };
+        let nested = !self.class_stack.is_empty() || !self.enclosing.is_empty() || self.mod_depth > 0;
+        self.graph.classes.push(ClassDef {
+            name: cg_text(name_node, src).to_string(),
+            line: node.start_position().row as i64 + 1,
+            bases,
+            methods: Vec::new(),
+            nested,
+        });
+        self.class_stack.push(self.graph.classes.len() - 1);
+        for c in cg_children(node) {
+            self.walk(c, src);
+        }
+        self.class_stack.pop();
+    }
+
+    fn visit_impl(&mut self, node: Node, src: &[u8]) {
+        let mut target_names: Vec<String> = Vec::new();
+        for c in cg_children(node) {
+            match c.kind() {
+                "type_identifier" => target_names.push(cg_text(c, src).to_string()),
+                "generic_type" => {
+                    if let Some(ti) = first_child_of_type(c, &["type_identifier"]) {
+                        target_names.push(cg_text(ti, src).to_string());
+                    }
+                }
+                "scoped_identifier" => {
+                    if let Some(last) = self.scoped_parts(c, src).last() {
+                        target_names.push(last.clone());
+                    }
+                }
+                _ => {}
+            }
+        }
+        let Some(target) = target_names.last().cloned() else {
+            for c in cg_children(node) {
+                self.walk(c, src);
+            }
+            return;
+        };
+        let idx = match self.graph.classes.iter().position(|c| c.name == target) {
+            Some(i) => i,
+            None => {
+                self.graph.classes.push(ClassDef {
+                    name: target,
+                    line: node.start_position().row as i64 + 1,
+                    bases: Vec::new(),
+                    methods: Vec::new(),
+                    nested: self.mod_depth > 0,
+                });
+                self.graph.classes.len() - 1
+            }
+        };
+        self.class_stack.push(idx);
+        for c in cg_children(node) {
+            self.walk(c, src);
+        }
+        self.class_stack.pop();
+    }
+
+    fn handle_use(&mut self, node: Node, src: &[u8]) {
+        for c in cg_children(node) {
+            match c.kind() {
+                "use_wildcard" => {
+                    self.graph.indirection.insert(INDIRECTION_WILDCARD_IMPORT.to_string());
+                }
+                "scoped_identifier" => {
+                    let parts = self.scoped_parts(c, src);
+                    if let Some(bound) = parts.last() {
+                        self.graph.imports.insert(bound.clone(), parts.join("."));
+                    }
+                }
+                "scoped_use_list" => self.handle_scoped_use_list(c, src),
+                "use_as_clause" => self.handle_use_as(c, &[], src),
+                "identifier" => {
+                    let name = cg_text(c, src).to_string();
+                    self.graph.imports.insert(name.clone(), name);
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn handle_scoped_use_list(&mut self, node: Node, src: &[u8]) {
+        let mut prefix: Vec<String> = Vec::new();
+        let mut list_node = None;
+        for c in cg_children(node) {
+            match c.kind() {
+                "identifier" => prefix.push(cg_text(c, src).to_string()),
+                "scoped_identifier" => prefix.extend(self.scoped_parts(c, src)),
+                "use_list" => list_node = Some(c),
+                _ => {}
+            }
+        }
+        let Some(list_node) = list_node else { return };
+        for c in cg_children(list_node) {
+            match c.kind() {
+                "identifier" => {
+                    let name = cg_text(c, src).to_string();
+                    let full: Vec<String> = prefix.iter().cloned().chain([name.clone()]).collect();
+                    self.graph.imports.insert(name, full.join("."));
+                }
+                "use_as_clause" => self.handle_use_as(c, &prefix, src),
+                "use_wildcard" => {
+                    self.graph.indirection.insert(INDIRECTION_WILDCARD_IMPORT.to_string());
+                }
+                "scoped_identifier" => {
+                    let parts = self.scoped_parts(c, src);
+                    if let Some(bound) = parts.last() {
+                        let full: Vec<String> = prefix.iter().cloned().chain(parts.iter().cloned()).collect();
+                        self.graph.imports.insert(bound.clone(), full.join("."));
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn handle_use_as(&mut self, node: Node, prefix: &[String], src: &[u8]) {
+        let mut original_parts: Vec<String> = Vec::new();
+        let mut alias: Option<String> = None;
+        let mut idents_seen = 0;
+        for c in cg_children(node) {
+            if c.kind() == "scoped_identifier" {
+                original_parts = self.scoped_parts(c, src);
+            } else if c.kind() == "identifier" {
+                if original_parts.is_empty() && idents_seen == 0 {
+                    original_parts = vec![cg_text(c, src).to_string()];
+                    idents_seen += 1;
+                } else {
+                    alias = Some(cg_text(c, src).to_string());
+                }
+            }
+        }
+        let Some(alias) = alias else { return };
+        if original_parts.is_empty() {
+            return;
+        }
+        let full: Vec<String> = prefix.iter().cloned().chain(original_parts).collect();
+        self.graph.imports.insert(alias, full.join("."));
+    }
+
+    fn scoped_parts(&self, node: Node, src: &[u8]) -> Vec<String> {
+        let mut out: Vec<String> = Vec::new();
+        let mut stack: Vec<String> = Vec::new();
+        let mut cur = Some(node);
+        while let Some(c) = cur {
+            if c.kind() != "scoped_identifier" {
+                break;
+            }
+            let named: Vec<Node> = cg_children(c).into_iter().filter(|x| x.is_named()).collect();
+            if named.is_empty() {
+                return Vec::new();
+            }
+            let trailing = named[named.len() - 1];
+            if trailing.kind() != "identifier" {
+                return Vec::new();
+            }
+            stack.push(cg_text(trailing, src).to_string());
+            let first = named[0];
+            if first.kind() == "scoped_identifier" {
+                cur = Some(first);
+            } else {
+                if first.kind() == "identifier" {
+                    out.push(cg_text(first, src).to_string());
+                }
+                break;
+            }
+        }
+        for s in stack.iter().rev() {
+            out.push(s.clone());
+        }
+        out
+    }
+
+    fn call_chain(&self, node: Node, src: &[u8]) -> Option<Vec<String>> {
+        let mut callee = None;
+        for c in cg_children(node) {
+            if c.kind() == "arguments" {
+                break;
+            }
+            if c.is_named() {
+                callee = Some(c);
+                break;
+            }
+        }
+        let callee = callee?;
+        match callee.kind() {
+            "identifier" => Some(vec![cg_text(callee, src).to_string()]),
+            "scoped_identifier" => {
+                let p = self.scoped_parts(callee, src);
+                if p.is_empty() { None } else { Some(p) }
+            }
+            "field_expression" => self.field_chain(callee, src),
+            _ => None,
+        }
+    }
+
+    fn field_chain(&self, node: Node, src: &[u8]) -> Option<Vec<String>> {
+        let mut parts: Vec<String> = Vec::new();
+        let mut cur = Some(node);
+        while let Some(c) = cur {
+            if c.kind() != "field_expression" {
+                break;
+            }
+            let field = cg_children(c).into_iter().rfind(|x| x.kind() == "field_identifier")?;
+            parts.push(cg_text(field, src).to_string());
+            cur = cg_children(c).into_iter().find(|x| x.is_named());
+        }
+        let c = cur?;
+        match c.kind() {
+            "identifier" => {
+                parts.push(cg_text(c, src).to_string());
+                parts.reverse();
+                Some(parts)
+            }
+            "self" => {
+                parts.push("self".to_string());
+                parts.reverse();
+                Some(parts)
+            }
+            "scoped_identifier" => {
+                let scoped = self.scoped_parts(c, src);
+                if scoped.is_empty() {
+                    return None;
+                }
+                parts.reverse();
+                let mut out = scoped;
+                out.extend(parts);
+                Some(out)
+            }
+            _ => None,
+        }
+    }
+}
+
+/// Walk a Rust source string via tree-sitter-rust and return its `FileCallGraph`.
+pub fn extract_call_graph_rust(content: &str) -> FileCallGraph {
+    let Some(tree) = mantishack_ts::parse("rust", content) else {
+        return FileCallGraph::default();
+    };
+    let mut w = RustCallGraph {
+        graph: FileCallGraph::default(),
+        enclosing: Vec::new(),
+        class_stack: Vec::new(),
+        mod_depth: 0,
+    };
+    w.walk(tree.root_node(), content.as_bytes());
+    w.graph
+}
+
 /// Walk a C++ source string via tree-sitter-cpp and return its `FileCallGraph`.
 pub fn extract_call_graph_cpp(content: &str) -> FileCallGraph {
     let Some(tree) = mantishack_ts::parse("cpp", content) else {
@@ -2253,6 +2611,29 @@ mod tests {
         assert_eq!(helper.receiver_class.as_deref(), Some("Foo"));
         let setup = g.calls.iter().find(|c| c.chain == vec!["this", "setup"]).unwrap();
         assert_eq!(setup.receiver_class.as_deref(), Some("Foo"));
+    }
+
+    #[test]
+    fn rust_use_decls_and_impl_self() {
+        let src = "use foo::bar::Baz;\nuse std::io as stdio;\nuse other::*;\nstruct Foo;\nimpl Foo {\n    fn run(&self) { self.helper(); Baz::new(); }\n    fn helper(&self) {}\n}\n";
+        let g = extract_call_graph_rust(src);
+        assert_eq!(g.imports.get("Baz").map(String::as_str), Some("foo.bar.Baz"));
+        assert_eq!(g.imports.get("stdio").map(String::as_str), Some("std.io"));
+        assert!(g.indirection.contains("wildcard_import"));
+        // self.helper() inside impl Foo -> receiver_class Foo.
+        let h = g.calls.iter().find(|c| c.chain == vec!["self", "helper"]).unwrap();
+        assert_eq!(h.receiver_class.as_deref(), Some("Foo"));
+        // Baz::new() scoped chain.
+        assert!(g.calls.iter().any(|c| c.chain == vec!["Baz", "new"]));
+        let foo = g.classes.iter().find(|c| c.name == "Foo").unwrap();
+        assert!(foo.methods.iter().any(|(n, _)| n == "run"));
+    }
+
+    #[test]
+    fn rust_use_list_alias() {
+        let g = extract_call_graph_rust("use foo::{Bar, Qux as Q};\n");
+        assert_eq!(g.imports.get("Bar").map(String::as_str), Some("foo.Bar"));
+        assert_eq!(g.imports.get("Q").map(String::as_str), Some("foo.Qux"));
     }
 
     #[test]
