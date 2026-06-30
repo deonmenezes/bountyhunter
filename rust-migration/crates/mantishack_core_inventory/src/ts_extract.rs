@@ -12,9 +12,14 @@
 use std::sync::OnceLock;
 
 use regex::Regex;
+use rustpython_parser::ast::{
+    Arguments, BoolOp, CmpOp, Comprehension, Constant as PConstant, Expr as PExpr, ExprBinOp,
+    ExprBoolOp, ExprCompare, ExprUnaryOp, Operator, Stmt as PStmt, UnaryOp,
+};
+use rustpython_parser::Parse as _;
 use tree_sitter::Node;
 
-use crate::extractors::{CodeItem, KIND_FUNCTION, KIND_GLOBAL, KIND_TOP_LEVEL};
+use crate::extractors::{CodeItem, PyLineIndex, KIND_FUNCTION, KIND_GLOBAL, KIND_TOP_LEVEL};
 
 const ASSIGN_NODE_TYPES: &[&str] = &["assignment", "assignment_expression", "augmented_assignment"];
 const CALL_NODE_TYPES: &[&str] = &["call", "call_expression"];
@@ -919,11 +924,18 @@ fn function_info_to_json(f: &FunctionInfo) -> serde_json::Value {
 /// from a file — port of `extract_items` for the tree-sitter path.
 ///
 /// Faithful when tree-sitter yields functions: items = functions ++ globals ++
-/// top-level ++ macros, in that order. The Python no-function fallback (which
-/// re-runs the `ast`/regex extractors for functions) is NOT applied — a
-/// documented gap that only affects files with zero extracted functions.
+/// top-level ++ macros, in that order. For **Python**, when tree-sitter produced
+/// zero `KIND_FUNCTION` items (or didn't parse), the `PythonExtractor` (`ast`)
+/// path re-derives functions AND top-level items — dropping any tree-sitter
+/// function/top-level items first (keeping globals) — exactly as the Python
+/// orchestration does. The non-Python no-function regex fallback is still a
+/// documented gap (out of scope here).
 pub fn extract_items(language: &str, content: &str) -> Vec<InventoryItem> {
     let mut items: Vec<InventoryItem> = Vec::new();
+    // Mirrors Python's `ts_parsed`: did tree-sitter construct + parse? For the
+    // Python branch this is the only place the flag matters.
+    let ts_parsed = TS_ITEM_LANGS.contains(&language) && mantishack_ts::parse(language, content).is_some();
+
     for f in extract_functions(language, content) {
         items.push(InventoryItem::Function(f));
     }
@@ -933,12 +945,639 @@ pub fn extract_items(language: &str, content: &str) -> Vec<InventoryItem> {
     for t in extract_top_level(language, content) {
         items.push(InventoryItem::Item(t));
     }
+
+    // Fallback (Python only): re-derive functions + top_level via the AST
+    // extractor when tree-sitter produced no functions (or didn't parse). Drop
+    // tree-sitter function/top_level items first; keep globals.
+    let has_function = items.iter().any(|i| i.kind() == KIND_FUNCTION);
+    if (!ts_parsed || !has_function) && language == "python" {
+        items.retain(|i| i.kind() != KIND_FUNCTION && i.kind() != KIND_TOP_LEVEL);
+        items.extend(python_ast_extract(content));
+    }
+
     if matches!(language, "c" | "cpp") {
         for m in crate::extractors::extract_macros(content) {
             items.push(InventoryItem::Item(m));
         }
     }
     items
+}
+
+// ---------------------------------------------------------------------------
+// Python AST extractor (`PythonExtractor`) + CPython-faithful `ast.unparse`.
+// ---------------------------------------------------------------------------
+
+/// AST-based Python function extraction with metadata — port of
+/// `PythonExtractor.extract`. Returns functions (+ module-scope `top_level`
+/// items) on success, or the regex fallback's functions on a parse error.
+fn python_ast_extract(content: &str) -> Vec<InventoryItem> {
+    match rustpython_parser::ast::Suite::parse(content, "<extractor>") {
+        Ok(body) => {
+            let lines = PyLineIndex::new(content);
+            let mut out: Vec<InventoryItem> = Vec::new();
+            py_extract_walk(&body, None, &lines, &mut out);
+            out.extend(py_top_level_items(&body, &lines));
+            out
+        }
+        Err(_) => py_regex_fallback(content),
+    }
+}
+
+/// `PythonExtractor._walk`: collect functions with metadata, descending into
+/// class/function bodies AND compound statements (if/try/with/for/while/match)
+/// so nested functions are still captured. A `ClassDef` sets `class_name` for
+/// its body; a `FunctionDef` keeps the current `class_name` for its body.
+fn py_extract_walk(
+    stmts: &[PStmt],
+    class_name: Option<&str>,
+    lines: &PyLineIndex,
+    out: &mut Vec<InventoryItem>,
+) {
+    for s in stmts {
+        match s {
+            PStmt::ClassDef(c) => {
+                py_extract_walk(&c.body, Some(c.name.as_str()), lines, out);
+            }
+            PStmt::FunctionDef(f) => {
+                out.push(InventoryItem::Function(py_extract_function(s, class_name, lines)));
+                py_extract_walk(&f.body, class_name, lines, out);
+            }
+            PStmt::AsyncFunctionDef(f) => {
+                out.push(InventoryItem::Function(py_extract_function(s, class_name, lines)));
+                py_extract_walk(&f.body, class_name, lines, out);
+            }
+            PStmt::If(n) => {
+                py_extract_walk(&n.body, class_name, lines, out);
+                py_extract_walk(&n.orelse, class_name, lines, out);
+            }
+            PStmt::For(n) => {
+                py_extract_walk(&n.body, class_name, lines, out);
+                py_extract_walk(&n.orelse, class_name, lines, out);
+            }
+            PStmt::AsyncFor(n) => {
+                py_extract_walk(&n.body, class_name, lines, out);
+                py_extract_walk(&n.orelse, class_name, lines, out);
+            }
+            PStmt::While(n) => {
+                py_extract_walk(&n.body, class_name, lines, out);
+                py_extract_walk(&n.orelse, class_name, lines, out);
+            }
+            PStmt::With(n) => py_extract_walk(&n.body, class_name, lines, out),
+            PStmt::AsyncWith(n) => py_extract_walk(&n.body, class_name, lines, out),
+            PStmt::Try(n) => {
+                py_extract_walk(&n.body, class_name, lines, out);
+                for h in &n.handlers {
+                    let rustpython_parser::ast::ExceptHandler::ExceptHandler(eh) = h;
+                    py_extract_walk(&eh.body, class_name, lines, out);
+                }
+                py_extract_walk(&n.orelse, class_name, lines, out);
+                py_extract_walk(&n.finalbody, class_name, lines, out);
+            }
+            PStmt::TryStar(n) => {
+                py_extract_walk(&n.body, class_name, lines, out);
+                for h in &n.handlers {
+                    let rustpython_parser::ast::ExceptHandler::ExceptHandler(eh) = h;
+                    py_extract_walk(&eh.body, class_name, lines, out);
+                }
+                py_extract_walk(&n.orelse, class_name, lines, out);
+                py_extract_walk(&n.finalbody, class_name, lines, out);
+            }
+            PStmt::Match(n) => {
+                for case in &n.cases {
+                    py_extract_walk(&case.body, class_name, lines, out);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// `PythonExtractor._extract_function`: build the signature (with `ast.unparse`
+/// annotations / return type), parameters, return type and decorator metadata
+/// for one `def`/`async def`. Uses `node.args.args` (regular positional args
+/// only — posonly/vararg/kwonly/kwarg are excluded, matching CPython).
+fn py_extract_function(s: &PStmt, class_name: Option<&str>, lines: &PyLineIndex) -> FunctionInfo {
+    let (name, args, returns, decorator_list, is_async, start, end) = match s {
+        PStmt::FunctionDef(d) => (
+            d.name.as_str(),
+            &d.args,
+            d.returns.as_deref(),
+            &d.decorator_list,
+            false,
+            d.range.start().to_usize(),
+            d.range.end().to_usize(),
+        ),
+        PStmt::AsyncFunctionDef(d) => (
+            d.name.as_str(),
+            &d.args,
+            d.returns.as_deref(),
+            &d.decorator_list,
+            true,
+            d.range.start().to_usize(),
+            d.range.end().to_usize(),
+        ),
+        _ => unreachable!("py_extract_function called on a non-def statement"),
+    };
+
+    let mut arg_strs: Vec<String> = Vec::new();
+    for awd in &args.args {
+        let mut sig = awd.def.arg.as_str().to_string();
+        if let Some(ann) = &awd.def.annotation {
+            sig.push_str(": ");
+            sig.push_str(&py_unparse(ann));
+        }
+        arg_strs.push(sig);
+    }
+    let mut signature = format!("def {}({})", name, arg_strs.join(", "));
+    if is_async {
+        signature = format!("async {signature}");
+    }
+    if let Some(r) = returns {
+        signature.push_str(" -> ");
+        signature.push_str(&py_unparse(r));
+    }
+
+    let parameters: Vec<(String, Option<String>)> = args
+        .args
+        .iter()
+        .map(|awd| (awd.def.arg.as_str().to_string(), awd.def.annotation.as_ref().map(|a| py_unparse(a))))
+        .collect();
+    let return_type = returns.map(py_unparse);
+    let attributes: Vec<String> = decorator_list.iter().map(py_unparse).collect();
+
+    FunctionInfo {
+        name: name.to_string(),
+        kind: KIND_FUNCTION.to_string(),
+        line_start: lines.line_of(start),
+        line_end: Some(lines.line_of(end.saturating_sub(1))),
+        signature: Some(signature),
+        metadata: Some(FunctionMetadata {
+            class_name: class_name.map(|s| s.to_string()),
+            visibility: None,
+            attributes,
+            return_type,
+            parameters,
+            class_attributes: Vec::new(),
+        }),
+        checked_by: Vec::new(),
+    }
+}
+
+/// `PythonExtractor._top_level_items`: module-scope `Expr` statements whose
+/// subtree contains a `Call` (e.g. `os.system(...)` at import time), emitted as
+/// `top_level` CodeItems.
+fn py_top_level_items(body: &[PStmt], lines: &PyLineIndex) -> Vec<InventoryItem> {
+    let mut out: Vec<InventoryItem> = Vec::new();
+    for s in body {
+        if let PStmt::Expr(n) = s {
+            if expr_contains_call(&n.value) {
+                let line = lines.line_of(n.range.start().to_usize());
+                let end = lines.line_of(n.range.end().to_usize().saturating_sub(1));
+                let line_end = if end != 0 { end } else { line };
+                out.push(InventoryItem::Item(CodeItem::new(
+                    format!("top_level:{line}"),
+                    KIND_TOP_LEVEL,
+                    line,
+                    Some(line_end),
+                )));
+            }
+        }
+    }
+    out
+}
+
+/// `re.match(r'^(?:async\s+)?def\s+(\w+)\s*\(', line.strip())` per line — the
+/// `PythonExtractor._regex_fallback` for unparseable files.
+fn py_def_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"^(?:async\s+)?def\s+(\w+)\s*\(").unwrap())
+}
+
+fn py_regex_fallback(content: &str) -> Vec<InventoryItem> {
+    let re = py_def_re();
+    let mut out: Vec<InventoryItem> = Vec::new();
+    for (i, line) in content.split('\n').enumerate() {
+        if let Some(caps) = re.captures(line.trim()) {
+            out.push(InventoryItem::Function(FunctionInfo {
+                name: caps[1].to_string(),
+                kind: KIND_FUNCTION.to_string(),
+                line_start: (i + 1) as i64,
+                line_end: None,
+                signature: None,
+                metadata: None,
+                checked_by: Vec::new(),
+            }));
+        }
+    }
+    out
+}
+
+/// True if `e` or any descendant expression is a `Call` (mirrors
+/// `any(isinstance(n, ast.Call) for n in ast.walk(node))`).
+fn expr_contains_call(e: &PExpr) -> bool {
+    match e {
+        PExpr::Call(_) => true,
+        PExpr::BoolOp(n) => n.values.iter().any(expr_contains_call),
+        PExpr::NamedExpr(n) => expr_contains_call(&n.target) || expr_contains_call(&n.value),
+        PExpr::BinOp(n) => expr_contains_call(&n.left) || expr_contains_call(&n.right),
+        PExpr::UnaryOp(n) => expr_contains_call(&n.operand),
+        PExpr::Lambda(n) => expr_contains_call(&n.body) || arguments_contain_call(&n.args),
+        PExpr::IfExp(n) => {
+            expr_contains_call(&n.test) || expr_contains_call(&n.body) || expr_contains_call(&n.orelse)
+        }
+        PExpr::Dict(n) => {
+            n.keys.iter().flatten().any(expr_contains_call) || n.values.iter().any(expr_contains_call)
+        }
+        PExpr::Set(n) => n.elts.iter().any(expr_contains_call),
+        PExpr::ListComp(n) => expr_contains_call(&n.elt) || comps_contain_call(&n.generators),
+        PExpr::SetComp(n) => expr_contains_call(&n.elt) || comps_contain_call(&n.generators),
+        PExpr::GeneratorExp(n) => expr_contains_call(&n.elt) || comps_contain_call(&n.generators),
+        PExpr::DictComp(n) => {
+            expr_contains_call(&n.key) || expr_contains_call(&n.value) || comps_contain_call(&n.generators)
+        }
+        PExpr::Await(n) => expr_contains_call(&n.value),
+        PExpr::Yield(n) => n.value.as_deref().is_some_and(expr_contains_call),
+        PExpr::YieldFrom(n) => expr_contains_call(&n.value),
+        PExpr::Compare(n) => {
+            expr_contains_call(&n.left) || n.comparators.iter().any(expr_contains_call)
+        }
+        PExpr::FormattedValue(n) => {
+            expr_contains_call(&n.value) || n.format_spec.as_deref().is_some_and(expr_contains_call)
+        }
+        PExpr::JoinedStr(n) => n.values.iter().any(expr_contains_call),
+        PExpr::Attribute(n) => expr_contains_call(&n.value),
+        PExpr::Subscript(n) => expr_contains_call(&n.value) || expr_contains_call(&n.slice),
+        PExpr::Starred(n) => expr_contains_call(&n.value),
+        PExpr::List(n) => n.elts.iter().any(expr_contains_call),
+        PExpr::Tuple(n) => n.elts.iter().any(expr_contains_call),
+        PExpr::Slice(n) => {
+            n.lower.as_deref().is_some_and(expr_contains_call)
+                || n.upper.as_deref().is_some_and(expr_contains_call)
+                || n.step.as_deref().is_some_and(expr_contains_call)
+        }
+        // Name / Constant have no descendants.
+        _ => false,
+    }
+}
+
+fn comps_contain_call(gens: &[Comprehension]) -> bool {
+    gens.iter().any(|g| {
+        expr_contains_call(&g.target)
+            || expr_contains_call(&g.iter)
+            || g.ifs.iter().any(expr_contains_call)
+    })
+}
+
+fn arguments_contain_call(args: &Arguments) -> bool {
+    let ann = |a: &rustpython_parser::ast::Arg| a.annotation.as_deref().is_some_and(expr_contains_call);
+    args.posonlyargs.iter().chain(args.args.iter()).chain(args.kwonlyargs.iter()).any(|a| {
+        ann(&a.def) || a.default.as_deref().is_some_and(expr_contains_call)
+    }) || args.vararg.as_deref().is_some_and(ann)
+        || args.kwarg.as_deref().is_some_and(ann)
+}
+
+// -- CPython-faithful `ast.unparse` (subset) --------------------------------
+//
+// CPython's `ast._Unparser` precedence levels (Lib/_ast_unparse.py), as plain
+// ints. A node is parenthesised when the precedence its parent *set* for it
+// exceeds the node's own operator precedence.
+const PR_NAMED_EXPR: i32 = 1;
+const PR_TUPLE: i32 = 2;
+const PR_TEST: i32 = 4;
+const PR_OR: i32 = 5;
+const PR_AND: i32 = 6;
+const PR_NOT: i32 = 7;
+const PR_CMP: i32 = 8;
+const PR_EXPR: i32 = 9; // BOR
+const PR_BXOR: i32 = 10;
+const PR_BAND: i32 = 11;
+const PR_SHIFT: i32 = 12;
+const PR_ARITH: i32 = 13;
+const PR_TERM: i32 = 14;
+const PR_FACTOR: i32 = 15;
+const PR_POWER: i32 = 16;
+const PR_ATOM: i32 = 18;
+
+fn pr_next(p: i32) -> i32 {
+    if p >= PR_ATOM {
+        PR_ATOM
+    } else {
+        p + 1
+    }
+}
+
+/// `ast.unparse(expr)` for the Expr subset that appears in Python type
+/// annotations and decorators, byte-faithful to CPython's `_Unparser`
+/// (verified against the oracle). Scalar `Constant` repr and the rare exotic
+/// nodes (f-strings, lambdas, comprehensions, await/yield) are delegated to
+/// `rustpython-unparser`, whose output matches CPython for those leaves.
+fn py_unparse(e: &PExpr) -> String {
+    let mut out = String::new();
+    emit_expr(e, PR_TEST, &mut out);
+    out
+}
+
+fn delegate_unparse(e: &PExpr, out: &mut String) {
+    let mut u = rustpython_unparser::Unparser::new();
+    u.unparse_expr(e);
+    out.push_str(&u.source);
+}
+
+fn is_int_constant(e: &PExpr) -> bool {
+    matches!(e, PExpr::Constant(c) if matches!(c.value, PConstant::Int(_) | PConstant::Bool(_)))
+}
+
+/// `items_view`: comma-separated, with a trailing comma for a 1-tuple.
+fn items_view(elts: &[PExpr], out: &mut String) {
+    if elts.len() == 1 {
+        emit_expr(&elts[0], PR_TEST, out);
+        out.push(',');
+    } else {
+        for (i, e) in elts.iter().enumerate() {
+            if i > 0 {
+                out.push_str(", ");
+            }
+            emit_expr(e, PR_TEST, out);
+        }
+    }
+}
+
+/// Plain `, `-separated traversal (`interleave`).
+fn interleave(elts: &[PExpr], out: &mut String) {
+    for (i, e) in elts.iter().enumerate() {
+        if i > 0 {
+            out.push_str(", ");
+        }
+        emit_expr(e, PR_TEST, out);
+    }
+}
+
+fn emit_expr(e: &PExpr, ctx: i32, out: &mut String) {
+    match e {
+        PExpr::Name(n) => out.push_str(n.id.as_str()),
+        PExpr::Attribute(a) => {
+            emit_expr(&a.value, PR_ATOM, out);
+            // `3 .attr` — an int-literal receiver needs a separating space.
+            if is_int_constant(&a.value) {
+                out.push(' ');
+            }
+            out.push('.');
+            out.push_str(a.attr.as_str());
+        }
+        PExpr::Subscript(s) => {
+            emit_expr(&s.value, PR_ATOM, out);
+            out.push('[');
+            match &*s.slice {
+                PExpr::Tuple(t) if !t.elts.is_empty() => items_view(&t.elts, out),
+                other => emit_expr(other, PR_TEST, out),
+            }
+            out.push(']');
+        }
+        PExpr::Call(c) => {
+            emit_expr(&c.func, PR_ATOM, out);
+            out.push('(');
+            let mut comma = false;
+            for a in &c.args {
+                if comma {
+                    out.push_str(", ");
+                } else {
+                    comma = true;
+                }
+                emit_expr(a, PR_TEST, out);
+            }
+            for kw in &c.keywords {
+                if comma {
+                    out.push_str(", ");
+                } else {
+                    comma = true;
+                }
+                match &kw.arg {
+                    None => out.push_str("**"),
+                    Some(name) => {
+                        out.push_str(name.as_str());
+                        out.push('=');
+                    }
+                }
+                emit_expr(&kw.value, PR_TEST, out);
+            }
+            out.push(')');
+        }
+        PExpr::Tuple(t) => {
+            let parens = t.elts.is_empty() || ctx > PR_TUPLE;
+            if parens {
+                out.push('(');
+            }
+            items_view(&t.elts, out);
+            if parens {
+                out.push(')');
+            }
+        }
+        PExpr::List(l) => {
+            out.push('[');
+            interleave(&l.elts, out);
+            out.push(']');
+        }
+        PExpr::Set(s) => {
+            if s.elts.is_empty() {
+                out.push_str("{*()}");
+            } else {
+                out.push('{');
+                interleave(&s.elts, out);
+                out.push('}');
+            }
+        }
+        PExpr::Dict(d) => {
+            out.push('{');
+            let mut first = true;
+            for (k, v) in d.keys.iter().zip(d.values.iter()) {
+                if !first {
+                    out.push_str(", ");
+                }
+                first = false;
+                match k {
+                    Some(key) => {
+                        emit_expr(key, PR_TEST, out);
+                        out.push_str(": ");
+                        emit_expr(v, PR_TEST, out);
+                    }
+                    None => {
+                        out.push_str("**");
+                        emit_expr(v, PR_EXPR, out);
+                    }
+                }
+            }
+            out.push('}');
+        }
+        PExpr::Starred(s) => {
+            out.push('*');
+            emit_expr(&s.value, PR_EXPR, out);
+        }
+        PExpr::Slice(s) => {
+            if let Some(l) = &s.lower {
+                emit_expr(l, PR_TEST, out);
+            }
+            out.push(':');
+            if let Some(u) = &s.upper {
+                emit_expr(u, PR_TEST, out);
+            }
+            if let Some(st) = &s.step {
+                out.push(':');
+                emit_expr(st, PR_TEST, out);
+            }
+        }
+        PExpr::BinOp(b) => emit_binop(b, ctx, out),
+        PExpr::UnaryOp(u) => emit_unaryop(u, ctx, out),
+        PExpr::BoolOp(b) => emit_boolop(b, ctx, out),
+        PExpr::Compare(c) => emit_compare(c, ctx, out),
+        PExpr::IfExp(n) => {
+            let parens = ctx > PR_TEST;
+            if parens {
+                out.push('(');
+            }
+            emit_expr(&n.body, pr_next(PR_TEST), out);
+            out.push_str(" if ");
+            emit_expr(&n.test, pr_next(PR_TEST), out);
+            out.push_str(" else ");
+            emit_expr(&n.orelse, PR_TEST, out);
+            if parens {
+                out.push(')');
+            }
+        }
+        PExpr::NamedExpr(n) => {
+            let parens = ctx > PR_NAMED_EXPR;
+            if parens {
+                out.push('(');
+            }
+            emit_expr(&n.target, PR_ATOM, out);
+            out.push_str(" := ");
+            emit_expr(&n.value, PR_ATOM, out);
+            if parens {
+                out.push(')');
+            }
+        }
+        // Scalar Constant repr + exotic nodes (f-strings, lambda, comprehensions,
+        // await/yield) — delegated to rustpython-unparser.
+        _ => delegate_unparse(e, out),
+    }
+}
+
+fn binop_info(op: &Operator) -> (&'static str, i32) {
+    match op {
+        Operator::Add => ("+", PR_ARITH),
+        Operator::Sub => ("-", PR_ARITH),
+        Operator::Mult => ("*", PR_TERM),
+        Operator::MatMult => ("@", PR_TERM),
+        Operator::Div => ("/", PR_TERM),
+        Operator::Mod => ("%", PR_TERM),
+        Operator::LShift => ("<<", PR_SHIFT),
+        Operator::RShift => (">>", PR_SHIFT),
+        Operator::BitOr => ("|", PR_EXPR),
+        Operator::BitXor => ("^", PR_BXOR),
+        Operator::BitAnd => ("&", PR_BAND),
+        Operator::FloorDiv => ("//", PR_TERM),
+        Operator::Pow => ("**", PR_POWER),
+    }
+}
+
+fn emit_binop(b: &ExprBinOp, ctx: i32, out: &mut String) {
+    let (op, prec) = binop_info(&b.op);
+    let parens = ctx > prec;
+    if parens {
+        out.push('(');
+    }
+    // `**` is right-associative; everything else is left-associative.
+    let rassoc = matches!(b.op, Operator::Pow);
+    let (lp, rp) = if rassoc {
+        (pr_next(prec), prec)
+    } else {
+        (prec, pr_next(prec))
+    };
+    emit_expr(&b.left, lp, out);
+    out.push(' ');
+    out.push_str(op);
+    out.push(' ');
+    emit_expr(&b.right, rp, out);
+    if parens {
+        out.push(')');
+    }
+}
+
+fn emit_unaryop(u: &ExprUnaryOp, ctx: i32, out: &mut String) {
+    let (op, prec) = match u.op {
+        UnaryOp::Invert => ("~", PR_FACTOR),
+        UnaryOp::Not => ("not", PR_NOT),
+        UnaryOp::UAdd => ("+", PR_FACTOR),
+        UnaryOp::USub => ("-", PR_FACTOR),
+    };
+    let parens = ctx > prec;
+    if parens {
+        out.push('(');
+    }
+    out.push_str(op);
+    // Factor prefixes (+, -, ~) bind tight: no separating space.
+    if prec != PR_FACTOR {
+        out.push(' ');
+    }
+    emit_expr(&u.operand, prec, out);
+    if parens {
+        out.push(')');
+    }
+}
+
+fn emit_boolop(b: &ExprBoolOp, ctx: i32, out: &mut String) {
+    let (op, prec) = match b.op {
+        BoolOp::And => ("and", PR_AND),
+        BoolOp::Or => ("or", PR_OR),
+    };
+    let parens = ctx > prec;
+    if parens {
+        out.push('(');
+    }
+    let mut lvl = prec;
+    for (i, v) in b.values.iter().enumerate() {
+        if i > 0 {
+            out.push(' ');
+            out.push_str(op);
+            out.push(' ');
+        }
+        lvl = pr_next(lvl);
+        emit_expr(v, lvl, out);
+    }
+    if parens {
+        out.push(')');
+    }
+}
+
+fn cmpop_str(op: &CmpOp) -> &'static str {
+    match op {
+        CmpOp::Eq => "==",
+        CmpOp::NotEq => "!=",
+        CmpOp::Lt => "<",
+        CmpOp::LtE => "<=",
+        CmpOp::Gt => ">",
+        CmpOp::GtE => ">=",
+        CmpOp::Is => "is",
+        CmpOp::IsNot => "is not",
+        CmpOp::In => "in",
+        CmpOp::NotIn => "not in",
+    }
+}
+
+fn emit_compare(c: &ExprCompare, ctx: i32, out: &mut String) {
+    let parens = ctx > PR_CMP;
+    if parens {
+        out.push('(');
+    }
+    emit_expr(&c.left, pr_next(PR_CMP), out);
+    for (op, comp) in c.ops.iter().zip(c.comparators.iter()) {
+        out.push(' ');
+        out.push_str(cmpop_str(op));
+        out.push(' ');
+        emit_expr(comp, pr_next(PR_CMP), out);
+    }
+    if parens {
+        out.push(')');
+    }
 }
 
 fn global_names(node: Node, language: &str, src: &[u8]) -> Vec<String> {
@@ -1175,6 +1814,255 @@ fn collect_comment_lines(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ---- PythonExtractor (`python_ast_extract`) oracle-differential tests --
+    // Expected values transcribed from the real `PythonExtractor().extract(...)`
+    // (`core.inventory.extractors`). Each item is `FunctionInfo`/`CodeItem`
+    // `.to_dict()`.
+    use serde_json::{json, Value};
+
+    fn pyx(src: &str) -> Value {
+        Value::Array(python_ast_extract(src).iter().map(InventoryItem::to_json).collect())
+    }
+
+    fn items_json(src: &str) -> Value {
+        Value::Array(extract_items("python", src).iter().map(InventoryItem::to_json).collect())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn func(
+        name: &str,
+        ls: i64,
+        le: Value,
+        sig: &str,
+        class_name: Value,
+        attributes: Value,
+        return_type: Value,
+        parameters: Value,
+    ) -> Value {
+        json!({
+            "name": name, "kind": "function", "line_start": ls, "line_end": le,
+            "signature": sig, "checked_by": [],
+            "metadata": {
+                "class_name": class_name, "visibility": null, "attributes": attributes,
+                "return_type": return_type, "parameters": parameters, "class_attributes": [],
+            },
+        })
+    }
+
+    #[test]
+    fn pyx_annotations_and_unparse() {
+        // ast.unparse on annotations: Optional[str], Dict[str, int] (no inner
+        // parens), `int | None`, forward-ref return; default-valued params keep
+        // their name only (no default text in signature).
+        let src = "def f(a: Optional[str], b: Dict[str, int], c: int | None = 3, d=5) -> 'Ret':\n    return None\n";
+        assert_eq!(
+            pyx(src),
+            json!([func(
+                "f", 1, json!(2),
+                "def f(a: Optional[str], b: Dict[str, int], c: int | None, d) -> 'Ret'",
+                json!(null), json!([]), json!("'Ret'"),
+                json!([["a", "Optional[str]"], ["b", "Dict[str, int]"], ["c", "int | None"], ["d", null]]),
+            )])
+        );
+    }
+
+    #[test]
+    fn pyx_async_and_return_type() {
+        let src = "async def g(x: int) -> None:\n    await h()\n";
+        assert_eq!(
+            pyx(src),
+            json!([func("g", 1, json!(2), "async def g(x: int) -> None", json!(null), json!([]), json!("None"), json!([["x", "int"]]))])
+        );
+    }
+
+    #[test]
+    fn pyx_method_nested_keeps_class_name() {
+        // A function nested inside a method keeps the enclosing class_name.
+        let src = "class C:\n    def m(self, n: int) -> str:\n        def inner(z):\n            return z\n        return inner(n)\n";
+        assert_eq!(
+            pyx(src),
+            json!([
+                func("m", 2, json!(5), "def m(self, n: int) -> str", json!("C"), json!([]), json!("str"), json!([["self", null], ["n", "int"]])),
+                func("inner", 3, json!(4), "def inner(z)", json!("C"), json!([]), json!(null), json!([["z", null]])),
+            ])
+        );
+    }
+
+    #[test]
+    fn pyx_nested_in_if_branches() {
+        let src = "if FLAG:\n    def guarded(a):\n        pass\nelse:\n    def other():\n        pass\n";
+        assert_eq!(
+            pyx(src),
+            json!([
+                func("guarded", 2, json!(3), "def guarded(a)", json!(null), json!([]), json!(null), json!([["a", null]])),
+                func("other", 5, json!(6), "def other()", json!(null), json!([]), json!(null), json!([])),
+            ])
+        );
+    }
+
+    #[test]
+    fn pyx_decorators_unparse_full_expression() {
+        let src = "import functools\n@app.route('/x', methods=['GET'])\n@functools.lru_cache(maxsize=None)\ndef handler(req):\n    pass\n";
+        assert_eq!(
+            pyx(src),
+            json!([func(
+                "handler", 4, json!(5), "def handler(req)", json!(null),
+                json!(["app.route('/x', methods=['GET'])", "functools.lru_cache(maxsize=None)"]),
+                json!(null), json!([["req", null]]),
+            )])
+        );
+    }
+
+    #[test]
+    fn pyx_generics_unparse() {
+        let src = "def t(cb: Callable[[int, str], bool], m: Dict[str, List[int]]) -> Tuple[int, ...]:\n    pass\n";
+        assert_eq!(
+            pyx(src),
+            json!([func(
+                "t", 1, json!(2),
+                "def t(cb: Callable[[int, str], bool], m: Dict[str, List[int]]) -> Tuple[int, ...]",
+                json!(null), json!([]), json!("Tuple[int, ...]"),
+                json!([["cb", "Callable[[int, str], bool]"], ["m", "Dict[str, List[int]]"]]),
+            )])
+        );
+    }
+
+    #[test]
+    fn pyx_posonly_and_kwonly_excluded() {
+        // node.args.args = regular positional only: `c` (a,b are posonly; d,e
+        // kwonly; *args/**kw excluded).
+        let src = "def s(a, b, /, c, *args, d, e=1, **kw):\n    pass\n";
+        assert_eq!(
+            pyx(src),
+            json!([func("s", 1, json!(2), "def s(c)", json!(null), json!([]), json!(null), json!([["c", null]]))])
+        );
+    }
+
+    #[test]
+    fn pyx_top_level_items_only_expr_with_call() {
+        // os.system(...) and print(...) are top_level; `x = compute()` is an
+        // assignment (a global), `LABEL = 'k'` too — neither is top_level.
+        let src = "import os\nos.system('id')\nprint('hi')\nx = compute()\nLABEL = 'k'\n";
+        assert_eq!(
+            pyx(src),
+            json!([
+                {"name": "top_level:2", "kind": "top_level", "line_start": 2, "line_end": 2, "checked_by": []},
+                {"name": "top_level:3", "kind": "top_level", "line_start": 3, "line_end": 3, "checked_by": []},
+            ])
+        );
+    }
+
+    #[test]
+    fn pyx_syntax_error_regex_fallback() {
+        // Unparseable -> regex fallback: `def NAME(` lines, no metadata/signature.
+        let src = "def broken(:\n    pass\ndef ok(a):\n    pass\n";
+        assert_eq!(
+            pyx(src),
+            json!([
+                {"name": "broken", "kind": "function", "line_start": 1, "line_end": null, "signature": null, "checked_by": []},
+                {"name": "ok", "kind": "function", "line_start": 3, "line_end": null, "signature": null, "checked_by": []},
+            ])
+        );
+    }
+
+    #[test]
+    fn pyx_class_decorated_methods() {
+        let src = "class S:\n    @staticmethod\n    def util(x: 'Foo') -> 'Bar':\n        pass\n    @property\n    def val(self):\n        return 1\n";
+        assert_eq!(
+            pyx(src),
+            json!([
+                func("util", 3, json!(4), "def util(x: 'Foo') -> 'Bar'", json!("S"), json!(["staticmethod"]), json!("'Bar'"), json!([["x", "'Foo'"]])),
+                func("val", 6, json!(7), "def val(self)", json!("S"), json!(["property"]), json!(null), json!([["self", null]])),
+            ])
+        );
+    }
+
+    #[test]
+    fn pyx_nested_in_try_with_finally() {
+        let src = "with open() as fh:\n    def w():\n        pass\ntry:\n    pass\nfinally:\n    def fin(a: int):\n        pass\n";
+        assert_eq!(
+            pyx(src),
+            json!([
+                func("w", 2, json!(3), "def w()", json!(null), json!([]), json!(null), json!([])),
+                func("fin", 7, json!(8), "def fin(a: int)", json!(null), json!([]), json!(null), json!([["a", "int"]])),
+            ])
+        );
+    }
+
+    // ---- extract_items integration (Python fallback orchestration) ---------
+
+    #[test]
+    fn items_with_functions_uses_tree_sitter() {
+        // Tree-sitter functions (signature has no `def` prefix / no self),
+        // global MAX, and top_level os.system(...).
+        let src = "import os\n\nMAX = 10\n\ndef a(x: int) -> int:\n    return x\n\nos.system('id')\n\nclass C:\n    def m(self):\n        pass\n";
+        assert_eq!(
+            items_json(src),
+            json!([
+                {"name": "a", "kind": "function", "line_start": 5, "line_end": 6, "signature": "a(x: int) -> int", "checked_by": [],
+                 "metadata": {"class_name": null, "visibility": null, "attributes": [], "return_type": "int", "parameters": [["x", "int"]], "class_attributes": []}},
+                {"name": "m", "kind": "function", "line_start": 11, "line_end": 12, "signature": "m()", "checked_by": [],
+                 "metadata": {"class_name": "C", "visibility": null, "attributes": [], "return_type": null, "parameters": [], "class_attributes": []}},
+                {"name": "MAX", "kind": "global", "line_start": 3, "line_end": 3, "checked_by": []},
+                {"name": "top_level:8", "kind": "top_level", "line_start": 8, "line_end": 8, "checked_by": []},
+            ])
+        );
+    }
+
+    #[test]
+    fn items_zero_functions_falls_back_to_ast() {
+        // No `def` -> tree-sitter yields no functions -> AST fallback re-derives
+        // top_level (keeps tree-sitter globals CONST/MyConfig).
+        let src = "import os\n\nCONST = 1\nMyConfig = object()\n\nos.system('id')\nprint('hi')\nlogger = setup()\n";
+        assert_eq!(
+            items_json(src),
+            json!([
+                {"name": "CONST", "kind": "global", "line_start": 3, "line_end": 3, "checked_by": []},
+                {"name": "MyConfig", "kind": "global", "line_start": 4, "line_end": 4, "checked_by": []},
+                {"name": "top_level:6", "kind": "top_level", "line_start": 6, "line_end": 6, "checked_by": []},
+                {"name": "top_level:7", "kind": "top_level", "line_start": 7, "line_end": 7, "checked_by": []},
+            ])
+        );
+    }
+
+    #[test]
+    fn items_lenient_parse_no_fallback() {
+        // `def broken(:` parses under tree-sitter (yields `broken`), so the AST
+        // fallback (which would regex-only) does NOT trigger.
+        let src = "def broken(:\n    pass\nVALUE = 3\n";
+        assert_eq!(
+            items_json(src),
+            json!([
+                {"name": "broken", "kind": "function", "line_start": 1, "line_end": 2, "signature": "broken()", "checked_by": [],
+                 "metadata": {"class_name": null, "visibility": null, "attributes": [], "return_type": null, "parameters": [], "class_attributes": []}},
+                {"name": "VALUE", "kind": "global", "line_start": 3, "line_end": 3, "checked_by": []},
+            ])
+        );
+    }
+
+    #[test]
+    fn py_unparse_subscript_tuple_omits_parens() {
+        // Direct unparser checks for the CPython-faithful behaviours that the
+        // off-the-shelf rustpython unparser gets wrong (subscript tuple parens).
+        use rustpython_parser::ast::Expr;
+        let cases = [
+            ("Dict[str, int]", "Dict[str, int]"),
+            ("Tuple[int, ...]", "Tuple[int, ...]"),
+            ("Callable[[int, str], bool]", "Callable[[int, str], bool]"),
+            ("Optional[Dict[str, int]]", "Optional[Dict[str, int]]"),
+            ("Union[int, str, None]", "Union[int, str, None]"),
+            ("int | None", "int | None"),
+            ("Tuple[()]", "Tuple[()]"),
+            ("Callable[..., int]", "Callable[..., int]"),
+            ("a.b.c", "a.b.c"),
+            ("dataclass(frozen=True)", "dataclass(frozen=True)"),
+        ];
+        for (src, want) in cases {
+            let e = Expr::parse(src, "<u>").unwrap();
+            assert_eq!(py_unparse(&e), want, "py_unparse({src})");
+        }
+    }
 
     fn names(fns: &[FunctionInfo]) -> Vec<&str> {
         fns.iter().map(|f| f.name.as_str()).collect()

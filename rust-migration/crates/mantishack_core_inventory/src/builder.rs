@@ -21,7 +21,8 @@ use crate::build_membership::detect_build_excluded;
 use crate::call_graph::{
     extract_call_graph_c, extract_call_graph_cpp, extract_call_graph_csharp,
     extract_call_graph_go, extract_call_graph_java, extract_call_graph_js_lang,
-    extract_call_graph_php, extract_call_graph_ruby, extract_call_graph_rust,
+    extract_call_graph_php, extract_call_graph_python, extract_call_graph_ruby,
+    extract_call_graph_rust,
 };
 use crate::dead_scope::detect_dead_scopes;
 use crate::extractors::{compute_interstitial_items, CodeItem};
@@ -47,7 +48,8 @@ fn call_graph_for(language: &str, parse_text: &str) -> Option<Value> {
         "php" => extract_call_graph_php(parse_text),
         "c" => extract_call_graph_c(parse_text),
         "cpp" => extract_call_graph_cpp(parse_text),
-        // python -> CPython `ast` (documented gap); unknown -> no call graph.
+        "python" => extract_call_graph_python(parse_text),
+        // unknown -> no call graph.
         _ => return None,
     };
     Some(cg.to_json())
@@ -206,5 +208,24 @@ mod tests {
         let src = "//go:build ignore\n\npackage main\n\nfunc main() {}\n";
         let rec = process_file_content("ignored.go", "go", src);
         assert_eq!(rec["build_excluded"]["summary"], "//go:build ignore");
+    }
+
+    #[test]
+    fn python_record_has_call_graph() {
+        // `call_graph_for("python", ...)` now returns a real graph (CPython-ast
+        // branch), wired into the file record like every other language.
+        let src = "import os\n\ndef main():\n    helper()\n    os.system('x')\n\ndef helper():\n    pass\n";
+        let rec = process_file_content("app.py", "python", src);
+        assert_eq!(rec["language"], "python");
+        assert!(rec["items"].as_array().unwrap().iter().any(|i| i["name"] == "main"));
+        let cg = &rec["call_graph"];
+        assert_eq!(cg["imports"], json!({"os": "os"}));
+        let calls = cg["calls"].as_array().unwrap();
+        assert!(calls
+            .iter()
+            .any(|c| c["chain"] == json!(["helper"]) && c["caller"] == "main"));
+        assert!(calls
+            .iter()
+            .any(|c| c["chain"] == json!(["os", "system"]) && c["caller"] == "main"));
     }
 }

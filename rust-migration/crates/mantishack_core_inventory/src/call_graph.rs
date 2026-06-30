@@ -12,8 +12,18 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use serde_json::{json, Value};
 use tree_sitter::Node;
 
+use rustpython_parser::ast::{
+    Constant as PConstant, Expr as PExpr, Pattern as PPattern, Stmt as PStmt,
+    TypeParam as PTypeParam,
+};
+use rustpython_parser::Parse as _;
+
+use crate::extractors::PyLineIndex;
+
 // Indirection flags (subset; grows as language extractors are ported).
+const INDIRECTION_GETATTR: &str = "getattr";
 const INDIRECTION_WILDCARD_IMPORT: &str = "wildcard_import";
+const INDIRECTION_DUNDER_IMPORT: &str = "dunder_import";
 const INDIRECTION_REFLECT: &str = "reflect";
 const INDIRECTION_FN_POINTER: &str = "fn_pointer";
 const INDIRECTION_IMPORTLIB: &str = "importlib";
@@ -3412,9 +3422,789 @@ pub fn extract_call_graph_cpp(content: &str) -> FileCallGraph {
     w.graph
 }
 
+// ---------------------------------------------------------------------------
+// Python call-graph extractor — port of `extract_call_graph_python` /
+// `_PythonCallGraph` (the CPython-`ast` branch). Parses with rustpython-parser
+// and walks the AST as a faithful `ast.NodeVisitor`.
+// ---------------------------------------------------------------------------
+
+/// Return the dotted attribute chain naming `node` (`foo.bar.baz` ->
+/// `["foo","bar","baz"]`), or `None` for non-name callees (function returns,
+/// subscripts, lambdas …). Port of `_attribute_chain`.
+fn py_attribute_chain(node: &PExpr) -> Option<Vec<String>> {
+    let mut parts: Vec<String> = Vec::new();
+    let mut cur = node;
+    loop {
+        match cur {
+            PExpr::Attribute(a) => {
+                parts.push(a.attr.as_str().to_string());
+                cur = &a.value;
+            }
+            PExpr::Name(n) => {
+                parts.push(n.id.as_str().to_string());
+                parts.reverse();
+                return Some(parts);
+            }
+            _ => return None,
+        }
+    }
+}
+
+/// Attribute chain naming a decorator, peeling off a trailing call. Port of
+/// `_decorator_chain`.
+fn py_decorator_chain(deco: &PExpr) -> Option<Vec<String>> {
+    match deco {
+        PExpr::Call(c) => py_attribute_chain(&c.func),
+        other => py_attribute_chain(other),
+    }
+}
+
+/// Walk a Python source string and return its `FileCallGraph`. Returns an empty
+/// graph on syntax errors (a malformed file shouldn't blow up the inventory
+/// build). Faithful port of `extract_call_graph_python`.
+pub fn extract_call_graph_python(content: &str) -> FileCallGraph {
+    let body = match rustpython_parser::ast::Suite::parse(content, "<call_graph>") {
+        Ok(b) => b,
+        Err(_) => return FileCallGraph::default(),
+    };
+    let lines = PyLineIndex::new(content);
+    let mut w = PyCallGraph {
+        graph: FileCallGraph::default(),
+        enclosing: Vec::new(),
+        class_stack: Vec::new(),
+        lines: &lines,
+    };
+    for s in &body {
+        w.visit_stmt(s);
+    }
+    w.graph
+}
+
+/// Single-pass AST walk emitting imports + call sites + flags. Mirrors
+/// `_PythonCallGraph(ast.NodeVisitor)`; `class_stack` holds indices into
+/// `graph.classes` (the Python code aliases the same `ClassDef` object onto
+/// both the output list and the stack).
+struct PyCallGraph<'a> {
+    graph: FileCallGraph,
+    enclosing: Vec<String>,
+    class_stack: Vec<usize>,
+    lines: &'a PyLineIndex,
+}
+
+impl PyCallGraph<'_> {
+    fn line_of(&self, e_start: usize) -> i64 {
+        self.lines.line_of(e_start)
+    }
+
+    // -- dispatch -----------------------------------------------------------
+
+    fn visit_stmt(&mut self, s: &PStmt) {
+        match s {
+            PStmt::Import(n) => {
+                for alias in &n.names {
+                    let target = alias.name.as_str();
+                    match &alias.asname {
+                        Some(asname) => {
+                            self.graph
+                                .imports
+                                .insert(asname.as_str().to_string(), target.to_string());
+                        }
+                        None => {
+                            let first = target.split('.').next().unwrap_or(target);
+                            self.graph
+                                .imports
+                                .insert(first.to_string(), first.to_string());
+                        }
+                    }
+                }
+            }
+            PStmt::ImportFrom(n) => {
+                let module = n.module.as_ref().map(|m| m.as_str()).unwrap_or("");
+                let level = n.level.map(|i| i.to_usize()).unwrap_or(0);
+                if level > 0 {
+                    for alias in &n.names {
+                        if alias.name.as_str() == "*" {
+                            self.graph
+                                .indirection
+                                .insert(INDIRECTION_WILDCARD_IMPORT.to_string());
+                            continue;
+                        }
+                        self.graph.relative_imports.push((
+                            level as i64,
+                            module.to_string(),
+                            alias.name.as_str().to_string(),
+                            alias.asname.as_ref().map(|a| a.as_str().to_string()),
+                        ));
+                    }
+                    return;
+                }
+                for alias in &n.names {
+                    if alias.name.as_str() == "*" {
+                        self.graph
+                            .indirection
+                            .insert(INDIRECTION_WILDCARD_IMPORT.to_string());
+                        continue;
+                    }
+                    let local = alias
+                        .asname
+                        .as_ref()
+                        .map(|a| a.as_str())
+                        .unwrap_or(alias.name.as_str());
+                    let qualified = if module.is_empty() {
+                        alias.name.as_str().to_string()
+                    } else {
+                        format!("{module}.{}", alias.name.as_str())
+                    };
+                    self.graph.imports.insert(local.to_string(), qualified);
+                }
+            }
+            PStmt::FunctionDef(d) => self.handle_function_def(
+                d.name.as_str(),
+                d.range.start().to_usize(),
+                &d.decorator_list,
+                &d.args,
+                &d.body,
+                d.returns.as_deref(),
+                &d.type_params,
+            ),
+            PStmt::AsyncFunctionDef(d) => self.handle_function_def(
+                d.name.as_str(),
+                d.range.start().to_usize(),
+                &d.decorator_list,
+                &d.args,
+                &d.body,
+                d.returns.as_deref(),
+                &d.type_params,
+            ),
+            PStmt::ClassDef(d) => self.visit_classdef(d),
+            other => self.generic_visit_stmt(other),
+        }
+    }
+
+    fn generic_visit_stmt(&mut self, s: &PStmt) {
+        match s {
+            PStmt::Return(n) => {
+                if let Some(v) = &n.value {
+                    self.visit_expr(v);
+                }
+            }
+            PStmt::Delete(n) => self.visit_exprs(&n.targets),
+            PStmt::Assign(n) => {
+                self.visit_exprs(&n.targets);
+                self.visit_expr(&n.value);
+            }
+            PStmt::TypeAlias(n) => {
+                self.visit_expr(&n.name);
+                self.visit_type_params(&n.type_params);
+                self.visit_expr(&n.value);
+            }
+            PStmt::AugAssign(n) => {
+                self.visit_expr(&n.target);
+                self.visit_expr(&n.value);
+            }
+            PStmt::AnnAssign(n) => {
+                self.visit_expr(&n.target);
+                self.visit_expr(&n.annotation);
+                if let Some(v) = &n.value {
+                    self.visit_expr(v);
+                }
+            }
+            PStmt::For(n) => {
+                self.visit_expr(&n.target);
+                self.visit_expr(&n.iter);
+                self.visit_stmts(&n.body);
+                self.visit_stmts(&n.orelse);
+            }
+            PStmt::AsyncFor(n) => {
+                self.visit_expr(&n.target);
+                self.visit_expr(&n.iter);
+                self.visit_stmts(&n.body);
+                self.visit_stmts(&n.orelse);
+            }
+            PStmt::While(n) => {
+                self.visit_expr(&n.test);
+                self.visit_stmts(&n.body);
+                self.visit_stmts(&n.orelse);
+            }
+            PStmt::If(n) => {
+                self.visit_expr(&n.test);
+                self.visit_stmts(&n.body);
+                self.visit_stmts(&n.orelse);
+            }
+            PStmt::With(n) => {
+                for item in &n.items {
+                    self.visit_expr(&item.context_expr);
+                    if let Some(v) = &item.optional_vars {
+                        self.visit_expr(v);
+                    }
+                }
+                self.visit_stmts(&n.body);
+            }
+            PStmt::AsyncWith(n) => {
+                for item in &n.items {
+                    self.visit_expr(&item.context_expr);
+                    if let Some(v) = &item.optional_vars {
+                        self.visit_expr(v);
+                    }
+                }
+                self.visit_stmts(&n.body);
+            }
+            PStmt::Match(n) => {
+                self.visit_expr(&n.subject);
+                for case in &n.cases {
+                    self.visit_pattern(&case.pattern);
+                    if let Some(g) = &case.guard {
+                        self.visit_expr(g);
+                    }
+                    self.visit_stmts(&case.body);
+                }
+            }
+            PStmt::Raise(n) => {
+                if let Some(e) = &n.exc {
+                    self.visit_expr(e);
+                }
+                if let Some(c) = &n.cause {
+                    self.visit_expr(c);
+                }
+            }
+            PStmt::Try(n) => self.visit_try(&n.body, &n.handlers, &n.orelse, &n.finalbody),
+            PStmt::TryStar(n) => self.visit_try(&n.body, &n.handlers, &n.orelse, &n.finalbody),
+            PStmt::Assert(n) => {
+                self.visit_expr(&n.test);
+                if let Some(m) = &n.msg {
+                    self.visit_expr(m);
+                }
+            }
+            PStmt::Expr(n) => self.visit_expr(&n.value),
+            // Import / ImportFrom / FunctionDef / AsyncFunctionDef / ClassDef are
+            // dispatched in visit_stmt; Global/Nonlocal/Pass/Break/Continue have
+            // no child nodes.
+            _ => {}
+        }
+    }
+
+    fn visit_try(
+        &mut self,
+        body: &[PStmt],
+        handlers: &[rustpython_parser::ast::ExceptHandler],
+        orelse: &[PStmt],
+        finalbody: &[PStmt],
+    ) {
+        self.visit_stmts(body);
+        for h in handlers {
+            let rustpython_parser::ast::ExceptHandler::ExceptHandler(eh) = h;
+            if let Some(t) = &eh.type_ {
+                self.visit_expr(t);
+            }
+            self.visit_stmts(&eh.body);
+        }
+        self.visit_stmts(orelse);
+        self.visit_stmts(finalbody);
+    }
+
+    fn visit_stmts(&mut self, stmts: &[PStmt]) {
+        for s in stmts {
+            self.visit_stmt(s);
+        }
+    }
+
+    fn visit_exprs(&mut self, exprs: &[PExpr]) {
+        for e in exprs {
+            self.visit_expr(e);
+        }
+    }
+
+    fn visit_expr(&mut self, e: &PExpr) {
+        if let PExpr::Call(_) = e {
+            self.visit_call(e);
+        } else {
+            self.generic_visit_expr(e);
+        }
+    }
+
+    fn generic_visit_expr(&mut self, e: &PExpr) {
+        match e {
+            PExpr::BoolOp(n) => self.visit_exprs(&n.values),
+            PExpr::NamedExpr(n) => {
+                self.visit_expr(&n.target);
+                self.visit_expr(&n.value);
+            }
+            PExpr::BinOp(n) => {
+                self.visit_expr(&n.left);
+                self.visit_expr(&n.right);
+            }
+            PExpr::UnaryOp(n) => self.visit_expr(&n.operand),
+            PExpr::Lambda(n) => {
+                self.visit_arguments(&n.args);
+                self.visit_expr(&n.body);
+            }
+            PExpr::IfExp(n) => {
+                self.visit_expr(&n.test);
+                self.visit_expr(&n.body);
+                self.visit_expr(&n.orelse);
+            }
+            PExpr::Dict(n) => {
+                for k in n.keys.iter().flatten() {
+                    self.visit_expr(k);
+                }
+                self.visit_exprs(&n.values);
+            }
+            PExpr::Set(n) => self.visit_exprs(&n.elts),
+            PExpr::ListComp(n) => {
+                self.visit_expr(&n.elt);
+                self.visit_comprehensions(&n.generators);
+            }
+            PExpr::SetComp(n) => {
+                self.visit_expr(&n.elt);
+                self.visit_comprehensions(&n.generators);
+            }
+            PExpr::GeneratorExp(n) => {
+                self.visit_expr(&n.elt);
+                self.visit_comprehensions(&n.generators);
+            }
+            PExpr::DictComp(n) => {
+                self.visit_expr(&n.key);
+                self.visit_expr(&n.value);
+                self.visit_comprehensions(&n.generators);
+            }
+            PExpr::Await(n) => self.visit_expr(&n.value),
+            PExpr::Yield(n) => {
+                if let Some(v) = &n.value {
+                    self.visit_expr(v);
+                }
+            }
+            PExpr::YieldFrom(n) => self.visit_expr(&n.value),
+            PExpr::Compare(n) => {
+                self.visit_expr(&n.left);
+                self.visit_exprs(&n.comparators);
+            }
+            PExpr::Call(n) => {
+                // Reached only via the chain==None path of visit_call.
+                self.visit_expr(&n.func);
+                self.visit_exprs(&n.args);
+                for kw in &n.keywords {
+                    self.visit_expr(&kw.value);
+                }
+            }
+            PExpr::FormattedValue(n) => {
+                self.visit_expr(&n.value);
+                if let Some(fs) = &n.format_spec {
+                    self.visit_expr(fs);
+                }
+            }
+            PExpr::JoinedStr(n) => self.visit_exprs(&n.values),
+            PExpr::Attribute(n) => self.visit_expr(&n.value),
+            PExpr::Subscript(n) => {
+                self.visit_expr(&n.value);
+                self.visit_expr(&n.slice);
+            }
+            PExpr::Starred(n) => self.visit_expr(&n.value),
+            PExpr::List(n) => self.visit_exprs(&n.elts),
+            PExpr::Tuple(n) => self.visit_exprs(&n.elts),
+            PExpr::Slice(n) => {
+                if let Some(l) = &n.lower {
+                    self.visit_expr(l);
+                }
+                if let Some(u) = &n.upper {
+                    self.visit_expr(u);
+                }
+                if let Some(s) = &n.step {
+                    self.visit_expr(s);
+                }
+            }
+            // Name / Constant have no child expressions.
+            _ => {}
+        }
+    }
+
+    fn visit_comprehensions(&mut self, gens: &[rustpython_parser::ast::Comprehension]) {
+        for g in gens {
+            self.visit_expr(&g.target);
+            self.visit_expr(&g.iter);
+            self.visit_exprs(&g.ifs);
+        }
+    }
+
+    fn visit_pattern(&mut self, p: &PPattern) {
+        match p {
+            PPattern::MatchValue(n) => self.visit_expr(&n.value),
+            PPattern::MatchSingleton(_) => {}
+            PPattern::MatchSequence(n) => {
+                for sub in &n.patterns {
+                    self.visit_pattern(sub);
+                }
+            }
+            PPattern::MatchMapping(n) => {
+                self.visit_exprs(&n.keys);
+                for sub in &n.patterns {
+                    self.visit_pattern(sub);
+                }
+            }
+            PPattern::MatchClass(n) => {
+                self.visit_expr(&n.cls);
+                for sub in &n.patterns {
+                    self.visit_pattern(sub);
+                }
+                for sub in &n.kwd_patterns {
+                    self.visit_pattern(sub);
+                }
+            }
+            PPattern::MatchStar(_) => {}
+            PPattern::MatchAs(n) => {
+                if let Some(sub) = &n.pattern {
+                    self.visit_pattern(sub);
+                }
+            }
+            PPattern::MatchOr(n) => {
+                for sub in &n.patterns {
+                    self.visit_pattern(sub);
+                }
+            }
+        }
+    }
+
+    fn visit_type_params(&mut self, tps: &[PTypeParam]) {
+        for tp in tps {
+            if let PTypeParam::TypeVar(t) = tp {
+                if let Some(b) = &t.bound {
+                    self.visit_expr(b);
+                }
+            }
+        }
+    }
+
+    /// Visit a function/lambda `arguments` node — the annotation and default
+    /// expressions (where calls can hide), approximating CPython's
+    /// `iter_child_nodes(arguments)` field order (annotations, then defaults).
+    fn visit_arguments(&mut self, args: &rustpython_parser::ast::Arguments) {
+        for a in args.posonlyargs.iter().chain(args.args.iter()) {
+            if let Some(ann) = &a.def.annotation {
+                self.visit_expr(ann);
+            }
+        }
+        if let Some(va) = &args.vararg {
+            if let Some(ann) = &va.annotation {
+                self.visit_expr(ann);
+            }
+        }
+        for a in &args.kwonlyargs {
+            if let Some(ann) = &a.def.annotation {
+                self.visit_expr(ann);
+            }
+        }
+        for a in &args.kwonlyargs {
+            if let Some(d) = &a.default {
+                self.visit_expr(d);
+            }
+        }
+        if let Some(kw) = &args.kwarg {
+            if let Some(ann) = &kw.annotation {
+                self.visit_expr(ann);
+            }
+        }
+        for a in args.posonlyargs.iter().chain(args.args.iter()) {
+            if let Some(d) = &a.default {
+                self.visit_expr(d);
+            }
+        }
+    }
+
+    // -- handlers -----------------------------------------------------------
+
+    #[allow(clippy::too_many_arguments)]
+    fn handle_function_def(
+        &mut self,
+        name: &str,
+        start: usize,
+        decorator_list: &[PExpr],
+        args: &rustpython_parser::ast::Arguments,
+        body: &[PStmt],
+        returns: Option<&PExpr>,
+        type_params: &[PTypeParam],
+    ) {
+        let lineno = self.line_of(start);
+        // Register as a method on the immediately-enclosing class only when this
+        // def is at depth 1 inside the class body.
+        if !self.class_stack.is_empty() && self.enclosing.is_empty() {
+            let idx = *self.class_stack.last().unwrap();
+            self.graph.classes[idx].methods.push((name.to_string(), lineno));
+        }
+        // Decorators are evaluated in the ENCLOSING scope — visit them BEFORE
+        // pushing the function name.
+        let mut decorator_chains: Vec<Vec<String>> = Vec::new();
+        for deco in decorator_list {
+            if let Some(chain) = py_decorator_chain(deco) {
+                decorator_chains.push(chain);
+            }
+            self.visit_expr(deco);
+        }
+        if !decorator_chains.is_empty() {
+            self.graph.decorated_functions.push(DecoratedFunction {
+                name: name.to_string(),
+                line: lineno,
+                decorators: decorator_chains,
+            });
+        }
+        // Push the function name and walk args + body + returns + type_params
+        // (decorator_list already handled above).
+        self.enclosing.push(name.to_string());
+        self.visit_arguments(args);
+        self.visit_stmts(body);
+        if let Some(r) = returns {
+            self.visit_expr(r);
+        }
+        self.visit_type_params(type_params);
+        self.enclosing.pop();
+    }
+
+    fn visit_classdef(&mut self, d: &rustpython_parser::ast::StmtClassDef) {
+        let mut bases: Vec<String> = Vec::new();
+        for b in &d.bases {
+            if let Some(chain) = py_attribute_chain(b) {
+                bases.push(chain.join("."));
+            }
+        }
+        let nested = !self.class_stack.is_empty() || !self.enclosing.is_empty();
+        let cdef = ClassDef {
+            name: d.name.as_str().to_string(),
+            line: self.line_of(d.range.start().to_usize()),
+            bases,
+            methods: Vec::new(),
+            nested,
+        };
+        self.graph.classes.push(cdef);
+        let idx = self.graph.classes.len() - 1;
+        self.class_stack.push(idx);
+        // generic_visit(ClassDef): bases, keywords, body, decorator_list,
+        // type_params (in that field order).
+        self.visit_exprs(&d.bases);
+        for kw in &d.keywords {
+            self.visit_expr(&kw.value);
+        }
+        self.visit_stmts(&d.body);
+        self.visit_exprs(&d.decorator_list);
+        self.visit_type_params(&d.type_params);
+        self.class_stack.pop();
+    }
+
+    fn visit_call(&mut self, e: &PExpr) {
+        let PExpr::Call(node) = e else { return };
+        let Some(chain) = py_attribute_chain(&node.func) else {
+            // Non-name callee — nothing to match; still descend into children.
+            self.generic_visit_expr(e);
+            return;
+        };
+
+        // Indirection: getattr(obj, "name")(...)
+        if chain.len() == 1 && chain[0] == "getattr" && node.args.len() >= 2 {
+            if let PExpr::Constant(k) = &node.args[1] {
+                if let PConstant::Str(s) = &k.value {
+                    self.graph.indirection.insert(INDIRECTION_GETATTR.to_string());
+                    self.graph.getattr_targets.insert(s.clone());
+                }
+            }
+        }
+        // Indirection: importlib.import_module("x.y")
+        if chain.len() == 2 && chain[0] == "importlib" && chain[1] == "import_module" {
+            self.graph.indirection.insert(INDIRECTION_IMPORTLIB.to_string());
+        }
+        if chain.len() == 1 && chain[0] == "import_module" {
+            // `from importlib import import_module` then a bare call.
+            if self.graph.imports.get("import_module").map(String::as_str)
+                == Some("importlib.import_module")
+            {
+                self.graph.indirection.insert(INDIRECTION_IMPORTLIB.to_string());
+            }
+        }
+        // Indirection: __import__("x.y")
+        if chain.len() == 1 && chain[0] == "__import__" {
+            self.graph.indirection.insert(INDIRECTION_DUNDER_IMPORT.to_string());
+        }
+
+        let caller = self.enclosing.last().cloned();
+        // `self.foo()` / `cls.foo()` inside a non-nested class body — tag with
+        // the enclosing class name. Only the length-2 case is safe.
+        let mut receiver_class = None;
+        if let Some(&idx) = self.class_stack.last() {
+            let cls = &self.graph.classes[idx];
+            if !cls.nested
+                && chain.len() == 2
+                && (chain[0] == "self" || chain[0] == "cls")
+            {
+                receiver_class = Some(cls.name.clone());
+            }
+        }
+        self.graph.calls.push(CallSite {
+            line: self.line_of(node.range.start().to_usize()),
+            chain,
+            caller,
+            receiver_class,
+            argument_identifiers: Vec::new(),
+            receiver_type: None,
+        });
+        // generic_visit(Call): func, args, keywords.
+        self.visit_expr(&node.func);
+        self.visit_exprs(&node.args);
+        for kw in &node.keywords {
+            self.visit_expr(&kw.value);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ---- Python call-graph oracle-differential tests --------------------
+    // Expected values transcribed from the real `extract_call_graph_python`
+    // (`core.inventory.call_graph`) run on each source.
+
+    fn pcg(src: &str) -> Value {
+        extract_call_graph_python(src).to_json()
+    }
+
+    #[test]
+    fn py_cg_imports_all_forms() {
+        // import x / import x.y (binds head) / import x.y as p / from-import as
+        // / wildcard (flag) / relative `from . import` and `from ..pkg import`.
+        let src = "import os\nimport a.b\nimport a.b as p\nfrom requests.utils import extract_zipped_paths as ezp\nfrom x import *\nfrom . import e\nfrom ..pkg import y as z\n";
+        assert_eq!(
+            pcg(src),
+            json!({
+                "imports": {"a": "a", "ezp": "requests.utils.extract_zipped_paths", "os": "os", "p": "a.b"},
+                "calls": [],
+                "indirection": ["wildcard_import"],
+                "getattr_targets": [],
+                "classes": [],
+                "decorated_functions": [],
+                "relative_imports": [[1, "", "e", null], [2, "pkg", "y", "z"]],
+            })
+        );
+    }
+
+    #[test]
+    fn py_cg_nested_func_in_if_try_with() {
+        // Walker descends if / try / with bodies — the `with ctx()` call is seen.
+        let src = "if True:\n    def a():\n        pass\ntry:\n    def b():\n        pass\nexcept Exception:\n    pass\nwith ctx():\n    def c():\n        pass\n";
+        assert_eq!(pcg(src)["calls"], json!([{"chain": ["ctx"], "line": 9}]));
+    }
+
+    #[test]
+    fn py_cg_decorator_scope() {
+        // Decorator calls attribute to the ENCLOSING scope (no `caller`), not
+        // the decorated function; the inner() call gets `caller=handler`.
+        let src = "@app.route(rule_for('x'))\ndef handler():\n    inner()\n";
+        let v = pcg(src);
+        assert_eq!(
+            v["calls"],
+            json!([
+                {"chain": ["app", "route"], "line": 1},
+                {"chain": ["rule_for"], "line": 1},
+                {"caller": "handler", "chain": ["inner"], "line": 3},
+            ])
+        );
+        assert_eq!(
+            v["decorated_functions"],
+            json!([{"decorators": [["app", "route"]], "line": 2, "name": "handler"}])
+        );
+    }
+
+    #[test]
+    fn py_cg_self_cls_receiver_class() {
+        // self.foo()/cls.bar() (length-2) tag receiver_class; self.x.baz()
+        // (length-3) and other.qux() do not.
+        let src = "class B:\n    def m(self):\n        self.foo()\n        cls.bar()\n        self.x.baz()\n        other.qux()\n";
+        let v = pcg(src);
+        assert_eq!(
+            v["calls"],
+            json!([
+                {"caller": "m", "chain": ["self", "foo"], "line": 3, "receiver_class": "B"},
+                {"caller": "m", "chain": ["cls", "bar"], "line": 4, "receiver_class": "B"},
+                {"caller": "m", "chain": ["self", "x", "baz"], "line": 5},
+                {"caller": "m", "chain": ["other", "qux"], "line": 6},
+            ])
+        );
+        assert_eq!(
+            v["classes"],
+            json!([{"bases": [], "line": 1, "methods": [["m", 2]], "name": "B", "nested": false}])
+        );
+    }
+
+    #[test]
+    fn py_cg_nested_class_not_tagged() {
+        // A nested class is `nested: true`; self.foo() inside it gets NO
+        // receiver_class (nested guard).
+        let src = "class Outer:\n    class Inner:\n        def m(self):\n            self.foo()\n";
+        let v = pcg(src);
+        assert_eq!(v["calls"], json!([{"caller": "m", "chain": ["self", "foo"], "line": 4}]));
+        assert_eq!(
+            v["classes"],
+            json!([
+                {"bases": [], "line": 1, "methods": [], "name": "Outer", "nested": false},
+                {"bases": [], "line": 2, "methods": [["m", 3]], "name": "Inner", "nested": true},
+            ])
+        );
+    }
+
+    #[test]
+    fn py_cg_getattr_importlib_dunder_indirection() {
+        let src = "import importlib\ngetattr(o, 'name')()\nimportlib.import_module('a.b')\n__import__('c.d')\n";
+        let v = pcg(src);
+        assert_eq!(v["indirection"], json!(["dunder_import", "getattr", "importlib"]));
+        assert_eq!(v["getattr_targets"], json!(["name"]));
+        assert_eq!(
+            v["calls"],
+            json!([
+                {"chain": ["getattr"], "line": 2},
+                {"chain": ["importlib", "import_module"], "line": 3},
+                {"chain": ["__import__"], "line": 4},
+            ])
+        );
+    }
+
+    #[test]
+    fn py_cg_importlib_from_import() {
+        // `from importlib import import_module` then a bare import_module() call.
+        let src = "from importlib import import_module\nimport_module('x')\n";
+        let v = pcg(src);
+        assert_eq!(v["imports"], json!({"import_module": "importlib.import_module"}));
+        assert_eq!(v["indirection"], json!(["importlib"]));
+    }
+
+    #[test]
+    fn py_cg_syntax_error_empty_graph() {
+        let v = pcg("def f(:\n    pass\n");
+        assert_eq!(
+            v,
+            json!({
+                "imports": {}, "calls": [], "indirection": [], "getattr_targets": [],
+                "classes": [], "decorated_functions": [], "relative_imports": [],
+            })
+        );
+    }
+
+    #[test]
+    fn py_cg_class_bases_drop_non_chain() {
+        // `make_base()` base is dropped (not a name/attr chain) but its call is
+        // still recorded.
+        let src = "class C(A, mixins.M, make_base()):\n    def m(self):\n        pass\n";
+        let v = pcg(src);
+        assert_eq!(v["calls"], json!([{"chain": ["make_base"], "line": 1}]));
+        assert_eq!(
+            v["classes"],
+            json!([{"bases": ["A", "mixins.M"], "line": 1, "methods": [["m", 2]], "name": "C", "nested": false}])
+        );
+    }
+
+    #[test]
+    fn py_cg_module_level_calls_no_caller() {
+        // Module-scope calls carry no caller; an assignment RHS call is still seen.
+        let v = pcg("top_call()\nx = helper()\n");
+        assert_eq!(
+            v["calls"],
+            json!([{"chain": ["top_call"], "line": 1}, {"chain": ["helper"], "line": 2}])
+        );
+    }
 
     #[test]
     fn to_json_omits_empty_optionals() {

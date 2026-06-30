@@ -131,6 +131,33 @@ pub fn compute_interstitial_items(items: &[CodeItem], content: &str) -> Vec<Code
     out
 }
 
+/// 1-based line lookup from byte offsets — maps a rustpython AST node's byte
+/// range to a CPython-style `lineno` (1-based line of the node's start). The
+/// Python-AST extractors ([`crate::call_graph::extract_call_graph_python`] and
+/// the `PythonExtractor` path in [`crate::ts_extract`]) need this because
+/// rustpython nodes carry byte spans, not line numbers. Counts `\n` (so `\n`
+/// and `\r\n` line endings both resolve correctly).
+pub(crate) struct PyLineIndex {
+    line_starts: Vec<usize>,
+}
+
+impl PyLineIndex {
+    pub(crate) fn new(src: &str) -> Self {
+        let mut line_starts = vec![0usize];
+        for (i, b) in src.bytes().enumerate() {
+            if b == b'\n' {
+                line_starts.push(i + 1);
+            }
+        }
+        Self { line_starts }
+    }
+
+    /// 1-based line number containing byte `offset`.
+    pub(crate) fn line_of(&self, offset: usize) -> i64 {
+        self.line_starts.partition_point(|&s| s <= offset) as i64
+    }
+}
+
 /// `#define NAME` directive at line start (ASCII `\w`, matching Python's
 /// `re.ASCII`). Captures include guards too — they're real code items.
 fn define_re() -> &'static Regex {
@@ -228,4 +255,5 @@ mod tests {
         assert_eq!(names, vec![("G_H", 2), ("MAX", 3), ("MIN", 4)]);
         assert!(m.iter().all(|c| c.kind == KIND_MACRO));
     }
+
 }
