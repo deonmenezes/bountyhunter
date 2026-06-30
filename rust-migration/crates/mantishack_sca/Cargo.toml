@@ -20,5 +20,7 @@ python = ["dep:pyo3"]
 
 [dependencies]
 pyo3 = { workspace = true, optional = true }
-serde_json = "1"
+# preserve_order so parsed JSON objects iterate in file order, matching Python
+# json.loads (the manifest parsers emit deps in declaration order).
+serde_json = { version = "1", features = ["preserve_order"] }
 regex = { workspace = true }

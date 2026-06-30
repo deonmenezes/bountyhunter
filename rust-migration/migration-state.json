@@ -1556,10 +1556,11 @@
       "parity": {}
     },
     "packages.sca": {
-      "status": "in progress (models + parsers.gomod + parsers.gemfile ported; 30 more parsers + registry/resolvers pending)",
+      "status": "in progress (models + parsers.gomod/gemfile/composer ported; 29 more parsers + registry/resolvers pending)",
       "parity": {
         "sca_models_gomod": "pass (differential vs gomod.parse_manifest/parse_lockfile: require block+single, indirect, pseudo-version->git pin, replace redirect + path replace, go.sum dedup + /go.mod suffix; full Dependency model incl pin_style/purl/parser_confidence level+reason+numeric/key)",
-        "sca_gemfile": "pass (differential vs gemfile.parse_manifest/parse_lockfile: version specs tilde/range/exact/caret, git/github/path overrides, control-flow->medium confidence, non-digit version rejection, Gemfile.lock specs block 4-space rows + platform suffix + templated skip)"
+        "sca_gemfile": "pass (differential vs gemfile.parse_manifest/parse_lockfile: version specs tilde/range/exact/caret, git/github/path overrides, control-flow->medium confidence, non-digit version rejection, Gemfile.lock specs block 4-space rows + platform suffix + templated skip)",
+        "sca_composer": "pass (differential vs composer.parse_manifest/parse_lockfile: caret/tilde/range/OR/exact/>=/unknown specs, platform-req skip, require/require-dev/replace/provide scopes, lockfile git-source-vs-release-tag pin; serde_json preserve_order matches dict iteration order)"
       }
     },
     "packages.sca.bump": {
