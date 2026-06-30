@@ -24,3 +24,6 @@ pyo3 = { workspace = true, optional = true }
 # json.loads (the manifest parsers emit deps in declaration order).
 serde_json = { version = "1", features = ["preserve_order"] }
 regex = { workspace = true }
+# TOML lockfiles/manifests (poetry.lock, uv.lock, Cargo.toml, pyproject, Pipfile)
+# parsed via the toml crate then converted to serde_json::Value for traversal.
+toml = "0.8"
