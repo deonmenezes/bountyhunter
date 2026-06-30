@@ -863,10 +863,11 @@ impl JavaCallGraph {
         let mut receiver_class = None;
         if let Some(&idx) = self.class_stack.last() {
             let cls = &self.graph.classes[idx];
-            if !cls.nested && !self.enclosing.is_empty() {
-                if chain.len() == 1 || (chain.len() == 2 && chain[0] == "this") {
-                    receiver_class = Some(cls.name.clone());
-                }
+            if !cls.nested
+                && !self.enclosing.is_empty()
+                && (chain.len() == 1 || (chain.len() == 2 && chain[0] == "this"))
+            {
+                receiver_class = Some(cls.name.clone());
             }
         }
         let receiver_type = if receiver_class.is_none() {
