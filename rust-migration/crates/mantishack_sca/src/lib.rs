@@ -10,5 +10,6 @@ pub mod composer;
 pub mod gemfile;
 pub mod gomod;
 pub mod models;
+pub mod pipfile_lock;
 
 pub use models::{Confidence, Dependency, PinStyle};
