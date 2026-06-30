@@ -10,7 +10,107 @@
 //! Accessors operate on the inventory as a `serde_json::Value`, matching the
 //! Python `Dict[str, Any]` shape produced by the builder.
 
+use std::sync::OnceLock;
+
+use regex::Regex;
 use serde_json::Value;
+
+/// A project-defined function. Identity is `(file_path, name, line)` — the line
+/// disambiguates same-name overloads / nested defs / methods of different
+/// classes in one file. Mirrors `InternalFunction`.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct InternalFunction {
+    pub file_path: String,
+    pub name: String,
+    pub line: i64,
+}
+
+impl InternalFunction {
+    pub fn new(file_path: impl Into<String>, name: impl Into<String>, line: i64) -> Self {
+        Self { file_path: file_path.into(), name: name.into(), line }
+    }
+    /// `file_path:name@line` (Python `__str__`).
+    pub fn display(&self) -> String {
+        format!("{}:{}@{}", self.file_path, self.name, self.line)
+    }
+}
+
+/// A dep-defined function referenced by qualified name. Mirrors `ExternalFunction`.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct ExternalFunction {
+    pub qualified_name: String,
+}
+
+fn test_file_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| {
+        Regex::new(r"(^|/)(tests?/.*|test_[^/]+\.py|[^/]+_test\.py|conftest\.py)$").unwrap()
+    })
+}
+
+/// Conventional test-file detection (`tests?/…`, `test_*.py`, `*_test.py`,
+/// `conftest.py`). Port of `_is_test_file` (os.sep is `/` on the oracle host).
+pub fn is_test_file(path: &str) -> bool {
+    test_file_re().is_match(path)
+}
+
+/// Universal file-path -> module conversion (`_file_path_to_module`):
+/// `c/heartbeat.c` -> `c.heartbeat`. `None` for extensionless paths.
+pub fn file_path_to_module(rel_path: &str) -> Option<String> {
+    if rel_path.is_empty() {
+        return None;
+    }
+    let normalized = rel_path.replace('\\', "/");
+    let mut parts: Vec<String> = normalized
+        .split('/')
+        .filter(|s| !s.is_empty() && *s != ".")
+        .map(str::to_string)
+        .collect();
+    let last = parts.last()?.clone();
+    // PurePosixPath.suffix: a `.` at index i with 0 < i < len-1.
+    let dot = last.rfind('.');
+    let stem = match dot {
+        Some(i) if i > 0 && i < last.len() - 1 => last[..i].to_string(),
+        _ => return None,
+    };
+    *parts.last_mut().unwrap() = stem;
+    Some(parts.join("."))
+}
+
+/// Candidate `<file_module>.<class>.<fn>` forms for languages where the file is
+/// the module (`_path_derived_module`). One or two candidates (the raw form +
+/// an `src/`-stripped form). Empty when the extension isn't recognised.
+pub fn path_derived_module(file_path: &str, class_name: &str, fn_name: &str) -> Vec<String> {
+    const SUFFIXES: &[&str] = &[".pyi", ".py", ".tsx", ".jsx", ".mjs", ".cjs", ".ts", ".js", ".rb"];
+    let mut base = file_path;
+    let mut matched = false;
+    for suf in SUFFIXES {
+        if base.ends_with(suf) {
+            base = &base[..base.len() - suf.len()];
+            matched = true;
+            break;
+        }
+    }
+    if !matched {
+        return Vec::new();
+    }
+    let mut base = base.to_string();
+    if let Some(stripped) = base.strip_suffix("/__init__") {
+        base = stripped.to_string();
+    } else if let Some(stripped) = base.strip_suffix("/index") {
+        base = stripped.to_string();
+    }
+    if base.is_empty() {
+        return Vec::new();
+    }
+    let mut out = vec![format!("{}.{}.{}", base.replace('/', "."), class_name, fn_name)];
+    if let Some(stripped) = base.strip_prefix("src/") {
+        if !stripped.is_empty() {
+            out.push(format!("{}.{}.{}", stripped.replace('/', "."), class_name, fn_name));
+        }
+    }
+    out
+}
 
 /// Reachability verdict for a queried qualified name (`Verdict`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -287,6 +387,33 @@ mod tests {
                 },
             ]
         })
+    }
+
+    #[test]
+    fn path_helpers() {
+        assert!(is_test_file("tests/x.py"));
+        assert!(is_test_file("src/test_foo.py"));
+        assert!(is_test_file("src/foo_test.py"));
+        assert!(is_test_file("conftest.py"));
+        assert!(!is_test_file("src/handler.py"));
+        assert!(!is_test_file("testdata/x.py"));
+
+        assert_eq!(file_path_to_module("c/heartbeat.c").as_deref(), Some("c.heartbeat"));
+        assert_eq!(file_path_to_module("packages/foo/bar.py").as_deref(), Some("packages.foo.bar"));
+        assert_eq!(file_path_to_module("Makefile"), None);
+        assert_eq!(file_path_to_module(".bashrc"), None);
+
+        assert_eq!(
+            path_derived_module("src/api/handler.py", "Cls", "fn"),
+            vec!["src.api.handler.Cls.fn", "api.handler.Cls.fn"]
+        );
+        assert_eq!(path_derived_module("foo/__init__.py", "C", "m"), vec!["foo.C.m"]);
+        assert_eq!(path_derived_module("main.c", "C", "m"), Vec::<String>::new());
+    }
+
+    #[test]
+    fn internal_function_display() {
+        assert_eq!(InternalFunction::new("a.py", "f", 4).display(), "a.py:f@4");
     }
 
     #[test]
