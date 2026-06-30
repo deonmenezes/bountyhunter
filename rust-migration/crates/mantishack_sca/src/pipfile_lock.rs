@@ -95,6 +95,7 @@ fn build_dep(name: &str, entry: &Value, scope: &str, declared_in: &str) -> Optio
         declared_license: None,
         commented_out: false,
         source_kind: "manifest".to_string(),
+        source_extra: None,
     })
 }
 

@@ -26,4 +26,5 @@ serde_json = { version = "1", features = ["preserve_order"] }
 regex = { workspace = true }
 # TOML lockfiles/manifests (poetry.lock, uv.lock, Cargo.toml, pyproject, Pipfile)
 # parsed via the toml crate then converted to serde_json::Value for traversal.
-toml = "0.8"
+# preserve_order so tables iterate in file order (matching Python tomllib).
+toml = { version = "0.8", features = ["preserve_order"] }

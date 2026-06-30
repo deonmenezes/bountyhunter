@@ -81,6 +81,9 @@ pub struct Dependency {
     pub declared_license: Option<String>,
     pub commented_out: bool,
     pub source_kind: String,
+    /// Per-source diagnostic context (e.g. cargo_optional/cargo_features). `None`
+    /// for most parsers; serialised only when set.
+    pub source_extra: Option<Value>,
 }
 
 impl Dependency {
@@ -104,6 +107,7 @@ impl Dependency {
             "declared_license": self.declared_license,
             "commented_out": self.commented_out,
             "source_kind": self.source_kind,
+            "source_extra": self.source_extra,
             "key": self.key(),
         })
     }

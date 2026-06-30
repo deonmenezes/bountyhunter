@@ -6,6 +6,7 @@
 //! site (each parser takes already-read content + the declaring path). HTTP
 //! registries, resolvers, and the LLM layers stay in Python.
 
+pub mod cargo;
 pub mod composer;
 pub mod gemfile;
 pub mod gomod;

@@ -58,6 +58,7 @@ fn make_dep(name: &str, version: Option<&str>, scope: &str, pin_style: PinStyle,
         declared_license: None,
         commented_out: false,
         source_kind: "manifest".to_string(),
+        source_extra: None,
     }
 }
 

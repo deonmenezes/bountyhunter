@@ -126,6 +126,7 @@ fn build_dep(name: &str, rest: &str, declared_in: &str, confidence_level: &str, 
         declared_license: None,
         commented_out: false,
         source_kind: "manifest".to_string(),
+        source_extra: None,
     }
 }
 
@@ -197,6 +198,7 @@ pub fn parse_lockfile(text: &str, declared_in: &str) -> Vec<Dependency> {
             declared_license: None,
             commented_out: false,
             source_kind: "lockfile".to_string(),
+            source_extra: None,
         };
         let k = dep.key();
         if !seen.contains(&k) {

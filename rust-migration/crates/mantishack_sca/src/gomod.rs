@@ -191,6 +191,7 @@ fn build_dep(
         declared_license: None,
         commented_out: false,
         source_kind: if is_lockfile { "lockfile" } else { "manifest" }.to_string(),
+        source_extra: None,
     })
 }
 
