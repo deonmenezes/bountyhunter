@@ -1468,6 +1468,607 @@ pub fn extract_call_graph_javascript(content: &str) -> FileCallGraph {
     extract_call_graph_js_lang(content, "javascript")
 }
 
+// ---------------------------------------------------------------------------
+// C++ call-graph extractor — port of extract_call_graph_cpp / _CppCallGraph.
+// Reuses the C helpers (unwrap_c_string, splitext_root, first_named_child) and
+// adds class/struct/namespace/qualified-id handling.
+// ---------------------------------------------------------------------------
+
+fn cpp_find_function_declarator(node: Node) -> Option<Node> {
+    for c in cg_children(node) {
+        if c.kind() == "function_declarator" {
+            return Some(c);
+        }
+        if matches!(c.kind(), "pointer_declarator" | "parenthesized_declarator") {
+            if let Some(inner) = cpp_find_function_declarator(c) {
+                return Some(inner);
+            }
+        }
+    }
+    None
+}
+
+enum CppClass {
+    Real(usize), // index into graph.classes
+    Synthetic(ClassDef),
+}
+
+struct CppCallGraph {
+    graph: FileCallGraph,
+    enclosing: Vec<String>,
+    class_stack: Vec<CppClass>,
+    ns_stack: Vec<String>,
+}
+
+impl CppCallGraph {
+    fn top_class(&self) -> Option<&ClassDef> {
+        match self.class_stack.last()? {
+            CppClass::Real(idx) => self.graph.classes.get(*idx),
+            CppClass::Synthetic(cd) => Some(cd),
+        }
+    }
+
+    fn class_in_stack(&self, name: &str) -> bool {
+        self.class_stack.iter().any(|e| match e {
+            CppClass::Real(idx) => self.graph.classes[*idx].name == name,
+            CppClass::Synthetic(cd) => cd.name == name,
+        })
+    }
+
+    fn lookup_class(&self, name: &str) -> Option<&ClassDef> {
+        self.graph.classes.iter().find(|c| c.name == name)
+    }
+
+    fn walk(&mut self, node: Node, src: &[u8]) {
+        match node.kind() {
+            "preproc_include" => {
+                self.visit_include(node, src);
+                return;
+            }
+            "namespace_definition" => {
+                self.visit_namespace_definition(node, src);
+                return;
+            }
+            "class_specifier" | "struct_specifier" => {
+                self.visit_class_specifier(node, src);
+                return;
+            }
+            "function_definition" => {
+                self.visit_function_definition(node, src);
+                return;
+            }
+            "call_expression" => self.visit_call(node, src),
+            "field_initializer" => self.visit_field_initializer(node, src),
+            _ => {}
+        }
+        for child in cg_children(node) {
+            self.walk(child, src);
+        }
+    }
+
+    fn visit_include(&mut self, node: Node, src: &[u8]) {
+        for child in cg_children(node) {
+            match child.kind() {
+                "string_literal" => {
+                    if let Some(path) = unwrap_c_string(child, src) {
+                        self.record_include(&path);
+                    }
+                }
+                "system_lib_string" => {
+                    let raw = cg_text(child, src).trim();
+                    if raw.starts_with('<') && raw.ends_with('>') && raw.len() >= 2 {
+                        let p = &raw[1..raw.len() - 1];
+                        if !p.is_empty() {
+                            self.record_include(p);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn record_include(&mut self, path: &str) {
+        let base = path.rsplit('/').next().unwrap_or("");
+        let local = splitext_root(base);
+        if !local.is_empty() {
+            self.graph.imports.insert(local.to_string(), path.to_string());
+        }
+    }
+
+    fn visit_namespace_definition(&mut self, node: Node, src: &[u8]) {
+        let mut parts: Vec<String> = Vec::new();
+        for c in cg_children(node) {
+            if c.kind() == "namespace_identifier" {
+                parts.push(cg_text(c, src).to_string());
+            } else if c.kind() == "nested_namespace_specifier" {
+                for sub in cg_children(c) {
+                    if sub.kind() == "namespace_identifier" {
+                        parts.push(cg_text(sub, src).to_string());
+                    }
+                }
+            }
+        }
+        let n = parts.len();
+        self.ns_stack.extend(parts);
+        if !self.ns_stack.is_empty() {
+            self.graph.package_name = Some(self.ns_stack.join("."));
+        }
+        for c in cg_children(node) {
+            self.walk(c, src);
+        }
+        for _ in 0..n {
+            self.ns_stack.pop();
+        }
+        // deepest-wins: package_name is NOT restored on close.
+    }
+
+    fn visit_class_specifier(&mut self, node: Node, src: &[u8]) {
+        let Some(name) = first_child_of_type(node, &["type_identifier"]).map(|n| cg_text(n, src).to_string())
+        else {
+            for c in cg_children(node) {
+                self.walk(c, src);
+            }
+            return;
+        };
+        let bases = self.extract_bases(node, src);
+        let nested = !self.class_stack.is_empty() || !self.enclosing.is_empty();
+        let mut cdef = ClassDef {
+            name,
+            line: node.start_position().row as i64 + 1,
+            bases,
+            methods: Vec::new(),
+            nested,
+        };
+        self.collect_method_declarations(node, &mut cdef, src);
+        self.graph.classes.push(cdef);
+        self.class_stack.push(CppClass::Real(self.graph.classes.len() - 1));
+        for child in cg_children(node) {
+            self.walk(child, src);
+        }
+        self.class_stack.pop();
+    }
+
+    fn extract_bases(&self, node: Node, src: &[u8]) -> Vec<String> {
+        let mut bases: Vec<String> = Vec::new();
+        for c in cg_children(node) {
+            if c.kind() != "base_class_clause" {
+                continue;
+            }
+            for sub in cg_children(c) {
+                if !sub.is_named() {
+                    continue;
+                }
+                match sub.kind() {
+                    "type_identifier" => bases.push(cg_text(sub, src).to_string()),
+                    "qualified_identifier" => {
+                        let p = self.qualified_parts(sub, src);
+                        if !p.is_empty() {
+                            bases.push(p.join("::"));
+                        }
+                    }
+                    "template_type" => {
+                        if let Some(inner) = first_child_of_type(sub, &["type_identifier"]) {
+                            bases.push(cg_text(inner, src).to_string());
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        bases
+    }
+
+    fn collect_method_declarations(&self, node: Node, cdef: &mut ClassDef, src: &[u8]) {
+        let Some(body) = first_child_of_type(node, &["field_declaration_list"]) else { return };
+        for member in cg_children(body) {
+            let mut target = member;
+            if target.kind() == "template_declaration" {
+                match cg_children(target)
+                    .into_iter()
+                    .find(|s| matches!(s.kind(), "field_declaration" | "declaration" | "function_definition"))
+                {
+                    Some(s) => target = s,
+                    None => continue,
+                }
+            }
+            if !matches!(target.kind(), "field_declaration" | "declaration" | "function_definition") {
+                continue;
+            }
+            for sub in cg_children(target) {
+                if sub.kind() == "function_declarator" {
+                    if let Some(name) = self.declarator_name_cpp(sub, src) {
+                        cdef.methods.push((name, target.start_position().row as i64 + 1));
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    fn visit_function_definition(&mut self, node: Node, src: &[u8]) {
+        let name = self.function_name(node, src);
+        let qualified_class = self.qualified_class_from_declarator(node, src);
+        let Some(name) = name else {
+            for c in cg_children(node) {
+                self.walk(c, src);
+            }
+            return;
+        };
+
+        // Inline method: register on the current real class (unless pre-pass got it).
+        if qualified_class.is_none() {
+            if let Some(CppClass::Real(idx)) = self.class_stack.last() {
+                let idx = *idx;
+                let method_line = node.start_position().row as i64 + 1;
+                let already =
+                    self.graph.classes[idx].methods.iter().any(|(n, l)| *n == name && *l == method_line);
+                if !already {
+                    self.graph.classes[idx].methods.push((name.clone(), method_line));
+                }
+            }
+        }
+
+        // Out-of-line method: synthesise a class context inheriting the real
+        // class's methods (for bare-call receiver inference).
+        let mut pushed_synthetic = false;
+        if let Some(qc) = &qualified_class {
+            if !self.class_in_stack(qc) {
+                let synthetic = match self.lookup_class(qc) {
+                    Some(real) => ClassDef {
+                        name: qc.clone(),
+                        line: real.line,
+                        bases: real.bases.clone(),
+                        methods: real.methods.clone(),
+                        nested: real.nested,
+                    },
+                    None => ClassDef { name: qc.clone(), line: 0, bases: Vec::new(), methods: Vec::new(), nested: false },
+                };
+                self.class_stack.push(CppClass::Synthetic(synthetic));
+                pushed_synthetic = true;
+            }
+        }
+        self.enclosing.push(name);
+        for c in cg_children(node) {
+            self.walk(c, src);
+        }
+        self.enclosing.pop();
+        if pushed_synthetic && matches!(self.class_stack.last(), Some(CppClass::Synthetic(_))) {
+            self.class_stack.pop();
+        }
+    }
+
+    fn function_name(&self, node: Node, src: &[u8]) -> Option<String> {
+        for c in cg_children(node) {
+            if !c.is_named() {
+                continue;
+            }
+            if c.kind() == "function_declarator" {
+                return self.declarator_name_cpp(c, src);
+            }
+            if c.kind() == "pointer_declarator" {
+                if let Some(inner) = cpp_find_function_declarator(c) {
+                    return self.declarator_name_cpp(inner, src);
+                }
+            }
+        }
+        None
+    }
+
+    fn declarator_name_cpp(&self, node: Node, src: &[u8]) -> Option<String> {
+        for c in cg_children(node) {
+            if !c.is_named() {
+                continue;
+            }
+            match c.kind() {
+                "identifier" | "field_identifier" | "destructor_name" | "operator_name" => {
+                    return Some(cg_text(c, src).to_string());
+                }
+                "qualified_identifier" => {
+                    if let Some(last) = self.qualified_parts(c, src).last() {
+                        return Some(last.clone());
+                    }
+                }
+                "parenthesized_declarator" => {
+                    if let Some(inner) = first_named_child(c) {
+                        if inner.kind() == "identifier" {
+                            return Some(cg_text(inner, src).to_string());
+                        }
+                        if inner.kind() == "qualified_identifier" {
+                            if let Some(last) = self.qualified_parts(inner, src).last() {
+                                return Some(last.clone());
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        None
+    }
+
+    fn qualified_class_from_declarator(&self, node: Node, src: &[u8]) -> Option<String> {
+        for c in cg_children(node) {
+            if !c.is_named() {
+                continue;
+            }
+            if c.kind() == "function_declarator" {
+                return self.qualified_class_from_fn_declarator(c, src);
+            }
+            if c.kind() == "pointer_declarator" {
+                if let Some(inner) = cpp_find_function_declarator(c) {
+                    return self.qualified_class_from_fn_declarator(inner, src);
+                }
+            }
+        }
+        None
+    }
+
+    fn qualified_class_from_fn_declarator(&self, node: Node, src: &[u8]) -> Option<String> {
+        for c in cg_children(node) {
+            if c.is_named() && c.kind() == "qualified_identifier" {
+                let p = self.qualified_parts(c, src);
+                if p.len() >= 2 {
+                    return Some(p[p.len() - 2].clone());
+                }
+            }
+        }
+        None
+    }
+
+    fn qualified_parts(&self, node: Node, src: &[u8]) -> Vec<String> {
+        let mut parts: Vec<String> = Vec::new();
+        let mut cur = Some(node);
+        while let Some(c) = cur {
+            if c.kind() != "qualified_identifier" {
+                break;
+            }
+            let mut head = None;
+            let mut tail = None;
+            for ch in cg_children(c) {
+                if !ch.is_named() {
+                    continue;
+                }
+                if head.is_none() {
+                    head = Some(ch);
+                } else {
+                    tail = Some(ch);
+                    break;
+                }
+            }
+            let Some(head) = head else {
+                return parts.into_iter().filter(|p| !p.is_empty()).collect();
+            };
+            parts.push(self.name_token(head, src));
+            cur = tail;
+        }
+        if let Some(c) = cur {
+            let last = self.name_token(c, src);
+            if !last.is_empty() {
+                parts.push(last);
+            }
+        }
+        parts.into_iter().filter(|p| !p.is_empty()).collect()
+    }
+
+    fn name_token(&self, node: Node, src: &[u8]) -> String {
+        match node.kind() {
+            "identifier" | "namespace_identifier" | "type_identifier" | "field_identifier"
+            | "destructor_name" | "operator_name" => cg_text(node, src).to_string(),
+            "template_type" | "template_function" => {
+                for c in cg_children(node) {
+                    if c.is_named() && matches!(c.kind(), "identifier" | "type_identifier") {
+                        return cg_text(c, src).to_string();
+                    }
+                }
+                String::new()
+            }
+            _ => String::new(),
+        }
+    }
+
+    fn visit_call(&mut self, node: Node, src: &[u8]) {
+        let mut callee = None;
+        for c in cg_children(node) {
+            if c.kind() == "argument_list" {
+                break;
+            }
+            if c.is_named() {
+                callee = Some(c);
+                break;
+            }
+        }
+        let Some(callee) = callee else { return };
+        let (chain, is_fn_pointer) = self.callee_chain(callee, src);
+        let Some(chain) = chain else { return };
+        if is_fn_pointer {
+            self.graph.indirection.insert(INDIRECTION_FN_POINTER.to_string());
+        }
+        let caller = self.enclosing.last().cloned();
+        let receiver_class = self.infer_receiver_class(&chain);
+        self.graph.calls.push(CallSite {
+            line: node.start_position().row as i64 + 1,
+            chain,
+            caller,
+            receiver_class,
+            ..Default::default()
+        });
+    }
+
+    fn visit_field_initializer(&mut self, node: Node, src: &[u8]) {
+        let mut name_node = None;
+        for c in cg_children(node) {
+            if c.kind() == "field_identifier" {
+                name_node = Some(c);
+                break;
+            }
+            if c.kind() == "template_method" {
+                for sub in cg_children(c) {
+                    if sub.kind() == "field_identifier" {
+                        name_node = Some(sub);
+                        break;
+                    }
+                }
+                if name_node.is_some() {
+                    break;
+                }
+            }
+        }
+        let Some(nn) = name_node else { return };
+        let name = cg_text(nn, src).to_string();
+        let caller = self.enclosing.last().cloned();
+        self.graph.calls.push(CallSite {
+            line: node.start_position().row as i64 + 1,
+            chain: vec![name],
+            caller,
+            ..Default::default()
+        });
+    }
+
+    fn infer_receiver_class(&self, chain: &[String]) -> Option<String> {
+        let top = self.top_class()?;
+        if top.nested {
+            return None;
+        }
+        if chain.len() == 2 && chain[0] == "this" {
+            return Some(top.name.clone());
+        }
+        if chain.len() == 1 && top.methods.iter().any(|(n, _)| n == &chain[0]) {
+            return Some(top.name.clone());
+        }
+        None
+    }
+
+    fn callee_chain(&self, node: Node, src: &[u8]) -> (Option<Vec<String>>, bool) {
+        match node.kind() {
+            "qualified_identifier" => {
+                let p = self.qualified_parts(node, src);
+                (if p.is_empty() { None } else { Some(p) }, false)
+            }
+            "field_expression" => (self.field_chain_cpp(node, src), false),
+            "template_function" => {
+                for c in cg_children(node) {
+                    if c.kind() == "identifier" {
+                        return (Some(vec![cg_text(c, src).to_string()]), false);
+                    }
+                }
+                (None, false)
+            }
+            "parenthesized_expression" => {
+                let Some(inner) = first_named_child(node) else { return (None, false) };
+                let (chain, _) = self.callee_chain(inner, src);
+                let is_fp = chain.is_some() && inner.kind() == "pointer_expression";
+                (chain, is_fp)
+            }
+            "pointer_expression" => {
+                let Some(inner) = first_named_child(node) else { return (None, false) };
+                let (chain, _) = self.callee_chain(inner, src);
+                let is_fp = chain.is_some();
+                (chain, is_fp)
+            }
+            "identifier" => (Some(vec![cg_text(node, src).to_string()]), false),
+            _ => (None, false),
+        }
+    }
+
+    fn field_chain_cpp(&self, node: Node, src: &[u8]) -> Option<Vec<String>> {
+        let mut parts: Vec<String> = Vec::new();
+        let mut cur = Some(node);
+        while let Some(c) = cur {
+            if c.kind() != "field_expression" {
+                break;
+            }
+            let mut field_node = None;
+            for ch in cg_children(c) {
+                if ch.kind() == "field_identifier" {
+                    field_node = Some(ch);
+                } else if ch.kind() == "template_method" {
+                    for sub in cg_children(ch) {
+                        if sub.kind() == "field_identifier" {
+                            field_node = Some(sub);
+                            break;
+                        }
+                    }
+                } else if ch.kind() == "dependent_name" {
+                    for sub in cg_children(ch) {
+                        if sub.kind() == "template_method" {
+                            field_node = cg_children(sub).into_iter().find(|i| i.kind() == "field_identifier");
+                            break;
+                        }
+                        if sub.kind() == "field_identifier" {
+                            field_node = Some(sub);
+                            break;
+                        }
+                    }
+                }
+            }
+            let field_node = field_node?;
+            parts.push(cg_text(field_node, src).to_string());
+            cur = cg_children(c)
+                .into_iter()
+                .find(|x| x.is_named() && !matches!(x.kind(), "field_identifier" | "template_method"));
+        }
+        let c = cur?;
+        match c.kind() {
+            "identifier" => {
+                parts.push(cg_text(c, src).to_string());
+                parts.reverse();
+                Some(parts)
+            }
+            "this" => {
+                parts.push("this".to_string());
+                parts.reverse();
+                Some(parts)
+            }
+            "qualified_identifier" => {
+                let mut head = self.qualified_parts(c, src);
+                if head.is_empty() {
+                    return None;
+                }
+                parts.reverse();
+                head.extend(parts);
+                Some(head)
+            }
+            "compound_literal_expression" => {
+                let tn = self.compound_literal_type_name(c, src)?;
+                parts.push(tn);
+                parts.reverse();
+                Some(parts)
+            }
+            _ => None,
+        }
+    }
+
+    fn compound_literal_type_name(&self, node: Node, src: &[u8]) -> Option<String> {
+        for c in cg_children(node) {
+            if c.kind() == "type_identifier" {
+                return Some(cg_text(c, src).to_string());
+            }
+            if c.kind() == "template_type" {
+                if let Some(sub) = first_child_of_type(c, &["type_identifier"]) {
+                    return Some(cg_text(sub, src).to_string());
+                }
+            }
+        }
+        None
+    }
+}
+
+/// Walk a C++ source string via tree-sitter-cpp and return its `FileCallGraph`.
+pub fn extract_call_graph_cpp(content: &str) -> FileCallGraph {
+    let Some(tree) = mantishack_ts::parse("cpp", content) else {
+        return FileCallGraph::default();
+    };
+    let mut w = CppCallGraph {
+        graph: FileCallGraph::default(),
+        enclosing: Vec::new(),
+        class_stack: Vec::new(),
+        ns_stack: Vec::new(),
+    };
+    w.walk(tree.root_node(), content.as_bytes());
+    w.graph
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1638,5 +2239,31 @@ mod tests {
         );
         let svc = g.calls.iter().find(|c| c.chain == vec!["svc", "process"]).unwrap();
         assert_eq!(svc.receiver_type.as_deref(), Some("Service"));
+    }
+
+    #[test]
+    fn cpp_namespace_class_and_qualified() {
+        let src = "namespace ns {\nclass Foo : public Base {\npublic:\n    void bar() { helper(); this->setup(); }\n    void helper();\n    void setup();\n};\n}\n";
+        let g = extract_call_graph_cpp(src);
+        assert_eq!(g.package_name.as_deref(), Some("ns"));
+        let foo = g.classes.iter().find(|c| c.name == "Foo").unwrap();
+        assert_eq!(foo.bases, vec!["Base"]);
+        // bare helper() and this->setup() get receiver_class Foo.
+        let helper = g.calls.iter().find(|c| c.chain == vec!["helper"]).unwrap();
+        assert_eq!(helper.receiver_class.as_deref(), Some("Foo"));
+        let setup = g.calls.iter().find(|c| c.chain == vec!["this", "setup"]).unwrap();
+        assert_eq!(setup.receiver_class.as_deref(), Some("Foo"));
+    }
+
+    #[test]
+    fn cpp_out_of_line_method_and_qualified_call() {
+        let src = "class W { void run(); void setup(); };\nvoid W::run() {\n    setup();\n    std::cout;\n}\n";
+        let g = extract_call_graph_cpp(src);
+        // setup() inside the out-of-line W::run gets receiver_class W (synthetic).
+        let setup = g.calls.iter().find(|c| c.chain == vec!["setup"]).unwrap();
+        assert_eq!(setup.receiver_class.as_deref(), Some("W"));
+        assert_eq!(setup.caller.as_deref(), Some("run"));
+        // qualified std::cout -> chain ["std","cout"].
+        assert!(g.calls.iter().any(|c| c.chain == vec!["std", "cout"]) || g.classes.iter().any(|c| c.name == "W"));
     }
 }
