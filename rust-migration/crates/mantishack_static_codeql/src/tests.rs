@@ -16,6 +16,11 @@
 mod tests {
     use crate::env::{detect_codeql, run_codeql_version, CodeQLEnv, UNSAFE_ENV_KEYS};
 
+    // Tests that mutate the process-global `CODEQL_CLI` env var must not
+    // interleave (cargo runs tests in parallel threads); serialize them on a
+    // shared lock. Poison-tolerant so one failing test doesn't cascade.
+    static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
     // ─────────────────────────────────────────────────────────────────────────
     // Golden case 1: mode="disabled" → available=false, canonical reason string.
     // Python: CodeQLEnv(mode="disabled", available=False,
@@ -97,6 +102,7 @@ mod tests {
     // ─────────────────────────────────────────────────────────────────────────
     #[test]
     fn gc5_detect_codeql_cli_nonexistent_path() {
+        let _env = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         unsafe {
             std::env::set_var("CODEQL_CLI", "/nonexistent/path/to/codeql-binary");
         }
@@ -119,6 +125,7 @@ mod tests {
     // ─────────────────────────────────────────────────────────────────────────
     #[test]
     fn gc6_detect_no_codeql_available() {
+        let _env = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         unsafe { std::env::remove_var("CODEQL_CLI"); }
 
         // Guard: skip when codeql IS on PATH (can't fake absence portably).
@@ -149,6 +156,7 @@ mod tests {
     // ─────────────────────────────────────────────────────────────────────────
     #[test]
     fn gc7_detect_require_mode_stored_verbatim() {
+        let _env = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         unsafe { std::env::remove_var("CODEQL_CLI"); }
 
         if crate::env::which_codeql().is_some() {
