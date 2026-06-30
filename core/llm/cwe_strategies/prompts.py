@@ -33,11 +33,13 @@ from typing import Iterable, List, Optional
 from .models import Exemplar, Strategy
 
 
-# Default soft cap on rendered output. Picked-strategies × addenda +
-# questions + exemplars typically sit under 8KB; the cap protects
-# against pathological cases (long strategy chains, oversized
-# exemplars) without bothering normal callers.
-DEFAULT_MAX_BYTES = 16_384
+# Default soft cap on rendered output. The bundled web/app + AI
+# strategy packs carry several richly-documented worked examples each
+# (real CVEs), so a single pack can render to ~16KB and a default
+# pick of general + two specialised packs approaches ~30KB. The cap
+# is sized to hold that without truncating, while still clipping
+# pathological cases (long strategy chains, all packs at once).
+DEFAULT_MAX_BYTES = 32_768
 
 _TRUNCATION_MARKER = "\n\n_(strategy block truncated to fit prompt budget)_\n"
 
