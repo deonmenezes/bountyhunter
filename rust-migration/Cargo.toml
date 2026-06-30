@@ -15,6 +15,7 @@ members = [
     "crates/mantishack_smt_solver",
     "crates/mantishack_core_hash",
     "crates/mantishack_core_cve",
+    "crates/mantishack_nvd",
     "crates/mantishack_core_inventory",
     "crates/mantishack_coccinelle",
     "crates/mantishack_static_codeql",

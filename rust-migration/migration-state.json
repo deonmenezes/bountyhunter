@@ -1507,13 +1507,10 @@
       "parity": {}
     },
     "packages.nvd": {
-      "name": "packages.nvd",
-      "disposition": "rust-port",
-      "status": "pending",
-      "crate": "",
-      "phase": 3,
-      "notes": "",
-      "parity": {}
+      "status": "ported (parser.extract_patch_refs; HTTP client + verify oracle stay in Python)",
+      "parity": {
+        "nvd_parser": "pass (differential vs extract_patch_refs: github commit + kernel.org Patch-tagged refs, dedup, defensive shape guards, slug normalisation via core.url_patterns)"
+      }
     },
     "packages.nvd.tests": {
       "name": "packages.nvd.tests",
