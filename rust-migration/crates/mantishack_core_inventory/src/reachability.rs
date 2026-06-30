@@ -527,6 +527,28 @@ fn call_line(call: &Value) -> i64 {
     call.get("line").and_then(Value::as_i64).unwrap_or(0)
 }
 
+/// The `language` of the file record whose path matches `file_path` (`_file_language`).
+pub fn file_language(inventory: &Value, file_path: &str) -> Option<String> {
+    find_file(inventory, file_path)
+        .and_then(|fr| fr.get("language"))
+        .and_then(Value::as_str)
+        .map(str::to_string)
+}
+
+/// True iff `file_path`'s call_graph carries any masking indirection flag or a
+/// function-like-macro call target (`_file_has_masking`).
+pub fn file_has_masking(inventory: &Value, file_path: &str) -> bool {
+    let Some(fr) = find_file(inventory, file_path) else { return false };
+    let Some(cg) = fr.get("call_graph") else { return false };
+    let flags: Vec<&str> = str_array(cg, "indirection");
+    if flags.iter().any(|f| MASKING_FLAGS.contains(f)) {
+        return true;
+    }
+    cg.get("macro_call_targets")
+        .and_then(Value::as_array)
+        .is_some_and(|a| !a.is_empty())
+}
+
 /// Determine whether `qualified_name` (dotted) is called by the project.
 /// `Err` mirrors the Python `ValueError` for a non-dotted name.
 pub fn function_called(
@@ -772,6 +794,21 @@ mod tests {
 
         let r2 = function_called(&inv, "totally.unrelated.fn", true).unwrap();
         assert_eq!(r2.verdict, Verdict::NotCalled);
+    }
+
+    #[test]
+    fn file_language_and_masking() {
+        let inv = json!({"files": [
+            {"path": "src/a.py", "language": "python", "call_graph": {"indirection": ["getattr"]}},
+            {"path": "c/m.c", "language": "c", "call_graph": {"macro_call_targets": ["FOO"]}},
+            {"path": "src/clean.py", "language": "python", "call_graph": {"indirection": []}},
+        ]});
+        assert_eq!(file_language(&inv, "src/a.py").as_deref(), Some("python"));
+        assert_eq!(file_language(&inv, "missing.py"), None);
+        assert!(file_has_masking(&inv, "src/a.py")); // getattr flag
+        assert!(file_has_masking(&inv, "c/m.c")); // macro targets
+        assert!(!file_has_masking(&inv, "src/clean.py"));
+        assert!(!file_has_masking(&inv, "missing.py"));
     }
 
     #[test]

@@ -331,7 +331,8 @@
         "reachability.accessors": "pass (Verdict enum + module_aborts_on_load/build_excluded/is_lexically_dead dict accessors, differential vs reachability.py incl dup-name/line disambiguation)",
         "reachability.item_is_entry": "pass (18-case differential vs _item_is_entry: main, go init, C static/extern, Go exported/cap, Rust pub, Java servlet/dispatch-annotation/stereotype/framework-base, TS/C# decorators, Ruby base+*Controller, python/php public negatives)",
         "reachability.path_helpers": "pass (differential vs _is_test_file/_file_path_to_module/_path_derived_module) + InternalFunction/ExternalFunction identity structs",
-        "reachability.function_called": "pass (9-case differential vs function_called: import-map + bare-name resolution, test-file exclusion, fully-qualified chain (incl C++ ns::Util::helper), receiver_class path-derived fast-path, same-file bare-name (C), getattr/wildcard->UNCERTAIN, func-like-macro masking, ValueError on non-dotted)"
+        "reachability.function_called": "pass (9-case differential vs function_called: import-map + bare-name resolution, test-file exclusion, fully-qualified chain (incl C++ ns::Util::helper), receiver_class path-derived fast-path, same-file bare-name (C), getattr/wildcard->UNCERTAIN, func-like-macro masking, ValueError on non-dotted)",
+        "reachability.file_helpers": "pass (differential vs _file_language/_file_has_masking: language lookup + masking-flag/macro-target detection)"
       }
     },
     "core.inventory.tests": {
