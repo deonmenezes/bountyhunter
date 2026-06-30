@@ -2639,6 +2639,435 @@ impl RubyCallGraph {
     }
 }
 
+// ---------------------------------------------------------------------------
+// C# call-graph extractor — port of extract_call_graph_csharp / _CSharpCallGraph.
+// ---------------------------------------------------------------------------
+
+const CS_REFLECT_METHODS: &[&str] = &["Invoke", "GetMethod", "CreateInstance", "InvokeMember"];
+const CS_ASSEMBLY_LOAD: &[&str] = &["Load", "LoadFrom", "LoadFile", "LoadWithPartialName"];
+
+struct CSharpCallGraph {
+    graph: FileCallGraph,
+    enclosing: Vec<String>,
+    class_stack: Vec<usize>,
+    ns_stack: Vec<String>,
+    field_types: Vec<HashMap<String, String>>,
+    local_types: HashMap<String, String>,
+}
+
+impl CSharpCallGraph {
+    fn walk(&mut self, node: Node, src: &[u8]) {
+        match node.kind() {
+            "file_scoped_namespace_declaration" => {
+                if let Some(name_node) = first_child_of_type(node, &["qualified_name", "identifier"]) {
+                    let parts = self.qualified_parts(name_node, src);
+                    self.ns_stack.extend(parts);
+                    self.graph.package_name = Some(self.ns_stack.join("."));
+                }
+                return;
+            }
+            "namespace_declaration" => {
+                if let Some(name_node) = first_child_of_type(node, &["qualified_name", "identifier"]) {
+                    let parts = self.qualified_parts(name_node, src);
+                    let n = parts.len();
+                    self.ns_stack.extend(parts);
+                    self.graph.package_name = Some(self.ns_stack.join("."));
+                    for c in cg_children(node) {
+                        self.walk(c, src);
+                    }
+                    for _ in 0..n {
+                        self.ns_stack.pop();
+                    }
+                    return;
+                }
+                for c in cg_children(node) {
+                    self.walk(c, src);
+                }
+                return;
+            }
+            "class_declaration" | "interface_declaration" | "struct_declaration"
+            | "record_declaration" => {
+                self.visit_class(node, src);
+                return;
+            }
+            "method_declaration" | "constructor_declaration" => {
+                let name = first_child_of_type(node, &["identifier"])
+                    .map(|n| cg_text(n, src).to_string())
+                    .unwrap_or_else(|| "<anon>".to_string());
+                if !self.class_stack.is_empty() && self.enclosing.is_empty() {
+                    let idx = *self.class_stack.last().unwrap();
+                    self.graph.classes[idx].methods.push((name.clone(), node.start_position().row as i64 + 1));
+                }
+                self.enclosing.push(name);
+                let saved = std::mem::take(&mut self.local_types);
+                self.local_types = self.collect_param_types(first_child_of_type(node, &["parameter_list"]), src);
+                for c in cg_children(node) {
+                    self.walk(c, src);
+                }
+                self.enclosing.pop();
+                self.local_types = saved;
+                return;
+            }
+            "local_declaration_statement" => {
+                let vd = first_child_of_type(node, &["variable_declaration"]);
+                let types = self.collect_decl_types(vd, src);
+                self.local_types.extend(types);
+                for c in cg_children(node) {
+                    self.walk(c, src);
+                }
+                return;
+            }
+            "using_directive" => {
+                self.handle_using(node, src);
+                return;
+            }
+            "invocation_expression" => {
+                self.visit_invocation(node, src);
+                for c in cg_children(node) {
+                    self.walk(c, src);
+                }
+                return;
+            }
+            _ => {}
+        }
+        for c in cg_children(node) {
+            self.walk(c, src);
+        }
+    }
+
+    fn visit_class(&mut self, node: Node, src: &[u8]) {
+        let Some(name_node) = first_child_of_type(node, &["identifier"]) else {
+            for c in cg_children(node) {
+                self.walk(c, src);
+            }
+            return;
+        };
+        let mut bases: Vec<String> = Vec::new();
+        if let Some(bl) = first_child_of_type(node, &["base_list"]) {
+            for sub in cg_children(bl) {
+                if sub.kind() == "identifier" {
+                    bases.push(cg_text(sub, src).to_string());
+                } else if sub.kind() == "qualified_name" {
+                    let q = self.qualified_parts(sub, src);
+                    if !q.is_empty() {
+                        bases.push(q.join("."));
+                    }
+                }
+            }
+        }
+        let nested = !self.class_stack.is_empty() || !self.enclosing.is_empty();
+        self.graph.classes.push(ClassDef {
+            name: cg_text(name_node, src).to_string(),
+            line: node.start_position().row as i64 + 1,
+            bases,
+            methods: Vec::new(),
+            nested,
+        });
+        self.class_stack.push(self.graph.classes.len() - 1);
+        let mut field_types: HashMap<String, String> = HashMap::new();
+        if let Some(body) = first_child_of_type(node, &["declaration_list"]) {
+            for member in cg_children(body) {
+                if member.kind() == "field_declaration" {
+                    let vd = first_child_of_type(member, &["variable_declaration"]);
+                    field_types.extend(self.collect_decl_types(vd, src));
+                }
+            }
+        }
+        self.field_types.push(field_types);
+        for c in cg_children(node) {
+            self.walk(c, src);
+        }
+        self.class_stack.pop();
+        self.field_types.pop();
+    }
+
+    fn visit_invocation(&mut self, node: Node, src: &[u8]) {
+        if let Some(chain) = self.invocation_chain(node, src) {
+            let caller = self.enclosing.last().cloned();
+            let mut receiver_class = None;
+            if let Some(&idx) = self.class_stack.last() {
+                let cls = &self.graph.classes[idx];
+                if !cls.nested
+                    && !self.enclosing.is_empty()
+                    && (chain.len() == 1 || (chain.len() == 2 && chain[0] == "this"))
+                {
+                    receiver_class = Some(cls.name.clone());
+                }
+            }
+            let receiver_type = if receiver_class.is_none() {
+                self.resolve_receiver_type(&chain)
+            } else {
+                None
+            };
+            let tail = chain.last().cloned().unwrap_or_default();
+            let chain_n = chain.len();
+            let second_last = if chain_n >= 2 { Some(chain[chain_n - 2].clone()) } else { None };
+            self.graph.calls.push(CallSite {
+                line: node.start_position().row as i64 + 1,
+                chain,
+                caller,
+                receiver_class,
+                receiver_type,
+                ..Default::default()
+            });
+            if CS_REFLECT_METHODS.contains(&tail.as_str()) {
+                self.graph.indirection.insert(INDIRECTION_REFLECT.to_string());
+            }
+            if CS_ASSEMBLY_LOAD.contains(&tail.as_str()) && second_last.as_deref() == Some("Assembly") {
+                self.graph.indirection.insert(INDIRECTION_IMPORTLIB.to_string());
+            }
+        } else if let Some(tail_name) = self.tail_identifier(node, src) {
+            if CS_REFLECT_METHODS.contains(&tail_name.as_str()) {
+                self.graph.indirection.insert(INDIRECTION_REFLECT.to_string());
+            }
+        }
+    }
+
+    fn type_name(&self, type_node: Option<Node>, src: &[u8]) -> Option<String> {
+        let t = type_node?;
+        match t.kind() {
+            "identifier" => {
+                let s = cg_text(t, src);
+                if s.is_empty() { None } else { Some(s.to_string()) }
+            }
+            "qualified_name" => self.qualified_parts(t, src).last().cloned(),
+            "generic_name" => first_child_of_type(t, &["identifier"]).map(|n| cg_text(n, src).to_string()),
+            "nullable_type" | "array_type" => {
+                let inner = t.child_by_field_name("type").or_else(|| cg_children(t).into_iter().next());
+                self.type_name(inner, src)
+            }
+            _ => None,
+        }
+    }
+
+    fn collect_param_types(&self, params_node: Option<Node>, src: &[u8]) -> HashMap<String, String> {
+        let mut out = HashMap::new();
+        let Some(params) = params_node else { return out };
+        for p in cg_children(params) {
+            if p.kind() != "parameter" {
+                continue;
+            }
+            let tn = self.type_name(p.child_by_field_name("type"), src);
+            let name = p.child_by_field_name("name");
+            if let (Some(tn), Some(name)) = (tn, name) {
+                out.insert(cg_text(name, src).to_string(), tn);
+            }
+        }
+        out
+    }
+
+    fn collect_decl_types(&self, var_decl_node: Option<Node>, src: &[u8]) -> HashMap<String, String> {
+        let mut out = HashMap::new();
+        let Some(vd) = var_decl_node else { return out };
+        let Some(tn) = self.type_name(vd.child_by_field_name("type"), src) else { return out };
+        for c in cg_children(vd) {
+            if c.kind() != "variable_declarator" {
+                continue;
+            }
+            let name = c.child_by_field_name("name").or_else(|| first_child_of_type(c, &["identifier"]));
+            if let Some(name) = name {
+                out.insert(cg_text(name, src).to_string(), tn.clone());
+            }
+        }
+        out
+    }
+
+    fn resolve_receiver_type(&self, chain: &[String]) -> Option<String> {
+        if chain.len() != 2 || matches!(chain[0].as_str(), "this" | "base") {
+            return None;
+        }
+        let recv = &chain[0];
+        if let Some(t) = self.local_types.get(recv) {
+            return Some(t.clone());
+        }
+        if let Some(ft) = self.field_types.last() {
+            if let Some(t) = ft.get(recv) {
+                return Some(t.clone());
+            }
+        }
+        None
+    }
+
+    fn handle_using(&mut self, node: Node, src: &[u8]) {
+        let mut target = None;
+        let mut alias = None;
+        for c in cg_children(node) {
+            if c.kind() == "qualified_name" {
+                target = Some(c);
+            } else if c.kind() == "identifier" && alias.is_none() {
+                alias = Some(c);
+            }
+        }
+        let Some(target) = target else { return };
+        let parts = self.qualified_parts(target, src);
+        if parts.is_empty() {
+            return;
+        }
+        let full = parts.join(".");
+        let last = parts[parts.len() - 1].clone();
+        if let Some(alias) = alias {
+            let alias_text = cg_text(alias, src).to_string();
+            if alias_text != last {
+                self.graph.imports.insert(alias_text, full);
+                return;
+            }
+        }
+        self.graph.imports.insert(last, full);
+    }
+
+    fn qualified_parts(&self, node: Node, src: &[u8]) -> Vec<String> {
+        match node.kind() {
+            "identifier" => vec![cg_text(node, src).to_string()],
+            "qualified_name" => {
+                let mut parts: Vec<String> = Vec::new();
+                for c in cg_children(node) {
+                    if c.kind() == "identifier" {
+                        parts.push(cg_text(c, src).to_string());
+                    } else if c.kind() == "qualified_name" {
+                        let mut nested = self.qualified_parts(c, src);
+                        nested.extend(parts);
+                        parts = nested;
+                    }
+                }
+                parts
+            }
+            _ => Vec::new(),
+        }
+    }
+
+    fn invocation_chain(&self, node: Node, src: &[u8]) -> Option<Vec<String>> {
+        let mut callee = None;
+        for c in cg_children(node) {
+            if c.kind() == "argument_list" {
+                break;
+            }
+            if c.is_named() {
+                callee = Some(c);
+                break;
+            }
+        }
+        let callee = callee?;
+        match callee.kind() {
+            "identifier" => Some(vec![cg_text(callee, src).to_string()]),
+            "member_access_expression" => self.member_access_chain(callee, src),
+            "qualified_name" => {
+                let q = self.qualified_parts(callee, src);
+                if q.is_empty() { None } else { Some(q) }
+            }
+            _ => None,
+        }
+    }
+
+    fn member_access_chain(&self, node: Node, src: &[u8]) -> Option<Vec<String>> {
+        let mut parts: Vec<String> = Vec::new();
+        let mut cur = Some(node);
+        while let Some(c) = cur {
+            if c.kind() != "member_access_expression" {
+                break;
+            }
+            let named: Vec<Node> = cg_children(c).into_iter().filter(|x| x.is_named()).collect();
+            if named.len() == 1 {
+                let has_this = cg_children(c).iter().any(|x| !x.is_named() && matches!(x.kind(), "this" | "base"));
+                if !has_this {
+                    return None;
+                }
+                let tail = named[0];
+                if tail.kind() != "identifier" {
+                    return None;
+                }
+                parts.push(cg_text(tail, src).to_string());
+                let kw = cg_children(c)
+                    .into_iter()
+                    .find(|x| !x.is_named() && matches!(x.kind(), "this" | "base"))
+                    .map(|x| x.kind().to_string())
+                    .unwrap_or_else(|| "this".to_string());
+                parts.push(kw);
+                parts.reverse();
+                return Some(parts);
+            }
+            if named.len() < 2 {
+                return None;
+            }
+            let tail = named[named.len() - 1];
+            if tail.kind() != "identifier" {
+                return None;
+            }
+            parts.push(cg_text(tail, src).to_string());
+            cur = Some(named[0]);
+        }
+        let c = cur?;
+        match c.kind() {
+            "identifier" => {
+                parts.push(cg_text(c, src).to_string());
+                parts.reverse();
+                Some(parts)
+            }
+            "this_expression" => {
+                parts.push("this".to_string());
+                parts.reverse();
+                Some(parts)
+            }
+            "qualified_name" => {
+                let q = self.qualified_parts(c, src);
+                if q.is_empty() {
+                    return None;
+                }
+                parts.reverse();
+                let mut out = q;
+                out.extend(parts);
+                Some(out)
+            }
+            _ => None,
+        }
+    }
+
+    fn tail_identifier(&self, node: Node, src: &[u8]) -> Option<String> {
+        let mut callee = None;
+        for c in cg_children(node) {
+            if c.kind() == "argument_list" {
+                break;
+            }
+            if c.is_named() {
+                callee = Some(c);
+                break;
+            }
+        }
+        let mut cur = callee?;
+        loop {
+            match cur.kind() {
+                "identifier" => return Some(cg_text(cur, src).to_string()),
+                "member_access_expression" => {
+                    let named: Vec<Node> = cg_children(cur).into_iter().filter(|x| x.is_named()).collect();
+                    let tail = *named.last()?;
+                    if tail.kind() == "identifier" {
+                        return Some(cg_text(tail, src).to_string());
+                    }
+                    cur = tail;
+                }
+                "qualified_name" => return self.qualified_parts(cur, src).last().cloned(),
+                _ => return None,
+            }
+        }
+    }
+}
+
+/// Walk a C# source string via tree-sitter-c-sharp and return its `FileCallGraph`.
+pub fn extract_call_graph_csharp(content: &str) -> FileCallGraph {
+    let Some(tree) = mantishack_ts::parse("csharp", content) else {
+        return FileCallGraph::default();
+    };
+    let mut w = CSharpCallGraph {
+        graph: FileCallGraph::default(),
+        enclosing: Vec::new(),
+        class_stack: Vec::new(),
+        ns_stack: Vec::new(),
+        field_types: Vec::new(),
+        local_types: HashMap::new(),
+    };
+    w.walk(tree.root_node(), content.as_bytes());
+    w.graph
+}
+
 /// Walk a Ruby source string via tree-sitter-ruby and return its `FileCallGraph`.
 pub fn extract_call_graph_ruby(content: &str) -> FileCallGraph {
     let Some(tree) = mantishack_ts::parse("ruby", content) else {
@@ -2912,6 +3341,22 @@ mod tests {
         assert!(g.indirection.contains("reflect"));
         assert!(g.indirection.contains("importlib"));
         assert!(g.indirection.contains("eval"));
+    }
+
+    #[test]
+    fn csharp_using_typed_dispatch_and_reflection() {
+        let src = "using System.Text;\nusing JsonNet = Newtonsoft.Json.Linq;\nnamespace App {\nclass A {\n    Handler h;\n    void Run(Service svc) {\n        this.Helper();\n        h.Handle();\n        svc.Process();\n        t.GetMethod(\"Y\");\n    }\n    void Helper() {}\n}\n}\n";
+        let g = extract_call_graph_csharp(src);
+        assert_eq!(g.package_name.as_deref(), Some("App"));
+        assert_eq!(g.imports.get("Text").map(String::as_str), Some("System.Text"));
+        assert_eq!(g.imports.get("JsonNet").map(String::as_str), Some("Newtonsoft.Json.Linq"));
+        let this_h = g.calls.iter().find(|c| c.chain == vec!["this", "Helper"]).unwrap();
+        assert_eq!(this_h.receiver_class.as_deref(), Some("A"));
+        let hh = g.calls.iter().find(|c| c.chain == vec!["h", "Handle"]).unwrap();
+        assert_eq!(hh.receiver_type.as_deref(), Some("Handler"));
+        let svc = g.calls.iter().find(|c| c.chain == vec!["svc", "Process"]).unwrap();
+        assert_eq!(svc.receiver_type.as_deref(), Some("Service"));
+        assert!(g.indirection.contains("reflect"));
     }
 
     #[test]
