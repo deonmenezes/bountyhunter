@@ -1522,13 +1522,10 @@
       "parity": {}
     },
     "packages.osv": {
-      "name": "packages.osv",
-      "disposition": "rust-port",
-      "status": "pending",
-      "crate": "",
-      "phase": 3,
-      "notes": "",
-      "parity": {}
+      "status": "ported (types + parser.parse_record; OsvClient HTTP + verify oracle stay in Python)",
+      "parity": {
+        "osv_parser": "pass (differential vs parse_record: references/affected/ranges with event reordering + unknown-type->ECOSYSTEM, versions/severity non-string filtering, package str-map, UTC timestamp normalisation incl Z/offset/microseconds/bad-date, missing-id ValueError)"
+      }
     },
     "packages.osv.tests": {
       "name": "packages.osv.tests",

@@ -1,0 +1,23 @@
+[package]
+name = "mantishack_osv"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+# OSV record parsing — Rust port of packages/osv/types.py + parser.py. The
+# OsvClient HTTP transport + JsonCache stay in Python; this crate is the pure
+# record parser operating on serde_json::Value.
+
+[lib]
+name = "mantishack_osv"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python = ["dep:pyo3"]
+
+[dependencies]
+pyo3 = { workspace = true, optional = true }
+serde_json = "1"
+chrono = { version = "0.4", default-features = false, features = ["std", "alloc"] }
