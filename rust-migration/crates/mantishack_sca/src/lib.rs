@@ -15,6 +15,7 @@ pub mod gitlab_ci;
 pub mod gitmodules;
 pub mod gomod;
 pub mod gradle_lockfile;
+pub mod helm_chart;
 pub mod kubernetes;
 pub mod models;
 pub mod package_lock_json;
