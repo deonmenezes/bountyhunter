@@ -18,26 +18,21 @@ import argparse
 import sys
 from pathlib import Path
 
-# ─── trust-marker check (do not import; inline by design) ───
-import os
-if not (os.environ.get("CLAUDECODE")
-        or os.environ.get("_MANTISHACK_TRUSTED")):
-    sys.stderr.write(
-        f"{sys.argv[0]}: internal dispatch script.\n"
-        "  Run via 'bin/mantishack' instead.\n"
-        "  Tests / power users: set _MANTISHACK_TRUSTED=1 to bypass.\n"
-    )
-    sys.exit(2)
-# ─── end trust-marker check ─────────────────────────────────
-
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from core.json import load_json, save_json
+# ─── trust-marker check (CLAUDECODE / _MANTISHACK_TRUSTED via trust_guard) ───
+from core.security.trust_guard import require_trusted_caller
+require_trusted_caller()
+
+from core.json import save_json
+from core.libexec_utils import load_context_map_for_enrichment
+
+_SCRIPT = "mantishack-enrich-context-map-sites"
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        prog="mantishack-enrich-context-map-sites",
+        prog=_SCRIPT,
         description=(
             "Enrich context-map.json with source_intel-detected ownership "
             "(alloc/free/double-free) and privilege (capability/LSM-hook) "
@@ -47,38 +42,17 @@ def main() -> int:
     parser.add_argument("understand_dir", help="path to /understand run dir")
     args = parser.parse_args()
 
-    understand_dir = Path(args.understand_dir).resolve()
-    if not understand_dir.is_dir():
-        print(
-            f"mantishack-enrich-context-map-sites: {understand_dir} is not a "
-            "directory", file=sys.stderr,
-        )
-        return 1
-
-    context_map_path = understand_dir / "context-map.json"
-    if not context_map_path.exists():
-        print(
-            f"mantishack-enrich-context-map-sites: {context_map_path} does not "
-            "exist", file=sys.stderr,
-        )
-        return 1
-
-    context_map = load_json(context_map_path)
-    if not isinstance(context_map, dict):
-        print(
-            f"mantishack-enrich-context-map-sites: {context_map_path} is not a "
-            "JSON object", file=sys.stderr,
-        )
-        return 1
-
-    checklist = load_json(understand_dir / "checklist.json") or {}
-    target_path = (
-        checklist.get("target_path") if isinstance(checklist, dict) else None
+    loaded = load_context_map_for_enrichment(
+        args.understand_dir, script_name=_SCRIPT,
     )
+    if loaded is None:
+        return 1
+    context_map_path, context_map, target_path = loaded
+
     if not target_path:
         print(
-            "mantishack-enrich-context-map-sites: checklist missing target_path; "
-            "skipping enrichment", file=sys.stderr,
+            f"{_SCRIPT}: checklist missing target_path; skipping enrichment",
+            file=sys.stderr,
         )
         return 0
 

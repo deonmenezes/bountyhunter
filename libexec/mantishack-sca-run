@@ -29,22 +29,14 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-
-# ─── trust-marker check (do not import; inline by design) ───
-if not (os.environ.get("CLAUDECODE")
-        or os.environ.get("_MANTISHACK_TRUSTED")):
-    sys.stderr.write(
-        f"{sys.argv[0]}: internal dispatch script.\n"
-        "  Users: run 'bin/mantishack-sca <args>' instead.\n"
-        "  Tests / power users: set _MANTISHACK_TRUSTED=1 to bypass.\n"
-    )
-    sys.exit(2)
-# ─── end trust-marker check ─────────────────────────────────
-
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO))
+
+# ─── trust-marker check (CLAUDECODE / _MANTISHACK_TRUSTED via trust_guard) ───
+from core.security.trust_guard import require_trusted_caller
+require_trusted_caller(run_hint="Users: run 'bin/mantishack-sca <args>' instead.")
 
 from core.run.metadata import complete_run, fail_run, start_run     # noqa: E402
 from core.run.output import get_output_dir                           # noqa: E402

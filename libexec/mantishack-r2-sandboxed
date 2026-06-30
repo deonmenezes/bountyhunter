@@ -76,27 +76,16 @@ _RC_WRAPPER_TRUST_MISSING  = 102
 _RC_WRAPPER_ENV_INVALID    = 103
 _RC_WRAPPER_BINARY_MISSING = 104
 
-# ─── trust-marker check (libexec convention) ───────────────
-# Inline before any MANTISHACK import (matches mantishack-run-sandboxed,
-# mantishack-binary-understand) so a malicious PYTHONPATH can't hijack
-# core.* imports before the check fires. This script is invoked
-# indirectly by r2pipe (via R2PIPE_R2 env), not by humans directly;
-# unguarded invocation typically means a caller misconfiguration.
-if not (os.environ.get("CLAUDECODE")
-        or os.environ.get("_MANTISHACK_TRUSTED")):
-    sys.stderr.write(
-        f"{sys.argv[0]}: internal dispatch script.\n"
-        "  Set R2PIPE_R2 to this script's path and r2pipe will invoke "
-        "it transparently (radare2_understand.analyse does this).\n"
-        "  Tests / power users: set _MANTISHACK_TRUSTED=1 to bypass.\n"
-    )
-    sys.exit(_RC_WRAPPER_TRUST_MISSING)
-# ─── end trust-marker check ────────────────────────────────
-
-# Resolve MANTISHACK root via this script's path — libexec/<script>, so
-# parents[1] is the MANTISHACK install dir. core/sandbox lives there.
 _MANTISHACK_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_MANTISHACK_DIR))
+
+# ─── trust-marker check (CLAUDECODE / _MANTISHACK_TRUSTED via trust_guard) ───
+from core.security.trust_guard import require_trusted_caller
+require_trusted_caller(
+    run_hint="Set R2PIPE_R2 to this script's path and r2pipe will invoke "
+             "it transparently (radare2_understand.analyse does this).",
+    exit_code=_RC_WRAPPER_TRUST_MISSING,
+)
 
 
 def _die(msg: str, code: int = _RC_WRAPPER_SANDBOX_FAILED) -> None:

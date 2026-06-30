@@ -32,25 +32,19 @@ Output: JSON to stdout matching :func:`validate_path`'s shape.
   feasible=null   Z3 unavailable / unencodable
 """
 import argparse
-import json
 import sys
 from pathlib import Path
 
-# ─── trust-marker check (do not import; inline by design) ───
-import os
-if not (os.environ.get("CLAUDECODE")
-        or os.environ.get("_MANTISHACK_TRUSTED")):
-    sys.stderr.write(
-        f"{sys.argv[0]}: internal dispatch script.\n"
-        "  Run via 'bin/mantishack' instead.\n"
-        "  Tests / power users: set _MANTISHACK_TRUSTED=1 to bypass.\n"
-    )
-    sys.exit(2)
-# ─── end trust-marker check ─────────────────────────────────
-
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+# ─── trust-marker check (CLAUDECODE / _MANTISHACK_TRUSTED via trust_guard) ───
+from core.security.trust_guard import require_trusted_caller
+require_trusted_caller()
+
+from core.libexec_utils import run_smt_verb
 from packages.exploit_feasibility.smt_verbs import check_overflow_to_oob
+
+_SCRIPT = "mantishack-smt-check-overflow-to-oob"
 
 
 def main() -> int:
@@ -70,21 +64,17 @@ def main() -> int:
                    help="Visible bounds-check / path condition (repeat)")
     args = p.parse_args()
 
-    try:
-        result = check_overflow_to_oob(
-            args.count,
-            args.element_size,
-            args.index,
-            profile=args.profile,
-            guards=args.guard,
-        )
-    except (TypeError, ValueError) as e:
-        print(f"mantishack-smt-check-overflow-to-oob: {e}", file=sys.stderr)
-        return 2
-
-    json.dump(result, sys.stdout, indent=2)
-    sys.stdout.write("\n")
-    return 0
+    return run_smt_verb(
+        check_overflow_to_oob,
+        {
+            "count": args.count,
+            "element_size": args.element_size,
+            "index": args.index,
+            "profile": args.profile,
+            "guards": args.guard,
+        },
+        script_name=_SCRIPT,
+    )
 
 
 if __name__ == "__main__":

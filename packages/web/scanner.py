@@ -13,8 +13,8 @@ from typing import Any, Dict, Optional
 # packages/web/scanner.py -> repo root
 sys.path.insert(0, str(Path(__file__).parents[2]))
 
+from core.display import log_phase_header, print_phase_header
 from core.json import save_json
-
 from core.logging import get_logger
 from core.llm.providers import LLMProvider
 from core.run.safe_io import safe_run_mkdir
@@ -249,18 +249,13 @@ def main():
     out_dir.parent.mkdir(parents=True, exist_ok=True)
     safe_run_mkdir(out_dir)
 
-    print("\n" + "=" * 70)
-    print("MANTISHACK WEB APPLICATION SECURITY SCANNER")
-    print("=" * 70)
+    print_phase_header("MANTISHACK WEB APPLICATION SECURITY SCANNER")
     print(f"Target: {args.url}")
     print(f"Output: {out_dir}")
     print(f"Max depth: {args.max_depth}")
     print(f"Max pages: {args.max_pages}")
-    print("=" * 70 + "\n")
 
-    logger.info("=" * 70)
-    logger.info("MANTISHACK WEB SCAN STARTED")
-    logger.info("=" * 70)
+    log_phase_header("MANTISHACK WEB SCAN STARTED", logger=logger)
     logger.info(f"Target: {args.url}")
     logger.info(f"Output: {out_dir}")
 
@@ -290,20 +285,15 @@ def main():
     try:
         results = scanner.scan()
 
-        print("\n" + "=" * 70)
-        print("SCAN COMPLETE")
-        print("=" * 70)
+        print_phase_header("SCAN COMPLETE")
         print(f"✓ Pages crawled: {results['discovery'].get('total_pages', 0)}")
         print(f"✓ Parameters found: {results['discovery'].get('total_parameters', 0)}")
         print(f"✓ Vulnerabilities found: {results['total_vulnerabilities']}")
         print(f"\n📁 Results saved to: {out_dir}")
         print(f"   - Crawl results: {out_dir}/crawl_results.json")
         print(f"   - Security report: {out_dir}/web_scan_report.json")
-        print("=" * 70 + "\n")
 
-        logger.info("=" * 70)
-        logger.info("WEB SCAN COMPLETE")
-        logger.info("=" * 70)
+        log_phase_header("WEB SCAN COMPLETE", logger=logger)
         logger.info(f"Vulnerabilities found: {results['total_vulnerabilities']}")
 
         return 0 if results['total_vulnerabilities'] == 0 else 1
