@@ -10,6 +10,28 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::{json, Value};
+use tree_sitter::Node;
+
+// Indirection flags (subset; grows as language extractors are ported).
+const INDIRECTION_WILDCARD_IMPORT: &str = "wildcard_import";
+const INDIRECTION_REFLECT: &str = "reflect";
+
+fn cg_children<'a>(n: Node<'a>) -> Vec<Node<'a>> {
+    let mut c = n.walk();
+    n.children(&mut c).collect()
+}
+
+fn cg_text<'a>(n: Node<'a>, src: &'a [u8]) -> &'a str {
+    n.utf8_text(src).unwrap_or("")
+}
+
+fn first_child_of_type<'a>(n: Node<'a>, types: &[&str]) -> Option<Node<'a>> {
+    cg_children(n).into_iter().find(|c| types.contains(&c.kind()))
+}
+
+fn last_child_of_type<'a>(n: Node<'a>, types: &[&str]) -> Option<Node<'a>> {
+    cg_children(n).into_iter().rfind(|c| types.contains(&c.kind()))
+}
 
 /// One call expression in a file. `chain` is the callee's attribute chain
 /// (`foo.bar.baz()` -> `["foo","bar","baz"]`).
@@ -124,6 +146,229 @@ impl FileCallGraph {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Go call-graph extractor — port of extract_call_graph_go / _GoCallGraph.
+// ---------------------------------------------------------------------------
+
+/// Binding names a bare Go `import "<path>"` makes available: the last path
+/// segment, plus convention-aware aliases (versioned modules `.../v2` -> the
+/// pre-version segment; hyphenated segments -> a hyphen-collapsed form).
+fn go_bare_binding_names(path: &str) -> Vec<String> {
+    let mut names: Vec<String> = Vec::new();
+    let last = path.rsplit('/').next().unwrap_or("");
+    if last.is_empty() {
+        return names;
+    }
+    names.push(last.to_string());
+
+    // Versioned module suffix (`v2`): also bind the pre-version segment.
+    if last.starts_with('v') && last.len() > 1 && last[1..].bytes().all(|b| b.is_ascii_digit()) {
+        let stripped = match path.rfind('/') {
+            Some(i) => &path[..i],
+            None => path,
+        };
+        if !stripped.is_empty() {
+            let pre_v_last = stripped.rsplit('/').next().unwrap_or("");
+            if !pre_v_last.is_empty() {
+                names.push(pre_v_last.to_string());
+                if pre_v_last.contains('-') {
+                    names.push(pre_v_last.replace('-', ""));
+                }
+            }
+        }
+    }
+    if last.contains('-') {
+        names.push(last.replace('-', ""));
+    }
+    names
+}
+
+struct GoCallGraph {
+    graph: FileCallGraph,
+    enclosing: Vec<String>,
+}
+
+impl GoCallGraph {
+    fn walk(&mut self, node: Node, src: &[u8]) {
+        match node.kind() {
+            "function_declaration" => {
+                let name = first_child_of_type(node, &["identifier"])
+                    .map(|n| cg_text(n, src).to_string())
+                    .unwrap_or_else(|| "<anon>".to_string());
+                self.enclosing.push(name);
+                for child in cg_children(node) {
+                    self.walk(child, src);
+                }
+                self.enclosing.pop();
+                return;
+            }
+            "method_declaration" => {
+                // `func (r Recv) Name()` — the name is a field_identifier.
+                let name = first_child_of_type(node, &["field_identifier"])
+                    .map(|n| cg_text(n, src).to_string())
+                    .unwrap_or_else(|| "<anon>".to_string());
+                self.enclosing.push(name);
+                for child in cg_children(node) {
+                    self.walk(child, src);
+                }
+                self.enclosing.pop();
+                return;
+            }
+            "import_declaration" => {
+                self.visit_import(node, src);
+                return; // no calls/functions inside
+            }
+            "package_clause" => {
+                if let Some(p) = first_child_of_type(node, &["package_identifier", "identifier"]) {
+                    self.graph.package_name = Some(cg_text(p, src).trim().to_string());
+                }
+                return;
+            }
+            "call_expression" => {
+                self.visit_call(node, src);
+                // fall through to recurse into args for nested calls
+            }
+            _ => {}
+        }
+        for child in cg_children(node) {
+            self.walk(child, src);
+        }
+    }
+
+    fn visit_import(&mut self, node: Node, src: &[u8]) {
+        for child in cg_children(node) {
+            match child.kind() {
+                "import_spec" => self.handle_import_spec(child, src),
+                "import_spec_list" => {
+                    for spec in cg_children(child) {
+                        if spec.kind() == "import_spec" {
+                            self.handle_import_spec(spec, src);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn handle_import_spec(&mut self, spec: Node, src: &[u8]) {
+        let Some(path) = self.import_path(spec, src) else {
+            return;
+        };
+        // First named non-string child is the binding hint.
+        let binding = cg_children(spec)
+            .into_iter()
+            .find(|c| c.kind() != "interpreted_string_literal" && c.is_named());
+        if let Some(b) = binding {
+            match b.kind() {
+                "dot" => {
+                    self.graph.indirection.insert(INDIRECTION_WILDCARD_IMPORT.to_string());
+                    return;
+                }
+                "blank_identifier" => return, // side-effect only
+                "package_identifier" => {
+                    self.graph.imports.insert(cg_text(b, src).to_string(), path);
+                    return;
+                }
+                _ => {}
+            }
+        }
+        // Bare import: bind last segment + convention aliases, first-wins.
+        for name in go_bare_binding_names(&path) {
+            if !name.is_empty() {
+                self.graph.imports.entry(name).or_insert_with(|| path.clone());
+            }
+        }
+    }
+
+    fn import_path(&self, spec: Node, src: &[u8]) -> Option<String> {
+        let s = first_child_of_type(spec, &["interpreted_string_literal"])?;
+        let content = first_child_of_type(s, &["interpreted_string_literal_content"])?;
+        Some(cg_text(content, src).to_string())
+    }
+
+    fn visit_call(&mut self, node: Node, src: &[u8]) {
+        let Some(callee) = self.call_callee(node) else {
+            return;
+        };
+        let Some(chain) = self.callee_chain(callee, src) else {
+            return;
+        };
+        if chain.first().is_some_and(|s| s == "reflect") {
+            self.graph.indirection.insert(INDIRECTION_REFLECT.to_string());
+        }
+        let caller = self.enclosing.last().cloned();
+        self.graph.calls.push(CallSite {
+            line: node.start_position().row as i64 + 1,
+            chain,
+            caller,
+            argument_identifiers: self.call_identifier_args(node, src),
+            ..Default::default()
+        });
+    }
+
+    fn call_callee<'a>(&self, call_node: Node<'a>) -> Option<Node<'a>> {
+        for c in cg_children(call_node) {
+            if c.kind() == "argument_list" {
+                return None;
+            }
+            if c.is_named() {
+                return Some(c);
+            }
+        }
+        None
+    }
+
+    fn call_identifier_args(&self, call_node: Node, src: &[u8]) -> Vec<String> {
+        let Some(args) = first_child_of_type(call_node, &["argument_list"]) else {
+            return Vec::new();
+        };
+        cg_children(args)
+            .into_iter()
+            .filter(|c| c.is_named() && c.kind() == "identifier")
+            .map(|c| cg_text(c, src).to_string())
+            .collect()
+    }
+
+    fn callee_chain(&self, callee: Node, src: &[u8]) -> Option<Vec<String>> {
+        match callee.kind() {
+            "identifier" => Some(vec![cg_text(callee, src).to_string()]),
+            "selector_expression" => {
+                let mut parts: Vec<String> = Vec::new();
+                let mut cur = Some(callee);
+                while let Some(c) = cur {
+                    if c.kind() != "selector_expression" {
+                        break;
+                    }
+                    let field = last_child_of_type(c, &["field_identifier"])?;
+                    parts.push(cg_text(field, src).to_string());
+                    cur = cg_children(c).into_iter().find(|x| x.is_named());
+                }
+                if let Some(c) = cur {
+                    if c.kind() == "identifier" {
+                        parts.push(cg_text(c, src).to_string());
+                        parts.reverse();
+                        return Some(parts);
+                    }
+                }
+                None
+            }
+            _ => None,
+        }
+    }
+}
+
+/// Walk a Go source string via tree-sitter and return its `FileCallGraph`.
+/// Empty graph when the grammar is unavailable or the file is unparseable.
+pub fn extract_call_graph_go(content: &str) -> FileCallGraph {
+    let Some(tree) = mantishack_ts::parse("go", content) else {
+        return FileCallGraph::default();
+    };
+    let mut w = GoCallGraph { graph: FileCallGraph::default(), enclosing: Vec::new() };
+    w.walk(tree.root_node(), content.as_bytes());
+    w.graph
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -167,5 +412,33 @@ mod tests {
     fn package_name_present_when_set() {
         let g = FileCallGraph { package_name: Some("main".to_string()), ..Default::default() };
         assert_eq!(g.to_json()["package_name"], json!("main"));
+    }
+
+    #[test]
+    fn go_bare_binding_versioned_and_hyphenated() {
+        assert_eq!(go_bare_binding_names("net/http"), vec!["http"]);
+        assert_eq!(go_bare_binding_names("github.com/foo/bar/v2"), vec!["v2", "bar"]);
+        assert_eq!(go_bare_binding_names("github.com/x/multi-word"), vec!["multi-word", "multiword"]);
+    }
+
+    #[test]
+    fn go_call_graph_imports_and_calls() {
+        let src = "package main\nimport \"fmt\"\nimport str \"strings\"\nfunc main() {\n    fmt.Println(\"hi\")\n    str.Split(\"a\", \"b\")\n    http.HandleFunc(\"/x\", handler)\n}\n";
+        let g = extract_call_graph_go(src);
+        assert_eq!(g.package_name.as_deref(), Some("main"));
+        assert_eq!(g.imports.get("fmt").map(String::as_str), Some("fmt"));
+        assert_eq!(g.imports.get("str").map(String::as_str), Some("strings"));
+        // fmt.Println chain; the HandleFunc call records `handler` arg.
+        assert!(g.calls.iter().any(|c| c.chain == vec!["fmt", "Println"]));
+        let hf = g.calls.iter().find(|c| c.chain == vec!["http", "HandleFunc"]).unwrap();
+        assert_eq!(hf.argument_identifiers, vec!["handler"]);
+        assert_eq!(hf.caller.as_deref(), Some("main"));
+    }
+
+    #[test]
+    fn go_dot_import_flags_wildcard() {
+        let g = extract_call_graph_go("package p\nimport . \"errors\"\n");
+        assert!(g.indirection.contains("wildcard_import"));
+        assert!(g.imports.is_empty());
     }
 }
