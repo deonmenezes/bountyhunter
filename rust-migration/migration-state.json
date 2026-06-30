@@ -321,7 +321,8 @@
         "call_graph.data_structures": "to_json shape matches FileCallGraph.to_dict (unit-tested: omit-empty optionals, sorted sets, method tuples, package_name)",
         "call_graph.go": "pass (6-case differential vs extract_call_graph_go: bare/alias/dot/blank/versioned/hyphenated imports, selector chains, reflect indirection, identifier args, method-receiver caller, package_name)",
         "call_graph.c": "pass (6-case differential vs extract_call_graph_c: system/quoted includes w/ basename+splitext, fn-pointer indirection, field chains a->b->c, pointer-return fn names)",
-        "call_graph.java": "pass (5-case differential vs extract_call_graph_java: regular/static/wildcard imports, package, receiver_class (implicit+this), typed-dispatch receiver_type from params/locals/fields, Class.forName/invoke/newInstance indirection, field-access chains, extends/implements bases)"
+        "call_graph.java": "pass (5-case differential vs extract_call_graph_java: regular/static/wildcard imports, package, receiver_class (implicit+this), typed-dispatch receiver_type from params/locals/fields, Class.forName/invoke/newInstance indirection, field-access chains, extends/implements bases)",
+        "call_graph.javascript_typescript": "pass (6-case JS + 2-case TS differential vs extract_call_graph_javascript: ES/CommonJS imports, dynamic-import/eval/new-Function/bracket-dispatch indirection, getattr_targets, class methods/expressions, this receiver_class, TS typed dispatch)"
       }
     },
     "core.inventory.tests": {
