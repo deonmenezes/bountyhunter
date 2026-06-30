@@ -9,6 +9,9 @@
 //! `_parse_param` finds no name), which is why `def foo(a, b=2)` yields the
 //! signature `foo(b)`.
 
+use std::sync::OnceLock;
+
+use regex::Regex;
 use tree_sitter::Node;
 
 use crate::extractors::{CodeItem, KIND_FUNCTION, KIND_GLOBAL, KIND_TOP_LEVEL};
@@ -57,13 +60,64 @@ const TYPE_NODE_KINDS: &[&str] = &[
 /// Extract functions from `content` via tree-sitter, matching the Python
 /// `TreeSitterExtractor.extract`. Returns an empty vec if the grammar isn't
 /// wired or parsing fails (caller falls back), mirroring the Python behaviour.
+/// Languages whose ITEM extraction the Python oracle drives through tree-sitter
+/// (`_ts_language`). NOTE: rust + php are absent here — the Python extractor has
+/// no rust/php grammar, so those fall through to the regex `GenericExtractor`.
+/// Parity therefore requires the same regex path for them, NOT the (available)
+/// tree-sitter grammar.
+const TS_ITEM_LANGS: &[&str] =
+    &["python", "java", "javascript", "typescript", "tsx", "c", "cpp", "go", "csharp", "ruby"];
+
 pub fn extract_functions(language: &str, content: &str) -> Vec<FunctionInfo> {
+    // Non-tree-sitter languages (rust/php/...) use the regex GenericExtractor,
+    // matching the Python fallback when no grammar is available.
+    if !TS_ITEM_LANGS.contains(&language) {
+        return generic_extract(content);
+    }
     let Some(tree) = mantishack_ts::parse(language, content) else {
         return Vec::new();
     };
     let src = content.as_bytes();
     let mut out: Vec<FunctionInfo> = Vec::new();
     walk(tree.root_node(), src, language, &mut out, None, &[]);
+    out
+}
+
+fn generic_pat1() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"(?:function|def|func|fn|sub)\s+(\w+)\s*\(").unwrap())
+}
+
+fn generic_pat2() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"(?:public|private|protected)?\s*(?:static)?\s*\w+\s+(\w+)\s*\([^)]*\)\s*\{").unwrap())
+}
+
+/// Regex fallback extractor (`GenericExtractor`): first matching pattern per
+/// line yields a function name; dedup by name across the file.
+fn generic_extract(content: &str) -> Vec<FunctionInfo> {
+    let mut out: Vec<FunctionInfo> = Vec::new();
+    let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for (i, line) in content.split('\n').enumerate() {
+        let line_no = (i + 1) as i64;
+        for re in [generic_pat1(), generic_pat2()] {
+            if let Some(caps) = re.captures(line) {
+                let name = caps[1].to_string();
+                if seen.insert(name.clone()) {
+                    out.push(FunctionInfo {
+                        name,
+                        kind: KIND_FUNCTION.to_string(),
+                        line_start: line_no,
+                        line_end: None,
+                        signature: None,
+                        metadata: None,
+                        checked_by: Vec::new(),
+                    });
+                }
+                break;
+            }
+        }
+    }
     out
 }
 
