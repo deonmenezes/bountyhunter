@@ -123,9 +123,52 @@ pub fn process_file_content(rel_path: &str, language: &str, content: &str) -> Va
     record
 }
 
+/// Assemble the final inventory dict from processed file records — the
+/// deterministic tail of `build_inventory` (sort, totals, metadata shape).
+/// `generated_at` is supplied by the caller (the Python builder stamps
+/// `datetime.now`, which is non-deterministic). Coverage carry-forward and the
+/// `limitations` field (tree-sitter always available here) are out of scope.
+pub fn assemble_inventory(
+    mut files_info: Vec<Value>,
+    mut excluded_files: Vec<Value>,
+    exclude_patterns: &[String],
+    target_path: &str,
+    skipped: i64,
+    generated_at: &str,
+) -> Value {
+    let path_key = |v: &Value| v.get("path").and_then(Value::as_str).unwrap_or("").to_string();
+    files_info.sort_by_key(path_key);
+    excluded_files.sort_by_key(path_key);
+
+    let total_items: i64 = files_info
+        .iter()
+        .map(|f| f.get("items").and_then(Value::as_array).map_or(0, |a| a.len() as i64))
+        .sum();
+    let total_sloc: i64 = files_info.iter().map(|f| f.get("sloc").and_then(Value::as_i64).unwrap_or(0)).sum();
+    let total_functions: i64 = files_info
+        .iter()
+        .flat_map(|f| f.get("items").and_then(Value::as_array).into_iter().flatten())
+        .filter(|it| it.get("kind").and_then(Value::as_str).unwrap_or("function") == "function")
+        .count() as i64;
+
+    json!({
+        "generated_at": generated_at,
+        "target_path": target_path,
+        "total_files": files_info.len(),
+        "total_items": total_items,
+        "total_functions": total_functions,
+        "total_sloc": total_sloc,
+        "skipped_files": skipped,
+        "excluded_patterns": exclude_patterns,
+        "excluded_files": excluded_files,
+        "files": files_info,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn go_record_has_items_and_call_graph() {
@@ -139,6 +182,23 @@ mod tests {
         // call_graph present with a main->helper edge.
         let calls = rec["call_graph"]["calls"].as_array().unwrap();
         assert!(calls.iter().any(|c| c["chain"] == json!(["helper"])));
+    }
+
+    #[test]
+    fn assemble_sorts_and_totals() {
+        let a = process_file_content("z.go", "go", "package main\nfunc a() {}\n");
+        let b = process_file_content("a.go", "go", "package main\nfunc b() {}\nfunc c() {}\n");
+        let inv = assemble_inventory(vec![a, b], vec![], &["node_modules".into()], "/tgt", 2, "TS");
+        assert_eq!(inv["total_files"], 2);
+        assert_eq!(inv["skipped_files"], 2);
+        assert_eq!(inv["generated_at"], "TS");
+        // files sorted by path: a.go before z.go.
+        let files = inv["files"].as_array().unwrap();
+        assert_eq!(files[0]["path"], "a.go");
+        assert_eq!(files[1]["path"], "z.go");
+        // total_functions counts kind==function items across files (3: a, b, c).
+        assert_eq!(inv["total_functions"], 3);
+        assert_eq!(inv["excluded_patterns"], json!(["node_modules"]));
     }
 
     #[test]
