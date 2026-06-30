@@ -713,6 +713,711 @@ pub fn function_called(
     Ok(ReachabilityResult::not_called())
 }
 
+// ---------------------------------------------------------------------------
+// _AdjacencyIndex — the per-inventory call-graph index that callers_of /
+// callees_of / call_lines_of / entry-reachability / the closures consume.
+// Port of _AdjacencyIndex + _get_or_build_index + its resolution helpers. The
+// id()-keyed + on-disk caches are perf only; this rebuilds per call.
+// ---------------------------------------------------------------------------
+
+use std::collections::HashSet;
+
+/// A call-graph node: a project function or a dep-qualified name.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum FunctionId {
+    Internal(InternalFunction),
+    External(ExternalFunction),
+}
+
+/// 1-hop callers of a target (`CallersResult`).
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct CallersResult {
+    pub definitive: Vec<InternalFunction>,
+    pub uncertain: Vec<InternalFunction>,
+    pub method_match_overinclusive: Vec<InternalFunction>,
+}
+
+/// 1-hop callees of an internal source (`CalleesResult`).
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct CalleesResult {
+    pub definitive: Vec<FunctionId>,
+    pub uncertain: Vec<String>,
+    pub has_method_dispatch: bool,
+}
+
+const FRAMEWORK_DISPATCH_TAILS: &[&str] = &[
+    "route", "get", "post", "put", "patch", "delete", "head", "options",
+    "endpoint", "websocket", "errorhandler", "exception_handler",
+    "before_request", "after_request", "teardown_request", "middleware",
+    "on_event", "command", "group", "callback", "task", "periodic_task",
+    "shared_task", "actor", "receiver", "connect", "listener", "subscriber",
+    "subscribe", "on", "emit_handler", "register", "hook", "provider",
+    "consumer", "handler", "dispatch", "rule", "fixture", "parametrize", "mark",
+    "query", "mutation", "subscription", "field", "resolver", "session",
+    "module_task",
+];
+const FRAMEWORK_DISPATCH_NAKED_NAMES: &[&str] = &["receiver", "shared_task", "periodic_task", "actor"];
+const FRAMEWORK_REGISTRATION_TAILS: &[&str] = &[
+    "get", "post", "put", "patch", "delete", "head", "options", "all", "use",
+    "route", "param", "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS",
+    "Any", "Use", "Group", "Static", "Get", "Post", "Put", "Patch", "Delete",
+    "Head", "Options", "Method", "MethodFunc", "Mount", "Handle", "HandleFunc",
+];
+const SAFE_BUILTIN_BASES: &[&str] = &[
+    "object", "Exception", "BaseException", "ValueError", "TypeError",
+    "KeyError", "IndexError", "RuntimeError", "OSError", "IOError",
+    "FileNotFoundError", "NotImplementedError", "StopIteration", "AttributeError",
+    "ImportError", "ModuleNotFoundError", "UnicodeError", "ZeroDivisionError",
+    "ArithmeticError", "LookupError", "MemoryError", "OverflowError", "NameError",
+    "ReferenceError", "SyntaxError", "SystemError", "GeneratorExit",
+    "KeyboardInterrupt", "SystemExit", "Warning", "Enum", "IntEnum", "Flag",
+    "IntFlag", "StrEnum", "NamedTuple", "Protocol", "ABCMeta", "ABC", "tuple",
+    "list", "dict", "set", "frozenset", "str", "bytes", "bytearray", "int",
+    "float", "bool", "complex",
+];
+
+#[derive(Default)]
+pub struct AdjacencyIndex {
+    forward: HashMap<InternalFunction, HashSet<FunctionId>>,
+    reverse: HashMap<FunctionId, HashSet<InternalFunction>>,
+    uncertain_callers_by_tail: HashMap<String, HashSet<(InternalFunction, String)>>,
+    method_match: HashMap<String, HashSet<(InternalFunction, Option<String>)>>,
+    uncertain_callees: HashMap<InternalFunction, HashSet<String>>,
+    has_method_dispatch: HashMap<InternalFunction, bool>,
+    definitions: HashMap<(String, String), HashSet<InternalFunction>>,
+    class_of_method: HashMap<InternalFunction, String>,
+    class_bases: HashMap<(String, String), Vec<String>>,
+    override_methods: HashSet<(String, String)>,
+    framework_callable: HashSet<InternalFunction>,
+    framework_registered: HashSet<InternalFunction>,
+    qualified_to_internal: HashMap<String, InternalFunction>,
+    call_lines: HashMap<(InternalFunction, FunctionId), Vec<i64>>,
+    test_paths: HashSet<String>,
+}
+
+fn decorators_indicate_framework_dispatch(decorators: &Value) -> bool {
+    let Some(arr) = decorators.as_array() else { return false };
+    for chain in arr {
+        let Some(parts) = chain.as_array() else { continue };
+        if parts.is_empty() {
+            continue;
+        }
+        let tail = parts[parts.len() - 1].as_str().unwrap_or("");
+        if parts.len() >= 2 && FRAMEWORK_DISPATCH_TAILS.contains(&tail) {
+            return true;
+        }
+        if parts.len() == 1 && FRAMEWORK_DISPATCH_NAKED_NAMES.contains(&tail) {
+            return true;
+        }
+    }
+    false
+}
+
+fn candidate_qualified_names(file_path: &str, fn_name: &str, package_name: Option<&str>, class_name: Option<&str>) -> Vec<String> {
+    let mut candidates = Vec::new();
+    let class_required = file_path.ends_with(".java");
+    if let (Some(pkg), Some(cls)) = (package_name, class_name) {
+        candidates.push(format!("{pkg}.{cls}.{fn_name}"));
+    }
+    // Module-level form: emitted iff there's a package and the language isn't
+    // class-required (Java methods only resolve class-qualified).
+    if let Some(pkg) = package_name {
+        if !class_required {
+            candidates.push(format!("{pkg}.{fn_name}"));
+        }
+    }
+    if file_path.ends_with(".py") || file_path.ends_with(".pyi") {
+        let mut base = file_path;
+        for suf in [".pyi", ".py"] {
+            if let Some(s) = base.strip_suffix(suf) {
+                base = s;
+                break;
+            }
+        }
+        let base = base.strip_suffix("/__init__").unwrap_or(base);
+        if !base.is_empty() {
+            candidates.push(format!("{}.{fn_name}", base.replace('/', ".")));
+        }
+        if let Some(stripped) = base.strip_prefix("src/") {
+            if !stripped.is_empty() {
+                candidates.push(format!("{}.{fn_name}", stripped.replace('/', ".")));
+            }
+        }
+    }
+    if [".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".rb"].iter().any(|e| file_path.ends_with(e)) {
+        let mut base = file_path;
+        for suf in [".tsx", ".mjs", ".cjs", ".jsx", ".js", ".ts", ".rb"] {
+            if let Some(s) = base.strip_suffix(suf) {
+                base = s;
+                break;
+            }
+        }
+        let base = base.strip_suffix("/index").unwrap_or(base);
+        if !base.is_empty() {
+            let module_form = base.replace('/', ".");
+            if let Some(cls) = class_name {
+                candidates.push(format!("{module_form}.{cls}.{fn_name}"));
+            }
+            candidates.push(format!("{module_form}.{fn_name}"));
+        }
+    }
+    candidates
+}
+
+fn resolve_callee_chain(chain: &[String], imports: &Map<String, Value>) -> Option<ExternalFunction> {
+    if chain.is_empty() {
+        return None;
+    }
+    if chain.len() == 1 {
+        let bound = imports.get(&chain[0]).and_then(Value::as_str)?;
+        return Some(ExternalFunction { qualified_name: bound.to_string() });
+    }
+    let bound = imports.get(&chain[0]).and_then(Value::as_str)?;
+    let middle = chain[1..chain.len() - 1].join(".");
+    let qualified = if middle.is_empty() {
+        format!("{bound}.{}", chain[chain.len() - 1])
+    } else {
+        format!("{bound}.{middle}.{}", chain[chain.len() - 1])
+    };
+    Some(ExternalFunction { qualified_name: qualified })
+}
+
+fn resolve_caller(idx: &AdjacencyIndex, file_path: &str, caller_name: Option<&str>, call_line: i64) -> Option<InternalFunction> {
+    let caller_name = caller_name.filter(|s| !s.is_empty())?;
+    let candidates = idx.definitions.get(&(file_path.to_string(), caller_name.to_string()))?;
+    if candidates.is_empty() {
+        return None;
+    }
+    if candidates.len() == 1 {
+        return candidates.iter().next().cloned();
+    }
+    let eligible = candidates.iter().filter(|c| c.line <= call_line).max_by_key(|c| c.line);
+    eligible.or_else(|| candidates.iter().min_by_key(|c| c.line)).cloned()
+}
+
+fn record_call_line(idx: &mut AdjacencyIndex, caller: &InternalFunction, callee: &FunctionId, line: i64) {
+    let entry = idx.call_lines.entry((caller.clone(), callee.clone())).or_default();
+    if !entry.contains(&line) {
+        entry.push(line);
+        entry.sort_unstable();
+    }
+}
+
+fn resolved_ancestor_chain(file_path: &str, class_name: &str, idx: &AdjacencyIndex) -> Option<HashSet<String>> {
+    let mut seen: HashSet<String> = HashSet::from([class_name.to_string()]);
+    let mut stack = vec![class_name.to_string()];
+    let mut iterations = 0;
+    while let Some(current) = stack.pop() {
+        iterations += 1;
+        if iterations > 1000 {
+            return None;
+        }
+        let bases = match idx.class_bases.get(&(file_path.to_string(), current.clone())) {
+            Some(b) => b.clone(),
+            None => {
+                if current == class_name {
+                    continue;
+                }
+                return None;
+            }
+        };
+        for b in &bases {
+            if b.contains('.') {
+                return None;
+            }
+            if !idx.class_bases.contains_key(&(file_path.to_string(), b.clone())) {
+                if SAFE_BUILTIN_BASES.contains(&b.as_str()) {
+                    continue;
+                }
+                return None;
+            }
+            if !seen.contains(b) {
+                seen.insert(b.clone());
+                stack.push(b.clone());
+            }
+        }
+    }
+    Some(seen)
+}
+
+fn method_match_compatible(receiver_class: Option<&str>, receiver_file: &str, target_class: Option<&str>, idx: &AdjacencyIndex) -> bool {
+    let Some(receiver_class) = receiver_class else { return true };
+    let Some(target_class) = target_class else { return false };
+    if receiver_class == target_class {
+        return true;
+    }
+    match resolved_ancestor_chain(receiver_file, receiver_class, idx) {
+        None => true,
+        Some(chain) => chain.contains(target_class),
+    }
+}
+
+fn apply_reexport_aliases(idx: &mut AdjacencyIndex, inventory: &Value) -> usize {
+    let empty = Vec::new();
+    let files = inventory.get("files").and_then(Value::as_array).unwrap_or(&empty);
+    let mut added = 0;
+    for fr in files {
+        if !fr.is_object() {
+            continue;
+        }
+        let path = fr.get("path").and_then(Value::as_str).unwrap_or("");
+        if !(path.ends_with("/__init__.py") || path == "__init__.py") {
+            continue;
+        }
+        let Some(cg) = nonempty_cg(fr) else { continue };
+        let rel_imports = cg.get("relative_imports").and_then(Value::as_array).cloned().unwrap_or_default();
+        let abs_imports = cg.get("imports").and_then(Value::as_object).cloned().unwrap_or_default();
+        if rel_imports.is_empty() && abs_imports.is_empty() {
+            continue;
+        }
+        let pkg_path = if path == "__init__.py" { "" } else { path.strip_suffix("/__init__.py").unwrap_or(path) };
+        let mut pkg_dotted_candidates: Vec<String> = Vec::new();
+        if !pkg_path.is_empty() {
+            pkg_dotted_candidates.push(pkg_path.replace('/', "."));
+            if let Some(stripped) = pkg_path.strip_prefix("src/") {
+                if !stripped.is_empty() {
+                    pkg_dotted_candidates.push(stripped.replace('/', "."));
+                }
+            }
+        } else {
+            pkg_dotted_candidates.push(String::new());
+        }
+        for ri in &rel_imports {
+            let Some(parts) = ri.as_array() else { continue };
+            if parts.len() < 3 {
+                continue;
+            }
+            let level = parts[0].as_i64().unwrap_or(0);
+            let module = parts[1].as_str().unwrap_or("");
+            let name = parts[2].as_str().unwrap_or("");
+            let asname = parts.get(3).and_then(Value::as_str);
+            if level <= 0 || name.is_empty() {
+                continue;
+            }
+            for pkg_dotted in &pkg_dotted_candidates {
+                let pp: Vec<&str> = if pkg_dotted.is_empty() { Vec::new() } else { pkg_dotted.split('.').collect() };
+                let ascend = (level - 1) as usize;
+                if ascend > pp.len() {
+                    continue;
+                }
+                let ancestor = if ascend > 0 { pp[..pp.len() - ascend].join(".") } else { pp.join(".") };
+                let source_module = if !module.is_empty() {
+                    if ancestor.is_empty() { module.to_string() } else { format!("{ancestor}.{module}") }
+                } else {
+                    ancestor
+                };
+                if source_module.is_empty() {
+                    continue;
+                }
+                let source_full = format!("{source_module}.{name}");
+                let Some(target_internal) = idx.qualified_to_internal.get(&source_full).cloned() else { continue };
+                let alias_name = asname.unwrap_or(name);
+                let alias_full = if pkg_dotted.is_empty() { alias_name.to_string() } else { format!("{pkg_dotted}.{alias_name}") };
+                if let std::collections::hash_map::Entry::Vacant(e) = idx.qualified_to_internal.entry(alias_full) {
+                    e.insert(target_internal);
+                    added += 1;
+                }
+            }
+        }
+        for (local_name, qualified) in &abs_imports {
+            let Some(qualified) = qualified.as_str() else { continue };
+            if qualified.is_empty() {
+                continue;
+            }
+            let Some(target_internal) = idx.qualified_to_internal.get(qualified).cloned() else { continue };
+            for pkg_dotted in &pkg_dotted_candidates {
+                let alias_full = if pkg_dotted.is_empty() { local_name.clone() } else { format!("{pkg_dotted}.{local_name}") };
+                if alias_full == qualified {
+                    continue;
+                }
+                if let std::collections::hash_map::Entry::Vacant(e) = idx.qualified_to_internal.entry(alias_full) {
+                    e.insert(target_internal.clone());
+                    added += 1;
+                }
+            }
+        }
+    }
+    added
+}
+
+/// Build the adjacency index (the multi-pass `_get_or_build_index`, sans caches).
+pub fn build_adjacency_index(inventory: &Value) -> AdjacencyIndex {
+    let mut idx = AdjacencyIndex::default();
+    let empty = Vec::new();
+    let files = inventory.get("files").and_then(Value::as_array).unwrap_or(&empty);
+
+    // Pass 1: definitions + test_paths.
+    for fr in files {
+        if !fr.is_object() {
+            continue;
+        }
+        let path = fr.get("path").and_then(Value::as_str).unwrap_or("").to_string();
+        if is_test_file(&path) {
+            idx.test_paths.insert(path.clone());
+        }
+        for item in fr.get("items").and_then(Value::as_array).into_iter().flatten() {
+            if !item.is_object() {
+                continue;
+            }
+            let keep = match item.get("kind") {
+                None | Some(Value::Null) => true,
+                Some(v) => v.as_str() == Some("function"),
+            };
+            if !keep {
+                continue;
+            }
+            let name = item.get("name").and_then(Value::as_str).unwrap_or("");
+            if name.is_empty() {
+                continue;
+            }
+            let line = item.get("line_start").and_then(Value::as_i64).unwrap_or(0);
+            let fnode = InternalFunction::new(path.clone(), name, line);
+            idx.definitions.entry((path.clone(), name.to_string())).or_default().insert(fnode);
+        }
+    }
+
+    // Pass 1.3: framework_callable (decorators).
+    for fr in files {
+        let path = fr.get("path").and_then(Value::as_str).unwrap_or("");
+        let Some(cg) = nonempty_cg(fr) else { continue };
+        for df in cg.get("decorated_functions").and_then(Value::as_array).into_iter().flatten() {
+            let Some(df_name) = df.get("name").and_then(Value::as_str) else { continue };
+            if df_name.is_empty() {
+                continue;
+            }
+            let df_line = df.get("line").and_then(Value::as_i64).unwrap_or(0);
+            let decorators = df.get("decorators").cloned().unwrap_or(Value::Null);
+            if !decorators_indicate_framework_dispatch(&decorators) {
+                continue;
+            }
+            if let Some(cands) = idx.definitions.get(&(path.to_string(), df_name.to_string())) {
+                if let Some(fnode) = cands.iter().find(|f| f.line == df_line).cloned() {
+                    idx.framework_callable.insert(fnode);
+                }
+            }
+        }
+    }
+
+    // Pass 1.3b: framework_registered (call-arg registration).
+    for fr in files {
+        let path = fr.get("path").and_then(Value::as_str).unwrap_or("");
+        let Some(cg) = nonempty_cg(fr) else { continue };
+        for call in cg.get("calls").and_then(Value::as_array).into_iter().flatten() {
+            if !call.is_object() {
+                continue;
+            }
+            let chain = chain_of(call);
+            if chain.len() < 2 {
+                continue;
+            }
+            if !FRAMEWORK_REGISTRATION_TAILS.contains(&chain[chain.len() - 1].as_str()) {
+                continue;
+            }
+            for ident in str_array(call, "argument_identifiers") {
+                if let Some(cands) = idx.definitions.get(&(path.to_string(), ident.to_string())) {
+                    for fnode in cands.clone() {
+                        idx.framework_registered.insert(fnode);
+                    }
+                }
+            }
+        }
+    }
+
+    // Pass 1.4: class metadata (class_bases, override_methods, class_of_method).
+    for fr in files {
+        let path = fr.get("path").and_then(Value::as_str).unwrap_or("");
+        let Some(cg) = nonempty_cg(fr) else { continue };
+        for cls in cg.get("classes").and_then(Value::as_array).into_iter().flatten() {
+            let Some(cls_name) = cls.get("name").and_then(Value::as_str) else { continue };
+            if cls_name.is_empty() || cls.get("nested").and_then(Value::as_bool).unwrap_or(false) {
+                continue;
+            }
+            let bases: Vec<String> = cls
+                .get("bases")
+                .and_then(Value::as_array)
+                .map(|a| a.iter().filter_map(Value::as_str).filter(|s| !s.is_empty()).map(str::to_string).collect())
+                .unwrap_or_default();
+            idx.class_bases.insert((path.to_string(), cls_name.to_string()), bases.clone());
+            for me in cls.get("methods").and_then(Value::as_array).into_iter().flatten() {
+                let Some(me) = me.as_array() else { continue };
+                if me.len() < 2 {
+                    continue;
+                }
+                let m_name = me[0].as_str().unwrap_or("");
+                let m_line = me[1].as_i64().unwrap_or(0);
+                if !bases.is_empty() {
+                    idx.override_methods.insert((cls_name.to_string(), m_name.to_string()));
+                }
+                if let Some(cands) = idx.definitions.get(&(path.to_string(), m_name.to_string())) {
+                    if let Some(fnode) = cands.iter().find(|f| f.line == m_line).cloned() {
+                        idx.class_of_method.insert(fnode, cls_name.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    // Pass 1.5: qualified_to_internal.
+    let mut file_packages: HashMap<String, String> = HashMap::new();
+    for fr in files {
+        let path = fr.get("path").and_then(Value::as_str).unwrap_or("");
+        if let Some(cg) = fr.get("call_graph") {
+            if let Some(pkg) = cg.get("package_name").and_then(Value::as_str) {
+                if !pkg.is_empty() {
+                    file_packages.insert(path.to_string(), pkg.to_string());
+                }
+            }
+        }
+    }
+    let defs_snapshot: Vec<((String, String), HashSet<InternalFunction>)> =
+        idx.definitions.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+    for ((file_path, fn_name), fns) in &defs_snapshot {
+        let Some(canonical) = fns.iter().min_by_key(|f| f.line).cloned() else { continue };
+        let cls_name = idx.class_of_method.get(&canonical).cloned();
+        for candidate in candidate_qualified_names(file_path, fn_name, file_packages.get(file_path).map(String::as_str), cls_name.as_deref()) {
+            idx.qualified_to_internal.entry(candidate).or_insert_with(|| canonical.clone());
+        }
+    }
+
+    // Pass 1.6: re-export aliases to fixed-point (bounded).
+    for _ in 0..8 {
+        if apply_reexport_aliases(&mut idx, inventory) == 0 {
+            break;
+        }
+    }
+
+    // Pass 2: resolve every call site, record forward/reverse edges.
+    for fr in files {
+        let path = fr.get("path").and_then(Value::as_str).unwrap_or("").to_string();
+        let Some(cg) = nonempty_cg(fr) else { continue };
+        let empty_map = Map::new();
+        let imports = cg.get("imports").and_then(Value::as_object).unwrap_or(&empty_map).clone();
+        let flags: HashSet<&str> = str_array(cg, "indirection").into_iter().collect();
+        let getattr_targets: HashSet<&str> = str_array(cg, "getattr_targets").into_iter().collect();
+        let non_wildcard_masking: BTreeSet<&str> = flags
+            .iter()
+            .copied()
+            .filter(|f| MASKING_FLAGS.contains(f) && *f != INDIRECTION_WILDCARD_IMPORT)
+            .collect();
+        let has_wildcard = flags.contains(INDIRECTION_WILDCARD_IMPORT);
+        let calls = cg.get("calls").and_then(Value::as_array).cloned().unwrap_or_default();
+
+        for call in &calls {
+            let chain = chain_of(call);
+            if chain.is_empty() {
+                continue;
+            }
+            let line = call_line(call);
+            let caller_name = call.get("caller").and_then(Value::as_str);
+            let Some(caller_node) = resolve_caller(&idx, &path, caller_name, line) else { continue };
+
+            if let Some(callee) = resolve_callee_chain(&chain, &imports) {
+                let node = match idx.qualified_to_internal.get(&callee.qualified_name) {
+                    Some(internal) => FunctionId::Internal(internal.clone()),
+                    None => FunctionId::External(callee),
+                };
+                idx.forward.entry(caller_node.clone()).or_default().insert(node.clone());
+                idx.reverse.entry(node.clone()).or_default().insert(caller_node.clone());
+                record_call_line(&mut idx, &caller_node, &node, line);
+                continue;
+            }
+
+            if chain.len() >= 2 {
+                let dotted = chain.join(".");
+                if let Some(aliased) = idx.qualified_to_internal.get(&dotted).cloned() {
+                    let node = FunctionId::Internal(aliased);
+                    idx.forward.entry(caller_node.clone()).or_default().insert(node.clone());
+                    idx.reverse.entry(node.clone()).or_default().insert(caller_node.clone());
+                    record_call_line(&mut idx, &caller_node, &node, line);
+                    continue;
+                }
+            }
+
+            let tail = chain[chain.len() - 1].clone();
+            if chain.len() == 1 {
+                if let Some(local_defs) = idx.definitions.get(&(path.clone(), tail.clone())).cloned() {
+                    if !local_defs.is_empty() {
+                        for d in local_defs {
+                            let node = FunctionId::Internal(d.clone());
+                            idx.forward.entry(caller_node.clone()).or_default().insert(node.clone());
+                            idx.reverse.entry(node.clone()).or_default().insert(caller_node.clone());
+                            record_call_line(&mut idx, &caller_node, &node, line);
+                        }
+                        continue;
+                    }
+                }
+                if has_wildcard {
+                    idx.uncertain_callees.entry(caller_node.clone()).or_default().insert(format!("*.{tail}"));
+                }
+                continue;
+            }
+
+            let receiver_class = call.get("receiver_class").and_then(Value::as_str).map(str::to_string);
+            idx.method_match.entry(tail.clone()).or_default().insert((caller_node.clone(), receiver_class));
+            idx.has_method_dispatch.insert(caller_node.clone(), true);
+            idx.uncertain_callees.entry(caller_node.clone()).or_default().insert(chain.join("."));
+        }
+
+        // File-level masking → every internal fn in this file becomes an
+        // uncertain caller for any tail the file mentions.
+        if !non_wildcard_masking.is_empty() || has_wildcard {
+            let file_internal_fns: Vec<InternalFunction> = idx
+                .definitions
+                .iter()
+                .filter(|((p, _), _)| *p == path)
+                .flat_map(|(_, fns)| fns.iter().cloned())
+                .collect();
+            let mut mentioned_tails: HashSet<String> = getattr_targets.iter().map(|s| s.to_string()).collect();
+            for call in &calls {
+                let chain = chain_of(call);
+                if let Some(t) = chain.last() {
+                    mentioned_tails.insert(t.clone());
+                }
+            }
+            for qualified in imports.values() {
+                if let Some(s) = qualified.as_str() {
+                    if !s.is_empty() {
+                        mentioned_tails.insert(s.rsplit('.').next().unwrap_or("").to_string());
+                    }
+                }
+            }
+            let flag_label = non_wildcard_masking
+                .iter()
+                .next()
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| INDIRECTION_WILDCARD_IMPORT.to_string());
+            for tail in &mentioned_tails {
+                for fnode in &file_internal_fns {
+                    idx.uncertain_callers_by_tail
+                        .entry(tail.clone())
+                        .or_default()
+                        .insert((fnode.clone(), flag_label.clone()));
+                }
+            }
+        }
+    }
+
+    idx
+}
+
+fn sorted_internal(s: impl IntoIterator<Item = InternalFunction>) -> Vec<InternalFunction> {
+    let mut v: Vec<InternalFunction> = s.into_iter().collect();
+    v.sort_by(|a, b| (a.file_path.as_str(), a.name.as_str(), a.line).cmp(&(b.file_path.as_str(), b.name.as_str(), b.line)));
+    v
+}
+
+fn sorted_callees(s: impl IntoIterator<Item = FunctionId>) -> Vec<FunctionId> {
+    let mut internals: Vec<InternalFunction> = Vec::new();
+    let mut externals: Vec<ExternalFunction> = Vec::new();
+    for c in s {
+        match c {
+            FunctionId::Internal(f) => internals.push(f),
+            FunctionId::External(f) => externals.push(f),
+        }
+    }
+    internals.sort_by(|a, b| (a.file_path.as_str(), a.name.as_str(), a.line).cmp(&(b.file_path.as_str(), b.name.as_str(), b.line)));
+    externals.sort_by(|a, b| a.qualified_name.cmp(&b.qualified_name));
+    internals.into_iter().map(FunctionId::Internal).chain(externals.into_iter().map(FunctionId::External)).collect()
+}
+
+/// 1-hop callers of `target` (`callers_of`).
+pub fn callers_of(inventory: &Value, target: &FunctionId, exclude_test_files: bool) -> CallersResult {
+    let idx = build_adjacency_index(inventory);
+    callers_of_indexed(&idx, target, exclude_test_files)
+}
+
+fn callers_of_indexed(idx: &AdjacencyIndex, target: &FunctionId, exclude_test_files: bool) -> CallersResult {
+    // ExternalFunction aliasing -> InternalFunction.
+    let target = match target {
+        FunctionId::External(e) => match idx.qualified_to_internal.get(&e.qualified_name) {
+            Some(internal) => FunctionId::Internal(internal.clone()),
+            None => target.clone(),
+        },
+        _ => target.clone(),
+    };
+
+    let mut definitive: HashSet<InternalFunction> = idx.reverse.get(&target).cloned().unwrap_or_default();
+
+    let target_tail = match &target {
+        FunctionId::Internal(f) => f.name.clone(),
+        FunctionId::External(e) => e.qualified_name.rsplit('.').next().unwrap_or("").to_string(),
+    };
+    let uncertain_pairs = idx.uncertain_callers_by_tail.get(&target_tail).cloned().unwrap_or_default();
+    let mut uncertain: HashSet<InternalFunction> =
+        uncertain_pairs.into_iter().map(|(fn_, _)| fn_).filter(|fn_| !definitive.contains(fn_)).collect();
+
+    let mut method_match_set: HashSet<InternalFunction> = HashSet::new();
+    if let FunctionId::Internal(t) = &target {
+        if let Some(cands) = idx.method_match.get(&t.name) {
+            let target_class = idx.class_of_method.get(t).map(String::as_str);
+            for (caller, receiver_class) in cands {
+                if method_match_compatible(receiver_class.as_deref(), &caller.file_path, target_class, idx) {
+                    method_match_set.insert(caller.clone());
+                }
+            }
+            method_match_set.retain(|f| !definitive.contains(f) && !uncertain.contains(f));
+        }
+    }
+
+    if exclude_test_files {
+        definitive.retain(|f| !idx.test_paths.contains(&f.file_path));
+        uncertain.retain(|f| !idx.test_paths.contains(&f.file_path));
+        method_match_set.retain(|f| !idx.test_paths.contains(&f.file_path));
+    }
+
+    CallersResult {
+        definitive: sorted_internal(definitive),
+        uncertain: sorted_internal(uncertain),
+        method_match_overinclusive: sorted_internal(method_match_set),
+    }
+}
+
+/// 1-hop callees of internal `source` (`callees_of`).
+pub fn callees_of(inventory: &Value, source: &InternalFunction, exclude_test_files: bool) -> CalleesResult {
+    let idx = build_adjacency_index(inventory);
+    let mut definitive: HashSet<FunctionId> = idx.forward.get(source).cloned().unwrap_or_default();
+    let uncertain: HashSet<String> = idx.uncertain_callees.get(source).cloned().unwrap_or_default();
+    let has_method_dispatch = idx.has_method_dispatch.get(source).copied().unwrap_or(false);
+
+    if exclude_test_files {
+        definitive.retain(|c| !matches!(c, FunctionId::Internal(f) if idx.test_paths.contains(&f.file_path)));
+    }
+    let mut uncertain_v: Vec<String> = uncertain.into_iter().collect();
+    uncertain_v.sort();
+    CalleesResult { definitive: sorted_callees(definitive), uncertain: uncertain_v, has_method_dispatch }
+}
+
+/// Source lines where `caller` calls `callee` (`call_lines_of`).
+pub fn call_lines_of(inventory: &Value, caller: &InternalFunction, callee: &FunctionId) -> Vec<i64> {
+    let idx = build_adjacency_index(inventory);
+    let callee = match callee {
+        FunctionId::External(e) => match idx.qualified_to_internal.get(&e.qualified_name) {
+            Some(internal) => FunctionId::Internal(internal.clone()),
+            None => callee.clone(),
+        },
+        _ => callee.clone(),
+    };
+    idx.call_lines.get(&(caller.clone(), callee)).cloned().unwrap_or_default()
+}
+
+/// True iff `target` carries a framework-dispatch registration decorator.
+pub fn is_framework_callable(inventory: &Value, target: &InternalFunction) -> bool {
+    build_adjacency_index(inventory).framework_callable.contains(target)
+}
+
+/// True iff `target` is registered as a handler via a framework call argument.
+pub fn is_registered_via_call(inventory: &Value, target: &InternalFunction) -> bool {
+    build_adjacency_index(inventory).framework_registered.contains(target)
+}
+
+/// CHA: is `(class_name, method_name)` a polymorphic override dispatched via an
+/// unresolved member call (`is_virtual_dispatch_candidate`)?
+pub fn is_virtual_dispatch_candidate(inventory: &Value, class_name: Option<&str>, method_name: &str) -> bool {
+    let Some(class_name) = class_name else { return false };
+    let idx = build_adjacency_index(inventory);
+    idx.override_methods.contains(&(class_name.to_string(), method_name.to_string())) && idx.method_match.contains_key(method_name)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -794,6 +1499,43 @@ mod tests {
 
         let r2 = function_called(&inv, "totally.unrelated.fn", true).unwrap();
         assert_eq!(r2.verdict, Verdict::NotCalled);
+    }
+
+    #[test]
+    fn adjacency_callers_callees_and_framework() {
+        let inv = json!({"files": [
+            {"path": "app/main.py", "language": "python",
+             "items": [{"name": "run", "line_start": 5, "kind": "function"}, {"name": "helper", "line_start": 1, "kind": "function"}],
+             "call_graph": {"imports": {"util": "app.util"},
+               "calls": [
+                 {"chain": ["helper"], "line": 6, "caller": "run"},
+                 {"chain": ["util", "do"], "line": 7, "caller": "run"}
+               ],
+               "decorated_functions": [{"name": "run", "line": 5, "decorators": [["app", "route"]]}]
+             }},
+            {"path": "app/util.py", "language": "python",
+             "items": [{"name": "do", "line_start": 2, "kind": "function"}],
+             "call_graph": {"imports": {}, "calls": []}}
+        ]});
+        let run = InternalFunction::new("app/main.py", "run", 5);
+        let helper = InternalFunction::new("app/main.py", "helper", 1);
+        let do_fn = InternalFunction::new("app/util.py", "do", 2);
+
+        // callees of run -> helper (local) + do (import-resolved, canonicalised to internal).
+        let callees = callees_of(&inv, &run, true);
+        assert!(callees.definitive.contains(&FunctionId::Internal(helper.clone())));
+        assert!(callees.definitive.contains(&FunctionId::Internal(do_fn.clone())));
+
+        // callers of do -> run (cross-file import edge canonicalised).
+        let callers = callers_of(&inv, &FunctionId::Internal(do_fn.clone()), true);
+        assert_eq!(callers.definitive, vec![run.clone()]);
+
+        // call lines run -> do.
+        assert_eq!(call_lines_of(&inv, &run, &FunctionId::Internal(do_fn)), vec![7]);
+
+        // run is framework-callable (@app.route); helper is not.
+        assert!(is_framework_callable(&inv, &run));
+        assert!(!is_framework_callable(&inv, &helper));
     }
 
     #[test]
