@@ -330,7 +330,8 @@
         "call_graph.php": "pass (4-case differential vs extract_call_graph_php: namespace package_name, use decls w/ alias, extends+implements, scoped/member/function calls, $this->/self:: receiver_class, call_user_func/ReflectionClass/$var()->reflect, eval, include->dynamic_import, chained member access)",
         "reachability.accessors": "pass (Verdict enum + module_aborts_on_load/build_excluded/is_lexically_dead dict accessors, differential vs reachability.py incl dup-name/line disambiguation)",
         "reachability.item_is_entry": "pass (18-case differential vs _item_is_entry: main, go init, C static/extern, Go exported/cap, Rust pub, Java servlet/dispatch-annotation/stereotype/framework-base, TS/C# decorators, Ruby base+*Controller, python/php public negatives)",
-        "reachability.path_helpers": "pass (differential vs _is_test_file/_file_path_to_module/_path_derived_module) + InternalFunction/ExternalFunction identity structs"
+        "reachability.path_helpers": "pass (differential vs _is_test_file/_file_path_to_module/_path_derived_module) + InternalFunction/ExternalFunction identity structs",
+        "reachability.function_called": "pass (9-case differential vs function_called: import-map + bare-name resolution, test-file exclusion, fully-qualified chain (incl C++ ns::Util::helper), receiver_class path-derived fast-path, same-file bare-name (C), getattr/wildcard->UNCERTAIN, func-like-macro masking, ValueError on non-dotted)"
       }
     },
     "core.inventory.tests": {

@@ -10,10 +10,38 @@
 //! Accessors operate on the inventory as a `serde_json::Value`, matching the
 //! Python `Dict[str, Any]` shape produced by the builder.
 
+use std::collections::{BTreeSet, HashMap};
 use std::sync::OnceLock;
 
 use regex::Regex;
-use serde_json::Value;
+use serde_json::{Map, Value};
+
+// Indirection flags that can mask a static "not called" claim (`_MASKING_FLAGS`).
+const INDIRECTION_WILDCARD_IMPORT: &str = "wildcard_import";
+const MASKING_FLAGS: &[&str] = &[
+    "getattr", "importlib", "dunder_import", "wildcard_import",
+    "bracket_dispatch", "dynamic_import", "eval", "reflect",
+];
+
+/// Verdict plus diagnostic detail. Mirrors `ReachabilityResult`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReachabilityResult {
+    pub verdict: Verdict,
+    pub evidence: Vec<(String, i64)>,
+    pub uncertain_reasons: Vec<(String, String)>,
+}
+
+impl ReachabilityResult {
+    fn called(evidence: Vec<(String, i64)>, uncertain: Vec<(String, String)>) -> Self {
+        Self { verdict: Verdict::Called, evidence, uncertain_reasons: uncertain }
+    }
+    fn uncertain(uncertain: Vec<(String, String)>) -> Self {
+        Self { verdict: Verdict::Uncertain, evidence: Vec::new(), uncertain_reasons: uncertain }
+    }
+    fn not_called() -> Self {
+        Self { verdict: Verdict::NotCalled, evidence: Vec::new(), uncertain_reasons: Vec::new() }
+    }
+}
 
 /// A project-defined function. Identity is `(file_path, name, line)` — the line
 /// disambiguates same-name overloads / nested defs / methods of different
@@ -364,6 +392,305 @@ pub fn item_is_entry(item: &Value, language: &str) -> bool {
     }
 }
 
+// ---------------------------------------------------------------------------
+// function_called — "is this dotted dep name called anywhere in the project?"
+// Port of _build_function_called_index + _resolves_to + _wildcard_could_provide
+// + function_called. The id()-keyed index cache is a perf optimisation; here
+// the index is rebuilt per call (semantics-identical).
+// ---------------------------------------------------------------------------
+
+#[derive(Default)]
+struct FunctionCalledIndex {
+    files_by_token: HashMap<String, Vec<usize>>,
+    files_with_non_wildcard_masking: Vec<usize>,
+    files_with_wildcard_import: Vec<usize>,
+    macro_targets: HashMap<String, Vec<String>>,
+}
+
+/// A call_graph field that is present and a non-empty object (Python `if not cg`).
+fn nonempty_cg(fr: &Value) -> Option<&Value> {
+    match fr.get("call_graph") {
+        Some(c) if c.as_object().is_some_and(|o| !o.is_empty()) => Some(c),
+        _ => None,
+    }
+}
+
+fn str_array<'a>(v: &'a Value, key: &str) -> Vec<&'a str> {
+    v.get(key)
+        .and_then(Value::as_array)
+        .map(|a| a.iter().filter_map(Value::as_str).collect())
+        .unwrap_or_default()
+}
+
+fn chain_of(call: &Value) -> Vec<String> {
+    call.get("chain")
+        .and_then(Value::as_array)
+        .map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect())
+        .unwrap_or_default()
+}
+
+fn build_function_called_index(inventory: &Value) -> FunctionCalledIndex {
+    let empty = Vec::new();
+    let files = inventory.get("files").and_then(Value::as_array).unwrap_or(&empty);
+    let mut files_by_token: HashMap<String, BTreeSet<usize>> = HashMap::new();
+    let mut non_wildcard: BTreeSet<usize> = BTreeSet::new();
+    let mut wildcard: BTreeSet<usize> = BTreeSet::new();
+    let mut macro_targets: HashMap<String, BTreeSet<String>> = HashMap::new();
+
+    fn add(map: &mut HashMap<String, BTreeSet<usize>>, token: &str, i: usize) {
+        if !token.is_empty() {
+            map.entry(token.to_string()).or_default().insert(i);
+        }
+    }
+
+    for (i, fr) in files.iter().enumerate() {
+        if !fr.is_object() {
+            continue;
+        }
+        let Some(cg) = nonempty_cg(fr) else { continue };
+        // Imports: index every dotted prefix of each bound + its tail.
+        if let Some(imports) = cg.get("imports").and_then(Value::as_object) {
+            for bound in imports.values() {
+                let Some(bound) = bound.as_str() else { continue };
+                if bound.is_empty() {
+                    continue;
+                }
+                let parts: Vec<&str> = bound.split('.').collect();
+                for k in 1..=parts.len() {
+                    add(&mut files_by_token, &parts[..k].join("."), i);
+                }
+                add(&mut files_by_token, parts[parts.len() - 1], i);
+            }
+        }
+        // Calls: chain tail + fully-qualified dotted chain.
+        if let Some(calls) = cg.get("calls").and_then(Value::as_array) {
+            for call in calls {
+                let chain = chain_of(call);
+                if chain.is_empty() {
+                    continue;
+                }
+                add(&mut files_by_token, &chain[chain.len() - 1], i);
+                if chain.len() >= 2 {
+                    add(&mut files_by_token, &chain.join("."), i);
+                }
+            }
+        }
+        // getattr literals.
+        for name in str_array(cg, "getattr_targets") {
+            add(&mut files_by_token, name, i);
+        }
+        // Indirection flags split into the two buckets.
+        let flags: BTreeSet<&str> = str_array(cg, "indirection").into_iter().collect();
+        let has_non_wildcard = flags
+            .iter()
+            .any(|f| MASKING_FLAGS.contains(f) && *f != INDIRECTION_WILDCARD_IMPORT);
+        if has_non_wildcard {
+            non_wildcard.insert(i);
+        }
+        if flags.contains(INDIRECTION_WILDCARD_IMPORT) {
+            wildcard.insert(i);
+        }
+        // Function-like-macro call targets (C/C++).
+        let mpath = fr.get("path").and_then(Value::as_str).unwrap_or("").to_string();
+        for name in str_array(cg, "macro_call_targets") {
+            macro_targets.entry(name.to_string()).or_default().insert(mpath.clone());
+        }
+    }
+
+    FunctionCalledIndex {
+        files_by_token: files_by_token.into_iter().map(|(k, v)| (k, v.into_iter().collect())).collect(),
+        files_with_non_wildcard_masking: non_wildcard.into_iter().collect(),
+        files_with_wildcard_import: wildcard.into_iter().collect(),
+        macro_targets: macro_targets.into_iter().map(|(k, v)| (k, v.into_iter().collect())).collect(),
+    }
+}
+
+fn resolves_to(chain: &[String], imports: &Map<String, Value>, target_module: &str, target_func: &str) -> bool {
+    if chain.len() == 1 {
+        return imports.get(&chain[0]).and_then(Value::as_str)
+            == Some(format!("{target_module}.{target_func}").as_str());
+    }
+    let Some(bound) = imports.get(&chain[0]).and_then(Value::as_str) else { return false };
+    let middle = chain[1..chain.len() - 1].join(".");
+    let resolved_module = if middle.is_empty() { bound.to_string() } else { format!("{bound}.{middle}") };
+    resolved_module == target_module && chain[chain.len() - 1] == target_func
+}
+
+fn wildcard_could_provide(imports: &Map<String, Value>, target_module: &str) -> bool {
+    let target_root = target_module.split('.').next().unwrap_or("");
+    imports.values().any(|q| {
+        q.as_str().is_some_and(|s| s.split('.').next().unwrap_or("") == target_root)
+    })
+}
+
+fn call_line(call: &Value) -> i64 {
+    call.get("line").and_then(Value::as_i64).unwrap_or(0)
+}
+
+/// Determine whether `qualified_name` (dotted) is called by the project.
+/// `Err` mirrors the Python `ValueError` for a non-dotted name.
+pub fn function_called(
+    inventory: &Value,
+    qualified_name: &str,
+    exclude_test_files: bool,
+) -> Result<ReachabilityResult, String> {
+    if qualified_name.is_empty() || !qualified_name.contains('.') {
+        return Err(format!("qualified_name must be dotted (module.function); got {qualified_name:?}"));
+    }
+    let target_parts: Vec<&str> = qualified_name.split('.').collect();
+    let target_func = target_parts[target_parts.len() - 1];
+    let target_module = target_parts[..target_parts.len() - 1].join(".");
+    let target_dot_func = format!("{target_module}.{target_func}");
+    let target_module_dot = format!("{target_module}.");
+
+    let mut evidence: Vec<(String, i64)> = Vec::new();
+    let mut uncertain_reasons: Vec<(String, String)> = Vec::new();
+
+    let empty = Vec::new();
+    let files = inventory.get("files").and_then(Value::as_array).unwrap_or(&empty);
+    let index = build_function_called_index(inventory);
+
+    let mut candidate_idx: BTreeSet<usize> = BTreeSet::new();
+    for tok in [target_module.as_str(), target_func, qualified_name] {
+        if let Some(bucket) = index.files_by_token.get(tok) {
+            candidate_idx.extend(bucket.iter().copied());
+        }
+    }
+    candidate_idx.extend(index.files_with_non_wildcard_masking.iter().copied());
+    candidate_idx.extend(index.files_with_wildcard_import.iter().copied());
+
+    for &i in &candidate_idx {
+        let Some(file_record) = files.get(i) else { continue };
+        if !file_record.is_object() {
+            continue;
+        }
+        let path = file_record.get("path").and_then(Value::as_str).unwrap_or("");
+        if exclude_test_files && is_test_file(path) {
+            continue;
+        }
+        let Some(cg) = nonempty_cg(file_record) else { continue };
+        let empty_map = Map::new();
+        let imports = cg.get("imports").and_then(Value::as_object).unwrap_or(&empty_map);
+        let calls = cg.get("calls").and_then(Value::as_array).cloned().unwrap_or_default();
+        let flags: BTreeSet<&str> = str_array(cg, "indirection").into_iter().collect();
+        let getattr_targets: BTreeSet<&str> = str_array(cg, "getattr_targets").into_iter().collect();
+
+        // Fast-path skip: does any import bind to the target module?
+        let target_in_imports = imports.values().any(|b| {
+            b.as_str().is_some_and(|s| s == target_module || s == target_dot_func || s.starts_with(&target_module_dot))
+        });
+
+        let mut file_has_evidence = false;
+        if target_in_imports {
+            for call in &calls {
+                let chain = chain_of(call);
+                if chain.is_empty() {
+                    continue;
+                }
+                if resolves_to(&chain, imports, &target_module, target_func) {
+                    file_has_evidence = true;
+                    evidence.push((path.to_string(), call_line(call)));
+                }
+            }
+        }
+
+        // receiver_class fast-path.
+        if !file_has_evidence {
+            let file_pkg = cg.get("package_name").and_then(Value::as_str);
+            for call in &calls {
+                let chain = chain_of(call);
+                if chain.is_empty() || chain[chain.len() - 1] != target_func {
+                    continue;
+                }
+                let Some(rc) = call.get("receiver_class").and_then(Value::as_str) else { continue };
+                let candidates: Vec<String> = match file_pkg {
+                    Some(pkg) => vec![format!("{pkg}.{rc}.{target_func}")],
+                    None => path_derived_module(path, rc, target_func),
+                };
+                if candidates.iter().any(|c| c == qualified_name) {
+                    file_has_evidence = true;
+                    evidence.push((path.to_string(), call_line(call)));
+                }
+            }
+        }
+
+        // Fully-qualified-call fast-path.
+        if !file_has_evidence {
+            for call in &calls {
+                let chain = chain_of(call);
+                if chain.len() >= 2 && chain.join(".") == qualified_name {
+                    file_has_evidence = true;
+                    evidence.push((path.to_string(), call_line(call)));
+                }
+            }
+        }
+
+        // Same-file bare-name fast-path.
+        if !file_has_evidence && file_path_to_module(path).as_deref() == Some(target_module.as_str()) {
+            for call in &calls {
+                let chain = chain_of(call);
+                if chain.len() != 1 || chain[0] != target_func {
+                    continue;
+                }
+                if imports.contains_key(&chain[0]) {
+                    continue;
+                }
+                file_has_evidence = true;
+                evidence.push((path.to_string(), call_line(call)));
+                break;
+            }
+        }
+
+        if file_has_evidence {
+            continue;
+        }
+
+        // Non-wildcard masking branch (lazy file_mentions_tail).
+        let non_wildcard_flags: BTreeSet<&str> = flags
+            .iter()
+            .copied()
+            .filter(|f| MASKING_FLAGS.contains(f) && *f != INDIRECTION_WILDCARD_IMPORT)
+            .collect();
+        if !non_wildcard_flags.is_empty() {
+            let file_mentions_tail = getattr_targets.contains(target_func)
+                || calls.iter().any(|c| {
+                    let ch = chain_of(c);
+                    !ch.is_empty() && ch[ch.len() - 1] == target_func
+                })
+                || imports.values().any(|q| {
+                    q.as_str().is_some_and(|s| s.rsplit('.').next().unwrap_or("") == target_func)
+                });
+            if file_mentions_tail {
+                for flag in &non_wildcard_flags {
+                    uncertain_reasons.push((path.to_string(), flag.to_string()));
+                }
+            }
+        }
+
+        if flags.contains(INDIRECTION_WILDCARD_IMPORT) && wildcard_could_provide(imports, &target_module) {
+            uncertain_reasons.push((path.to_string(), INDIRECTION_WILDCARD_IMPORT.to_string()));
+        }
+    }
+
+    // Function-like-macro masking (C/C++).
+    if let Some(mpaths) = index.macro_targets.get(target_func) {
+        for mpath in mpaths {
+            if exclude_test_files && is_test_file(mpath) {
+                continue;
+            }
+            uncertain_reasons.push((mpath.clone(), "func_like_macro".to_string()));
+        }
+    }
+
+    if !evidence.is_empty() {
+        return Ok(ReachabilityResult::called(evidence, uncertain_reasons));
+    }
+    if !uncertain_reasons.is_empty() {
+        return Ok(ReachabilityResult::uncertain(uncertain_reasons));
+    }
+    Ok(ReachabilityResult::not_called())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -414,6 +741,43 @@ mod tests {
     #[test]
     fn internal_function_display() {
         assert_eq!(InternalFunction::new("a.py", "f", 4).display(), "a.py:f@4");
+    }
+
+    #[test]
+    fn function_called_import_and_bare() {
+        let inv = json!({"files": [
+            {"path": "src/app.py", "call_graph": {
+                "imports": {"ezp": "requests.utils.extract_zipped_paths"},
+                "calls": [{"chain": ["ezp"], "line": 12}]
+            }},
+            {"path": "tests/test_app.py", "call_graph": {
+                "imports": {"ezp": "requests.utils.extract_zipped_paths"},
+                "calls": [{"chain": ["ezp"], "line": 3}]
+            }}
+        ]});
+        let r = function_called(&inv, "requests.utils.extract_zipped_paths", true).unwrap();
+        assert_eq!(r.verdict, Verdict::Called);
+        // Test file excluded -> only the src evidence.
+        assert_eq!(r.evidence, vec![("src/app.py".to_string(), 12)]);
+    }
+
+    #[test]
+    fn function_called_uncertain_and_not_called() {
+        let inv = json!({"files": [
+            {"path": "src/wild.py", "call_graph": {"imports": {"os": "requests.helpers"}, "indirection": ["wildcard_import"]}}
+        ]});
+        let r = function_called(&inv, "requests.helpers.thing", true).unwrap();
+        assert_eq!(r.verdict, Verdict::Uncertain);
+        assert_eq!(r.uncertain_reasons, vec![("src/wild.py".to_string(), "wildcard_import".to_string())]);
+
+        let r2 = function_called(&inv, "totally.unrelated.fn", true).unwrap();
+        assert_eq!(r2.verdict, Verdict::NotCalled);
+    }
+
+    #[test]
+    fn function_called_rejects_non_dotted() {
+        let inv = json!({"files": []});
+        assert!(function_called(&inv, "open", true).is_err());
     }
 
     #[test]
