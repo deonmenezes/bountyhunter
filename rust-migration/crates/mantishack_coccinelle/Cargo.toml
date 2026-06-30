@@ -17,4 +17,8 @@ python = ["dep:pyo3"]
 # preserve_order so emitted objects (to_dict / findings / coverage record)
 # iterate in the same key order as the Python dicts they mirror.
 serde_json = { version = "1", features = ["preserve_order"] }
+regex = { workspace = true }
+# core.config is a declared dependency of packages.coccinelle — reuse the ported
+# crate's get_safe_env() for the spatch subprocess env (never reimplement).
+mantishack_core_config = { path = "../mantishack_core_config" }
 pyo3 = { workspace = true, optional = true }

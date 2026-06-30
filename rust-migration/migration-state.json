@@ -998,12 +998,13 @@
     "packages.coccinelle": {
       "name": "packages.coccinelle",
       "disposition": "rust-glue",
-      "status": "in progress (models+findings+coverage ported, 22 golden vectors; sarif+prereqs+runner subprocess glue pending)",
+      "status": "ported complete (all 6 modules: models/findings/coverage/sarif/prereqs/runner; 63 golden vectors + byte-exact live-Python differential; verify.py pytest stage env-blocked \u2014 no pytest for py3.14)",
       "crate": "rust-migration/crates/mantishack_coccinelle",
       "phase": 4,
       "notes": "",
       "parity": {
-        "rust": "pass (22 golden vectors, differential-checked vs live Python: to_dict/findings/coverage byte-identical)"
+        "rust": "pass (63 golden vectors incl byte-exact inject_harness, SARIF 2.1.0 shape, evaluate_finding; differential vs live Python all match)",
+        "python_oracle": "blocked: pytest not installed for py3.14 (vestigial \u2014 no MANTISHACK_USE_RUST shim wired)"
       }
     },
     "packages.coccinelle.tests": {
