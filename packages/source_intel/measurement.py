@@ -63,10 +63,13 @@ from __future__ import annotations
 
 import argparse
 import csv
+import logging
 import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 from core.dataflow.finding import Finding
 from core.dataflow.label import (
@@ -183,7 +186,8 @@ def _iter_memory_corruption_corpus(
             continue
         try:
             finding = Finding.from_json(fp.read_text())
-        except Exception:
+        except (ValueError, KeyError, OSError) as exc:
+            logger.debug("skipping malformed finding %s: %s", fp.name, exc)
             continue
         if not _is_memory_corruption(finding):
             continue
@@ -192,7 +196,8 @@ def _iter_memory_corruption_corpus(
             continue
         try:
             label = GroundTruth.from_json(label_path.read_text())
-        except Exception:
+        except (ValueError, KeyError, OSError) as exc:
+            logger.debug("skipping malformed label %s: %s", label_path.name, exc)
             continue
         if verdict and label.verdict != verdict:
             continue

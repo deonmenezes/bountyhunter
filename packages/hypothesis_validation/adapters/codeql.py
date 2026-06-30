@@ -399,10 +399,10 @@ class CodeQLAdapter(ToolAdapter):
                         capture_output=True, text=True,
                         timeout=120, env=env,
                     )
-                except Exception:
+                except (OSError, subprocess.SubprocessError) as exc:
                     # Pack install is best-effort. If the query has no
                     # external imports it will still compile.
-                    pass
+                    logger.debug("CodeQL pack install failed (non-fatal): %s", exc)
 
                 sarif_path = Path(tmp) / "result.sarif"
                 cmd = [

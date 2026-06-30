@@ -7,12 +7,15 @@
 """
 import argparse
 import json
+import logging
 import os
 import shutil
 import sys
 import tempfile
 import time
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # Setup path for core module imports. Use MANTISHACK_DIR env var
 # (the canonical project root marker — see CLAUDE.md "Python
@@ -142,8 +145,8 @@ def main():
         if not args.keep:
             try:
                 shutil.rmtree(tmp)
-            except Exception:
-                pass
+            except OSError as exc:
+                logger.debug("temp dir cleanup failed: %s", exc)
 
 if __name__ == '__main__':
     main()

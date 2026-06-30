@@ -1077,7 +1077,7 @@ def _run_llm_stages(
     try:
         cost = client.total_cost
     except Exception:  # noqa: BLE001
-        pass
+        logger.debug("cost accounting failed for binary-in-tests review", exc_info=True)
 
     return (reviews_run, reviews_failed, cost)
 
@@ -1391,7 +1391,7 @@ def _run_triage(
     try:
         cost = client.total_cost
     except Exception:  # noqa: BLE001
-        pass
+        logger.debug("cost accounting failed for LLM triage", exc_info=True)
 
     return (True, cost)
 
@@ -1513,7 +1513,7 @@ def _run_upgrade_impact(
     try:
         cost = client.total_cost
     except Exception:  # noqa: BLE001
-        pass
+        logger.debug("cost accounting failed for upgrade-impact review", exc_info=True)
     return cost
 
 

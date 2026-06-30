@@ -264,8 +264,8 @@ def _build_strategy_block(
             pick_strategies,
             render_strategies,
         )
-    except Exception:
-        # Substrate not present (older deployments); skip silently.
+    except ImportError:
+        logger.debug("cwe_strategies module not available, skipping strategy block")
         return ""
 
     candidate_cwes = []
@@ -323,8 +323,9 @@ def _build_verified_exemplar_block(
         return ""
     try:
         from core.verified_outcome import render_verified_exemplars
-    except Exception:
-        return ""  # substrate absent (older deployment) — skip silently
+    except ImportError:
+        logger.debug("verified_outcome module not available, skipping exemplar block")
+        return ""
     try:
         finding = {"id": rule_id, "cwe_id": cwe_id, "file": file_path}
         return render_verified_exemplars(finding, outcomes)
@@ -507,8 +508,10 @@ def build_analysis_prompt_bundle(
                 kind="sage-historical-context",
                 origin="sage:cross-run-learning",
             ))
+    except ImportError:
+        logger.debug("SAGE module not available, skipping historical context")
     except Exception:
-        pass
+        logger.debug("SAGE historical context enrichment failed", exc_info=True)
 
     # Caller-supplied extra blocks (e.g. RetryTask prior-reasoning + contradictions).
     # All extras are untrusted by definition (callers cannot pass trusted content here).

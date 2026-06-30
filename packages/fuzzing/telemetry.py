@@ -378,7 +378,7 @@ class FuzzingTelemetry:
             try:
                 self.on_event(event)
             except Exception:
-                pass
+                logger.debug("telemetry on_event callback failed", exc_info=True)
 
     def snapshot(self) -> Dict[str, Any]:
         """Return the current stats snapshot (for the UI)."""

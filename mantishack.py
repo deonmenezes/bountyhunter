@@ -39,6 +39,7 @@ Examples:
 """
 
 import argparse
+import logging
 import os
 import subprocess
 import sys
@@ -50,6 +51,8 @@ from pathlib import Path
 # happens to land on the repo root because we live here, but explicit
 # is safer than implicit.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+logger = logging.getLogger(__name__)
 
 from core.run.output import get_output_dir, TargetMismatchError
 from core.run.metadata import start_run, complete_run, fail_run
@@ -232,8 +235,10 @@ def _run_with_lifecycle(command: str, script_path: Path, args: list,
             print(f"📚 SAGE: Recalled {len(sage_context)} historical memories")
             for mem in sage_context[:3]:
                 print(f"   [{mem['confidence']:.0%}] {mem['content'][:80]}...")
+    except ImportError:
+        logger.debug("SAGE not available, skipping pre-scan recall")
     except Exception:
-        pass
+        logger.debug("SAGE pre-scan recall failed", exc_info=True)
 
     # Inject --out so the downstream script uses the lifecycle directory
     if "--out" not in args:
@@ -264,8 +269,10 @@ def _run_with_lifecycle(command: str, script_path: Path, args: list,
                 if record:
                     write_record(out_dir, record, tool_name="codeql")
                     break
+    except ImportError:
+        logger.debug("coverage record module not available")
     except Exception:
-        pass
+        logger.debug("coverage record write failed", exc_info=True)
 
     # SAGE: Post-scan storage
     if rc == 0:
@@ -340,14 +347,17 @@ def _run_with_lifecycle(command: str, script_path: Path, args: list,
                                               .get("artifactLocation", {})
                                               .get("uri", "unknown")),
                             })
-                except Exception:
+                except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
+                    logger.debug("skipping malformed SARIF %s: %s", sf.name, exc)
                     continue
             if findings:
                 stored = store_scan_results(target or "", findings, {"total_findings": len(findings)})
                 if stored > 0:
                     print(f"\n📚 SAGE: Stored {stored} findings for cross-run learning")
+        except ImportError:
+            logger.debug("SAGE not available, skipping post-scan storage")
         except Exception:
-            pass
+            logger.debug("SAGE post-scan storage failed", exc_info=True)
 
     if rc == 0:
         # Engine versions + deterministically_reproducible are filled by the
@@ -363,8 +373,10 @@ def _run_with_lifecycle(command: str, script_path: Path, args: list,
                 summary = render_run_coverage(out_dir)
                 if summary:
                     print("\n" + summary)
+            except ImportError:
+                logger.debug("coverage summary module not available")
             except Exception:
-                pass
+                logger.debug("coverage summary render failed", exc_info=True)
     else:
         fail_run(out_dir, error=f"exit code {rc}")
     return rc
