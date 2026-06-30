@@ -1556,13 +1556,14 @@
       "parity": {}
     },
     "packages.sca": {
-      "status": "in progress (models + 5 parsers: gomod/gemfile/composer/pipfile_lock/package_lock_json; 27 more parsers + registry/resolvers pending)",
+      "status": "in progress (models + 6 parsers: gomod/gemfile/composer/pipfile_lock/package_lock_json/gradle_lockfile; 26 more parsers + registry/resolvers pending)",
       "parity": {
         "sca_models_gomod": "pass (differential vs gomod.parse_manifest/parse_lockfile: require block+single, indirect, pseudo-version->git pin, replace redirect + path replace, go.sum dedup + /go.mod suffix; full Dependency model incl pin_style/purl/parser_confidence level+reason+numeric/key)",
         "sca_gemfile": "pass (differential vs gemfile.parse_manifest/parse_lockfile: version specs tilde/range/exact/caret, git/github/path overrides, control-flow->medium confidence, non-digit version rejection, Gemfile.lock specs block 4-space rows + platform suffix + templated skip)",
         "sca_composer": "pass (differential vs composer.parse_manifest/parse_lockfile: caret/tilde/range/OR/exact/>=/unknown specs, platform-req skip, require/require-dev/replace/provide scopes, lockfile git-source-vs-release-tag pin; serde_json preserve_order matches dict iteration order)",
         "sca_pipfile_lock": "pass (differential vs pipfile_lock.parse: default/develop sections, name normalisation [-_.]->-, ==version strip, git ref/rev/tag/branch first-truthy-string, path/file->PATH, no-version->WILDCARD+low confidence, source_kind stays 'manifest')",
-        "sca_package_lock_json": "pass (differential vs package_lock_json.parse: v2/v3 flat packages map [direct from root, dev/peer/optional/devOptional scopes, git+/file:/http resolved pins, nested node_modules key name, name override, link skip] + v1 recursive dependencies tree [depth-0 direct, nested transitive, dev/optional])"
+        "sca_package_lock_json": "pass (differential vs package_lock_json.parse: v2/v3 flat packages map [direct from root, dev/peer/optional/devOptional scopes, git+/file:/http resolved pins, nested node_modules key name, name override, link skip] + v1 recursive dependencies tree [depth-0 direct, nested transitive, dev/optional])",
+        "sca_gradle_lockfile": "pass (differential vs gradle_lockfile.parse: group:artifact:version=configs rows, colon-in-version join, empty-field + malformed rejection, main/test/build config scopes, empty= sentinel skip)"
       }
     },
     "packages.sca.bump": {
