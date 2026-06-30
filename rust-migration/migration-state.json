@@ -1556,7 +1556,7 @@
       "parity": {}
     },
     "packages.sca": {
-      "status": "in progress (models + 9 parsers: gomod/gemfile/composer/pipfile_lock/package_lock_json/gradle_lockfile/poetry_lock/uv_lock/cargo; toml preserve_order; 23 more parsers + registry/resolvers pending)",
+      "status": "in progress (models + 10 parsers: gomod/gemfile/composer/pipfile_lock/package_lock_json/gradle_lockfile/poetry_lock/uv_lock/cargo/vcpkg; 22 more parsers + registry/resolvers pending)",
       "parity": {
         "sca_models_gomod": "pass (differential vs gomod.parse_manifest/parse_lockfile: require block+single, indirect, pseudo-version->git pin, replace redirect + path replace, go.sum dedup + /go.mod suffix; full Dependency model incl pin_style/purl/parser_confidence level+reason+numeric/key)",
         "sca_gemfile": "pass (differential vs gemfile.parse_manifest/parse_lockfile: version specs tilde/range/exact/caret, git/github/path overrides, control-flow->medium confidence, non-digit version rejection, Gemfile.lock specs block 4-space rows + platform suffix + templated skip)",
@@ -1567,7 +1567,8 @@
         "sca_poetry_lock": "pass (differential vs poetry_lock.parse: [[package]] TOML entries via toml crate, name normalisation, exact/wildcard, category->dev scope, git source resolved_reference>reference, file/directory/url->PATH, no-version low confidence)",
         "sca_uv_lock": "pass (differential vs uv_lock.parse: [[package]] TOML entries, virtual/editable/directory project-row skip, git source->Git pin, version strip, empty-name/no-version skip)",
         "sca_cargo": "pass (differential vs cargo.parse_manifest/parse_lockfile: dep tables + target.cfg tables, string+table specs, implicit-caret/exact/tilde/range/wildcard, git/path/workspace-inherit, optional+features->source_extra cargo_optional/cargo_features/cargo_git/cargo_path, Cargo.lock registry/git+/no-source pins; toml preserve_order matches tomllib table order)",
-        "sca_model_source_extra": "Dependency model extended with source_extra (Option<Value>); all 8 prior parsers set None"
+        "sca_model_source_extra": "Dependency model extended with source_extra (Option<Value>); all 8 prior parsers set None",
+        "sca_vcpkg": "pass (differential vs vcpkg.parse: string entries->wildcard, version/version-semver/version-date/version-string->exact, version>=->range, port-name regex validation, empty-version->wildcard, features-block deps)"
       }
     },
     "packages.sca.bump": {
