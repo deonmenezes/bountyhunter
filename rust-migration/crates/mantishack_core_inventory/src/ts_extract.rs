@@ -894,6 +894,65 @@ fn first_isupper(s: &str) -> bool {
     s.chars().next().is_some_and(char::is_uppercase)
 }
 
+// ---------------------------------------------------------------------------
+// SLOC counting (tree-sitter comment detection) — `count_sloc`.
+// ---------------------------------------------------------------------------
+
+const COMMENT_KINDS: &[&str] = &["comment", "line_comment", "block_comment"];
+
+/// Count source lines of code (non-blank, non-comment) using tree-sitter
+/// comment detection. Faithful to `count_sloc` for the wired grammars; an
+/// unparseable/unwired language returns total - blank (no comment detection).
+pub fn count_sloc(language: &str, content: &str) -> i64 {
+    let lines = crate::extractors::splitlines(content);
+    let total = lines.len() as i64;
+    let blank = lines.iter().filter(|l| l.trim().is_empty()).count() as i64;
+    let comment_lines = match mantishack_ts::parse(language, content) {
+        Some(tree) => count_comment_lines_ts(tree.root_node(), content.as_bytes()),
+        None => 0,
+    };
+    (total - blank - comment_lines).max(0)
+}
+
+fn count_comment_lines_ts(root: Node, src: &[u8]) -> i64 {
+    use std::collections::HashSet;
+    let mut code_lines: HashSet<usize> = HashSet::new();
+    collect_code_lines(root, src, &mut code_lines);
+    let mut comment_lines: HashSet<usize> = HashSet::new();
+    collect_comment_lines(root, &code_lines, &mut comment_lines);
+    comment_lines.len() as i64
+}
+
+fn collect_code_lines(node: Node, src: &[u8], code_lines: &mut std::collections::HashSet<usize>) {
+    let kids = children(node);
+    // Leaf node that isn't a comment, with non-whitespace text → code.
+    if kids.is_empty() && !COMMENT_KINDS.contains(&node.kind()) && !text(node, src).trim().is_empty() {
+        for line in node.start_position().row..=node.end_position().row {
+            code_lines.insert(line);
+        }
+    }
+    for child in kids {
+        collect_code_lines(child, src, code_lines);
+    }
+}
+
+fn collect_comment_lines(
+    node: Node,
+    code_lines: &std::collections::HashSet<usize>,
+    comment_lines: &mut std::collections::HashSet<usize>,
+) {
+    if COMMENT_KINDS.contains(&node.kind()) {
+        for line in node.start_position().row..=node.end_position().row {
+            if !code_lines.contains(&line) {
+                comment_lines.insert(line);
+            }
+        }
+    }
+    for child in children(node) {
+        collect_comment_lines(child, code_lines, comment_lines);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1097,6 +1156,23 @@ mod tests {
         assert_eq!(m.attributes, vec!["GetMapping"]); // method annotation
         assert_eq!(m.class_attributes, vec!["Service"]); // class stereotype
         assert_eq!(m.parameters, vec![("req".to_string(), Some("Request".to_string()))]);
+    }
+
+    #[test]
+    fn count_sloc_excludes_blank_and_comments() {
+        // 6 lines: comment, fn header, block-comment (2), return+trailing, close.
+        let src = "// a comment\nint add(int a) {\n    /* block\n       comment */\n    return a; // trailing\n}\n";
+        // Code lines: 2 (header), 5 (return), 6 (close) = 3.
+        assert_eq!(count_sloc("c", src), 3);
+    }
+
+    #[test]
+    fn count_sloc_python_docstring_counts_as_code() {
+        let src = "def f():\n    \"\"\"doc\n    lines\n    \"\"\"\n    return 1\n";
+        // A docstring is a `string` node (not a comment), so its lines count
+        // as code — matching the oracle's tree-sitter behaviour. 5 non-blank
+        // lines, 0 comments → 5.
+        assert_eq!(count_sloc("python", src), 5);
     }
 
     #[test]

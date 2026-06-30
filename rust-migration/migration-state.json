@@ -315,7 +315,8 @@
         "extractors.ts_go_functions": "pass (8-case differential vs oracle: capitalization visibility, receiver class_name, return types)",
         "extractors.ts_globals_js_c_go": "pass (differential vs _extract_globals_ts for js/c/go incl. var-block drop and C declarator descent)",
         "extractors.ts_java_functions_and_globals": "pass (8-case differential vs oracle: modifiers visibility+annotations, @stereotype class_attributes, JpaRepository base tail-name, implements, class-body field globals)",
-        "extractors.ts_typescript_tsx": "pass (typescript 7/7 + tsx 3/3 differential vs oracle; reused JS-family code \u2014 typed params, decorators, accessibility modifiers, abstract skip, JSX)"
+        "extractors.ts_typescript_tsx": "pass (typescript 7/7 + tsx 3/3 differential vs oracle; reused JS-family code \u2014 typed params, decorators, accessibility modifiers, abstract skip, JSX)",
+        "extractors.macros_and_count_sloc": "pass (5-case differential vs _extract_macros_regex + count_sloc: include guards, block comments, docstrings-as-code, trailing comments)"
       }
     },
     "core.inventory.tests": {

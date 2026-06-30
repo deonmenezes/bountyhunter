@@ -11,6 +11,10 @@
 //!     ranges not claimed by any extracted item (runs over already-extracted
 //!     items, so it's faithful regardless of how those items were produced).
 
+use std::sync::OnceLock;
+
+use regex::Regex;
+
 /// Inventory item kinds (mirror the `KIND_*` constants in the Python module).
 pub const KIND_FUNCTION: &str = "function";
 pub const KIND_GLOBAL: &str = "global";
@@ -39,7 +43,7 @@ impl CodeItem {
 /// Split like Python's `str.splitlines` for the common line boundaries
 /// (`\n`, `\r\n`, `\r`): no trailing empty element when the text ends with a
 /// newline, and `""` yields no lines.
-fn splitlines(content: &str) -> Vec<&str> {
+pub(crate) fn splitlines(content: &str) -> Vec<&str> {
     if content.is_empty() {
         return Vec::new();
     }
@@ -127,6 +131,25 @@ pub fn compute_interstitial_items(items: &[CodeItem], content: &str) -> Vec<Code
     out
 }
 
+/// `#define NAME` directive at line start (ASCII `\w`, matching Python's
+/// `re.ASCII`). Captures include guards too — they're real code items.
+fn define_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"^\s*#\s*define\s+([0-9A-Za-z_]+)").unwrap())
+}
+
+/// Extract C/C++ `#define` macros via regex (`_extract_macros_regex`).
+pub fn extract_macros(content: &str) -> Vec<CodeItem> {
+    let mut out: Vec<CodeItem> = Vec::new();
+    for (i, line) in splitlines(content).iter().enumerate() {
+        if let Some(caps) = define_re().captures(line) {
+            let line_no = (i + 1) as i64;
+            out.push(CodeItem::new(caps[1].to_string(), KIND_MACRO, line_no, Some(line_no)));
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -195,5 +218,14 @@ mod tests {
         assert_eq!(splitlines("a\n\nb"), vec!["a", "", "b"]);
         assert_eq!(splitlines("a\r\nb"), vec!["a", "b"]);
         assert_eq!(splitlines(""), Vec::<&str>::new());
+    }
+
+    #[test]
+    fn macros_include_guards_and_spacing() {
+        let src = "#ifndef G_H\n#define G_H\n#define MAX 100\n#  define MIN 0\nint x;\n#endif\n";
+        let m = extract_macros(src);
+        let names: Vec<_> = m.iter().map(|c| (c.name.as_str(), c.line_start)).collect();
+        assert_eq!(names, vec![("G_H", 2), ("MAX", 3), ("MIN", 4)]);
+        assert!(m.iter().all(|c| c.kind == KIND_MACRO));
     }
 }
