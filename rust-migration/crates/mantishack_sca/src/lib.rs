@@ -18,5 +18,6 @@ pub mod poetry_lock;
 pub mod toml_util;
 pub mod uv_lock;
 pub mod vcpkg;
+pub mod yarn_lock;
 
 pub use models::{Confidence, Dependency, PinStyle};
