@@ -1418,6 +1418,267 @@ pub fn is_virtual_dispatch_candidate(inventory: &Value, class_name: Option<&str>
     idx.override_methods.contains(&(class_name.to_string(), method_name.to_string())) && idx.method_match.contains_key(method_name)
 }
 
+// ---------------------------------------------------------------------------
+// Closures + entry-reachability — BFS over the adjacency index.
+// Port of ClosureResult + reverse_closure/forward_closure/shortest_path +
+// _entry_functions/_entry_reachable_set/entry_reachability.
+// ---------------------------------------------------------------------------
+
+use std::collections::VecDeque;
+
+const ENTRY_CLOSURE_MAX_DEPTH: i64 = 100_000;
+/// Languages whose entry model is a closed, sound signal (entry_model == "sound").
+const CLOSEABLE_ENTRY_LANGS: &[&str] = &["c", "cpp", "go", "rust"];
+
+/// Result of a transitive closure walk (`ClosureResult`).
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ClosureResult {
+    pub nodes: Vec<FunctionId>,
+    pub paths: HashMap<FunctionId, Vec<FunctionId>>,
+    pub truncated: bool,
+}
+
+/// Stable mixed-node order: Internal first by (path, name, line), External after
+/// by qualified_name (`_closure_sort_key`).
+fn closure_sort_key(fid: &FunctionId) -> (u8, &str, &str, i64, &str) {
+    match fid {
+        FunctionId::Internal(f) => (0, f.file_path.as_str(), f.name.as_str(), f.line, ""),
+        FunctionId::External(e) => (1, "", "", 0, e.qualified_name.as_str()),
+    }
+}
+
+fn sort_closure_nodes(nodes: &mut [FunctionId]) {
+    nodes.sort_by(|a, b| closure_sort_key(a).cmp(&closure_sort_key(b)));
+}
+
+fn alias_target(idx: &AdjacencyIndex, target: &FunctionId) -> FunctionId {
+    match target {
+        FunctionId::External(e) => match idx.qualified_to_internal.get(&e.qualified_name) {
+            Some(internal) => FunctionId::Internal(internal.clone()),
+            None => target.clone(),
+        },
+        _ => target.clone(),
+    }
+}
+
+fn reverse_closure_indexed(idx: &AdjacencyIndex, target: &FunctionId, max_depth: i64, exclude_test_files: bool) -> ClosureResult {
+    let target = alias_target(idx, target);
+    let mut paths: HashMap<FunctionId, Vec<FunctionId>> = HashMap::new();
+    paths.insert(target.clone(), vec![target.clone()]);
+    let mut queue: VecDeque<(FunctionId, i64)> = VecDeque::from([(target.clone(), 0)]);
+    let mut truncated = false;
+    while let Some((node, depth)) = queue.pop_front() {
+        if depth >= max_depth {
+            truncated = true;
+            continue;
+        }
+        let Some(callers) = idx.reverse.get(&node).cloned() else { continue };
+        for caller in callers {
+            if exclude_test_files && idx.test_paths.contains(&caller.file_path) {
+                continue;
+            }
+            let cnode = FunctionId::Internal(caller);
+            if paths.contains_key(&cnode) {
+                continue;
+            }
+            let mut newpath = vec![cnode.clone()];
+            newpath.extend(paths[&node].clone());
+            paths.insert(cnode.clone(), newpath);
+            queue.push_back((cnode, depth + 1));
+        }
+    }
+    finish_closure(paths, |n| *n == target, truncated)
+}
+
+fn forward_closure_indexed(idx: &AdjacencyIndex, entries: impl Iterator<Item = InternalFunction>, max_depth: i64, exclude_test_files: bool) -> ClosureResult {
+    let entry_set: HashSet<FunctionId> = entries.map(FunctionId::Internal).collect();
+    let mut paths: HashMap<FunctionId, Vec<FunctionId>> = HashMap::new();
+    let mut queue: VecDeque<(FunctionId, i64)> = VecDeque::new();
+    for entry in &entry_set {
+        paths.entry(entry.clone()).or_insert_with(|| {
+            queue.push_back((entry.clone(), 0));
+            vec![entry.clone()]
+        });
+    }
+    let mut truncated = false;
+    while let Some((node, depth)) = queue.pop_front() {
+        if depth >= max_depth {
+            truncated = true;
+            continue;
+        }
+        // External nodes are terminal.
+        let FunctionId::Internal(inner) = &node else { continue };
+        let Some(callees) = idx.forward.get(inner).cloned() else { continue };
+        for callee in callees {
+            if paths.contains_key(&callee) {
+                continue;
+            }
+            if exclude_test_files {
+                if let FunctionId::Internal(f) = &callee {
+                    if idx.test_paths.contains(&f.file_path) {
+                        continue;
+                    }
+                }
+            }
+            let mut newpath = paths[&node].clone();
+            newpath.push(callee.clone());
+            paths.insert(callee.clone(), newpath);
+            queue.push_back((callee, depth + 1));
+        }
+    }
+    finish_closure(paths, |n| entry_set.contains(n), truncated)
+}
+
+fn finish_closure(paths: HashMap<FunctionId, Vec<FunctionId>>, is_seed: impl Fn(&FunctionId) -> bool, truncated: bool) -> ClosureResult {
+    let mut nodes: Vec<FunctionId> = Vec::new();
+    let mut out_paths: HashMap<FunctionId, Vec<FunctionId>> = HashMap::new();
+    for (n, p) in paths {
+        if is_seed(&n) {
+            continue;
+        }
+        nodes.push(n.clone());
+        out_paths.insert(n, p);
+    }
+    sort_closure_nodes(&mut nodes);
+    ClosureResult { nodes, paths: out_paths, truncated }
+}
+
+/// Project functions that can transitively reach `target` (`reverse_closure`).
+pub fn reverse_closure(inventory: &Value, target: &FunctionId, max_depth: i64, exclude_test_files: bool) -> ClosureResult {
+    let idx = build_adjacency_index(inventory);
+    reverse_closure_indexed(&idx, target, max_depth, exclude_test_files)
+}
+
+/// Functions transitively callable from any of `entries` (`forward_closure`).
+pub fn forward_closure(inventory: &Value, entries: impl Iterator<Item = InternalFunction>, max_depth: i64, exclude_test_files: bool) -> ClosureResult {
+    let idx = build_adjacency_index(inventory);
+    forward_closure_indexed(&idx, entries, max_depth, exclude_test_files)
+}
+
+/// Shortest call chain `source` -> `target`, or `None` (`shortest_path`).
+pub fn shortest_path(inventory: &Value, source: &InternalFunction, target: &FunctionId, max_depth: i64, exclude_test_files: bool) -> Option<Vec<FunctionId>> {
+    let idx = build_adjacency_index(inventory);
+    let target = alias_target(&idx, target);
+    let source_fid = FunctionId::Internal(source.clone());
+    if source_fid == target {
+        return Some(vec![source_fid]);
+    }
+    let mut visited: HashMap<FunctionId, Vec<FunctionId>> = HashMap::from([(source_fid.clone(), vec![source_fid.clone()])]);
+    let mut queue: VecDeque<(FunctionId, i64)> = VecDeque::from([(source_fid, 0)]);
+    while let Some((node, depth)) = queue.pop_front() {
+        if depth >= max_depth {
+            continue;
+        }
+        let FunctionId::Internal(inner) = &node else { continue };
+        let Some(callees) = idx.forward.get(inner).cloned() else { continue };
+        for callee in callees {
+            if visited.contains_key(&callee) {
+                continue;
+            }
+            let mut chain = visited[&node].clone();
+            chain.push(callee.clone());
+            if callee == target {
+                if exclude_test_files {
+                    let crosses_test = chain[1..chain.len() - 1]
+                        .iter()
+                        .any(|s| matches!(s, FunctionId::Internal(f) if idx.test_paths.contains(&f.file_path)));
+                    if crosses_test {
+                        continue;
+                    }
+                }
+                return Some(chain);
+            }
+            if exclude_test_files {
+                if let FunctionId::Internal(f) = &callee {
+                    if idx.test_paths.contains(&f.file_path) {
+                        continue;
+                    }
+                }
+            }
+            visited.insert(callee.clone(), chain);
+            queue.push_back((callee, depth + 1));
+        }
+    }
+    None
+}
+
+/// The InternalFunction entry-point set (visibility/linkage + framework dispatch).
+fn entry_functions(inventory: &Value, idx: &AdjacencyIndex) -> HashSet<InternalFunction> {
+    let mut entries: HashSet<InternalFunction> = HashSet::new();
+    let empty = Vec::new();
+    let files = inventory.get("files").and_then(Value::as_array).unwrap_or(&empty);
+    for fr in files {
+        if !fr.is_object() {
+            continue;
+        }
+        let lang = fr.get("language").and_then(Value::as_str).unwrap_or("");
+        let path = fr.get("path").and_then(Value::as_str).unwrap_or("");
+        for item in fr.get("items").and_then(Value::as_array).into_iter().flatten() {
+            if !item.is_object() {
+                continue;
+            }
+            // _entry_functions defaults absent kind to "function"; explicit null
+            // is treated as non-function and skipped (differs from index pass 1).
+            let is_fn = match item.get("kind") {
+                None => true,
+                Some(Value::String(s)) => s == "function",
+                _ => false,
+            };
+            if !is_fn {
+                continue;
+            }
+            if item_is_entry(item, lang) {
+                let name = item.get("name").and_then(Value::as_str).unwrap_or("");
+                let line = item.get("line_start").and_then(Value::as_i64).unwrap_or(0);
+                entries.insert(InternalFunction::new(path, name, line));
+            }
+        }
+    }
+    entries.extend(idx.framework_callable.iter().cloned());
+    entries.extend(idx.framework_registered.iter().cloned());
+    entries
+}
+
+fn entry_reachable_set(inventory: &Value) -> (HashSet<InternalFunction>, bool) {
+    let idx = build_adjacency_index(inventory);
+    let entries = entry_functions(inventory, &idx);
+    let fc = forward_closure_indexed(&idx, entries.iter().cloned(), ENTRY_CLOSURE_MAX_DEPTH, true);
+    let mut reachable = entries;
+    for n in fc.nodes {
+        if let FunctionId::Internal(f) = n {
+            reachable.insert(f);
+        }
+    }
+    (reachable, fc.truncated)
+}
+
+/// `"reachable"` | `"no_path_from_entry"` | `"uncertain"` (`entry_reachability`).
+pub fn entry_reachability(inventory: &Value, target: &InternalFunction, max_depth: i64) -> &'static str {
+    let (reachable, truncated) = entry_reachable_set(inventory);
+    if reachable.contains(target) {
+        return "reachable";
+    }
+    if truncated {
+        return "uncertain";
+    }
+    match file_language(inventory, &target.file_path) {
+        Some(l) if CLOSEABLE_ENTRY_LANGS.contains(&l.as_str()) => {}
+        _ => return "uncertain",
+    }
+    if file_has_masking(inventory, &target.file_path) {
+        return "uncertain";
+    }
+    let rc = reverse_closure(inventory, &FunctionId::Internal(target.clone()), max_depth, true);
+    for fid in rc.nodes {
+        if let FunctionId::Internal(f) = fid {
+            if file_has_masking(inventory, &f.file_path) {
+                return "uncertain";
+            }
+        }
+    }
+    "no_path_from_entry"
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1499,6 +1760,47 @@ mod tests {
 
         let r2 = function_called(&inv, "totally.unrelated.fn", true).unwrap();
         assert_eq!(r2.verdict, Verdict::NotCalled);
+    }
+
+    #[test]
+    fn closures_and_entry_reachability() {
+        let inv = json!({"files": [
+            {"path": "main.go", "language": "go",
+             "items": [{"name": "main", "line_start": 1, "kind": "function"}, {"name": "Helper", "line_start": 10, "kind": "function"}, {"name": "deep", "line_start": 20, "kind": "function"}, {"name": "orphan", "line_start": 30, "kind": "function"}],
+             "call_graph": {"package_name": "app", "imports": {},
+               "calls": [
+                 {"chain": ["Helper"], "line": 2, "caller": "main"},
+                 {"chain": ["deep"], "line": 11, "caller": "Helper"},
+                 {"chain": ["deep"], "line": 31, "caller": "orphan"}
+               ]}}
+        ]});
+        let main_fn = InternalFunction::new("main.go", "main", 1);
+        let helper = InternalFunction::new("main.go", "Helper", 10);
+        let deep = InternalFunction::new("main.go", "deep", 20);
+        let orphan = InternalFunction::new("main.go", "orphan", 30);
+
+        // forward closure from main reaches Helper + deep (not orphan).
+        let fc = forward_closure(&inv, std::iter::once(main_fn.clone()), 50, true);
+        assert_eq!(fc.nodes, vec![FunctionId::Internal(helper.clone()), FunctionId::Internal(deep.clone())]);
+
+        // reverse closure of deep: Helper, main, orphan all reach it.
+        let rc = reverse_closure(&inv, &FunctionId::Internal(deep.clone()), 50, true);
+        let rc_set: std::collections::HashSet<_> = rc.nodes.into_iter().collect();
+        assert!(rc_set.contains(&FunctionId::Internal(helper.clone())));
+        assert!(rc_set.contains(&FunctionId::Internal(main_fn.clone())));
+        assert!(rc_set.contains(&FunctionId::Internal(orphan.clone())));
+
+        // shortest path main -> deep is [main, Helper, deep]; main -> orphan is None.
+        assert_eq!(
+            shortest_path(&inv, &main_fn, &FunctionId::Internal(deep.clone()), 50, false),
+            Some(vec![FunctionId::Internal(main_fn.clone()), FunctionId::Internal(helper), FunctionId::Internal(deep.clone())])
+        );
+        assert_eq!(shortest_path(&inv, &main_fn, &FunctionId::Internal(orphan.clone()), 50, false), None);
+
+        // entry_reachability: main reachable; deep reachable via main; orphan dead (Go is closeable).
+        assert_eq!(entry_reachability(&inv, &main_fn, 50), "reachable");
+        assert_eq!(entry_reachability(&inv, &deep, 50), "reachable");
+        assert_eq!(entry_reachability(&inv, &orphan, 50), "no_path_from_entry");
     }
 
     #[test]
