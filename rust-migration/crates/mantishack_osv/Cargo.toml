@@ -21,3 +21,4 @@ python = ["dep:pyo3"]
 pyo3 = { workspace = true, optional = true }
 serde_json = "1"
 chrono = { version = "0.4", default-features = false, features = ["std", "alloc"] }
+mantishack_core_url_patterns = { path = "../mantishack_core_url_patterns" }

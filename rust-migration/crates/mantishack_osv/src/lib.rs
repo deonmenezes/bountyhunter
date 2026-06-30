@@ -6,6 +6,9 @@
 //! in Python; this crate is network/IO-free and parses `serde_json::Value`.
 
 use chrono::{DateTime, Utc};
+use mantishack_core_url_patterns::{
+    extract_github_slug, github_commit_url_re, kernel_sha_url_re, normalize_slug, LINUX_UPSTREAM_SLUG,
+};
 use serde_json::{json, Map, Value};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -240,6 +243,107 @@ impl OsvRecord {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Commit-pair extraction + verdict types (verify.py pure core).
+// ---------------------------------------------------------------------------
+
+/// Per-CVE oracle verdict (`Verdict`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Verdict {
+    MatchExact,
+    MatchRange,
+    MirrorDifferentSlug,
+    Dispute,
+    Orphan,
+    LikelyHallucination,
+}
+
+impl Verdict {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Verdict::MatchExact => "match_exact",
+            Verdict::MatchRange => "match_range",
+            Verdict::MirrorDifferentSlug => "mirror_different_slug",
+            Verdict::Dispute => "dispute",
+            Verdict::Orphan => "orphan",
+            Verdict::LikelyHallucination => "likely_hallucination",
+        }
+    }
+    /// True for the verdicts that count as a passing oracle match.
+    pub fn is_pass(self) -> bool {
+        matches!(self, Verdict::MatchExact | Verdict::MatchRange | Verdict::MirrorDifferentSlug)
+    }
+}
+
+/// Per-CVE verdict with the evidence that drove it (`OracleVerdict`).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct OracleVerdict {
+    pub cve_id: String,
+    pub picked_slug: String,
+    pub picked_sha: String,
+    pub verdict: Verdict,
+    pub source: String,
+    pub expected_slugs: Vec<String>,
+    pub expected_shas: Vec<String>,
+    pub notes: String,
+}
+
+impl OracleVerdict {
+    pub fn to_json(&self) -> Value {
+        json!({
+            "cve_id": self.cve_id,
+            "picked_slug": self.picked_slug,
+            "picked_sha": self.picked_sha,
+            "verdict": self.verdict.as_str(),
+            "source": self.source,
+            "expected_slugs": self.expected_slugs,
+            "expected_shas": self.expected_shas,
+            "notes": self.notes,
+            "is_pass": self.verdict.is_pass(),
+        })
+    }
+}
+
+/// A list of `(slug, sha)` commit pairs.
+pub type PairList = Vec<(String, String)>;
+
+/// Return `(reference_pairs, range_pairs)` of `(slug, sha)` from an
+/// `OsvRecord` (`_extract_pairs`): GitHub-commit + kernel.org refs, and `fixed`
+/// events of GIT ranges (dropping empty / `"0"` shas and slug-less ranges).
+pub fn extract_pairs(record: &OsvRecord) -> (PairList, PairList) {
+    let mut ref_pairs: PairList = Vec::new();
+    for r in &record.references {
+        let url = r.url.trim();
+        if let Some(m) = github_commit_url_re().captures(url) {
+            ref_pairs.push((normalize_slug(&m[1]), m[2].to_lowercase()));
+            continue;
+        }
+        if let Some(km) = kernel_sha_url_re().captures(url) {
+            ref_pairs.push((LINUX_UPSTREAM_SLUG.to_lowercase(), km[1].to_lowercase()));
+        }
+    }
+
+    let mut range_pairs: PairList = Vec::new();
+    for aff in &record.affected {
+        for rng in &aff.ranges {
+            if rng.ty.to_uppercase() != "GIT" {
+                continue;
+            }
+            let slug = extract_github_slug(rng.repo.as_deref().unwrap_or("")).unwrap_or_default();
+            for ev in &rng.events {
+                let sha = ev.get("fixed").and_then(Value::as_str).unwrap_or("").to_lowercase();
+                if sha.is_empty() || sha == "0" {
+                    continue;
+                }
+                if !slug.is_empty() {
+                    range_pairs.push((slug.clone(), sha));
+                }
+            }
+        }
+    }
+    (ref_pairs, range_pairs)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -284,5 +388,37 @@ mod tests {
         let rec = json!({"id": "X", "published": "2024-01-15T10:30:00+05:00"});
         let r = parse_record(&rec).unwrap();
         assert_eq!(r.published.as_deref(), Some("2024-01-15T05:30:00+00:00"));
+    }
+
+    #[test]
+    fn extract_pairs_refs_and_ranges() {
+        let rec = json!({"id": "X",
+            "references": [
+                {"url": "https://github.com/Foo/Bar/commit/ABCDEF1234567890", "type": "FIX"},
+                {"url": "https://example.com/not-a-commit", "type": "WEB"}
+            ],
+            "affected": [{"ranges": [
+                {"type": "GIT", "repo": "https://github.com/Foo/Bar", "events": [{"introduced": "0"}, {"fixed": "BEEFCAFE"}, {"fixed": "0"}]},
+                {"type": "SEMVER", "events": [{"fixed": "1.0"}]}
+            ]}]});
+        let r = parse_record(&rec).unwrap();
+        let (refs, ranges) = extract_pairs(&r);
+        // Only the GitHub commit ref matches (non-commit URL dropped).
+        assert_eq!(refs, vec![("foo/bar".to_string(), "abcdef1234567890".to_string())]);
+        // Only the GIT range's non-"0" fixed event yields a pair.
+        assert_eq!(ranges, vec![("foo/bar".to_string(), "beefcafe".to_string())]);
+    }
+
+    #[test]
+    fn verdict_pass_and_json() {
+        assert!(Verdict::MatchExact.is_pass());
+        assert!(!Verdict::Orphan.is_pass());
+        let v = OracleVerdict {
+            cve_id: "CVE-1".into(), picked_slug: "a/b".into(), picked_sha: "deadbeef".into(),
+            verdict: Verdict::MatchExact, source: "osv".into(),
+            expected_slugs: vec!["a/b".into()], expected_shas: vec!["deadbeef".into()], notes: "".into(),
+        };
+        assert_eq!(v.to_json()["verdict"], "match_exact");
+        assert_eq!(v.to_json()["is_pass"], true);
     }
 }

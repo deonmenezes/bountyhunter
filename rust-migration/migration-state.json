@@ -1522,9 +1522,10 @@
       "parity": {}
     },
     "packages.osv": {
-      "status": "ported (types + parser.parse_record; OsvClient HTTP + verify oracle stay in Python)",
+      "status": "ported (types + parser + verify.extract_pairs/Verdict/OracleVerdict; OsvClient HTTP + alias-following + the verdict-scoring oracle stay in Python)",
       "parity": {
-        "osv_parser": "pass (differential vs parse_record: references/affected/ranges with event reordering + unknown-type->ECOSYSTEM, versions/severity non-string filtering, package str-map, UTC timestamp normalisation incl Z/offset/microseconds/bad-date, missing-id ValueError)"
+        "osv_parser": "pass (differential vs parse_record: references/affected/ranges with event reordering + unknown-type->ECOSYSTEM, versions/severity non-string filtering, package str-map, UTC timestamp normalisation incl Z/offset/microseconds/bad-date, missing-id ValueError)",
+        "osv_extract_pairs": "pass (differential vs verify._extract_pairs: github-commit + kernel.org refs, GIT-range fixed-event pairs dropping ''/'0'/slug-less) + Verdict/OracleVerdict types"
       }
     },
     "packages.osv.tests": {
