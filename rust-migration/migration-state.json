@@ -1556,7 +1556,7 @@
       "parity": {}
     },
     "packages.sca": {
-      "status": "in progress (models + 21 of 32 parser surfaces incl directory_packages_props (XML via roxmltree); 11 more parsers + registry/resolvers pending)",
+      "status": "in progress (models + 22 of 32 parser surfaces incl nuget packages.config/lock; .csproj CPM-chain(fs) + 9 more parsers pending)",
       "parity": {
         "sca_models_gomod": "pass (differential vs gomod.parse_manifest/parse_lockfile: require block+single, indirect, pseudo-version->git pin, replace redirect + path replace, go.sum dedup + /go.mod suffix; full Dependency model incl pin_style/purl/parser_confidence level+reason+numeric/key)",
         "sca_gemfile": "pass (differential vs gemfile.parse_manifest/parse_lockfile: version specs tilde/range/exact/caret, git/github/path overrides, control-flow->medium confidence, non-digit version rejection, Gemfile.lock specs block 4-space rows + platform suffix + templated skip)",
@@ -1579,7 +1579,8 @@
         "sca_helm_chart": "pass (differential vs helm_chart.parse: Chart.yaml dependencies [caret/tilde/range/exact/wildcard(*/x/latest)/unknown version classification, repository source_extra, no-version skip] + Chart.lock is_lockfile pinned; basename-derived is_lockfile)",
         "sca_cmake_fetchcontent": "pass (differential vs cmake_fetchcontent.parse_cmake_lists: FetchContent_Declare blocks, KEY VALUE arg tokeniser w/ quote+comment handling, GIT_REPOSITORY github(.git)->GitHub vs other->generic, URL github-before-/archive/ + tarball ref extraction, GIT_TAG/ref version, no-git-no-url skip)",
         "sca_gradle_version_catalog": "pass (differential vs parse_libs_versions_toml VersionCatalog: [versions] string filter, [libraries] module/group+name/string-shorthand + version.ref resolution + missing-ref(via_ref,no version) + strictly/require/prefer, [plugins] string + id/version.ref, [bundles] string-list filter; non-string entries skipped)",
-        "sca_directory_packages_props": "pass (differential vs parse_directory_packages_props CPMFile: <Project> root, ManagePackageVersionsCentrally true/false/default, PackageVersion + GlobalPackageReference (is_global) Include/Version attr or child <Version>, $()/@()/%() MSBuild-property skip, empty-Include/no-Version skip, case-insensitive last-wins dedup, multi-ItemGroup; roxmltree XML matches ElementTree namespace-strip)"
+        "sca_directory_packages_props": "pass (differential vs parse_directory_packages_props CPMFile: <Project> root, ManagePackageVersionsCentrally true/false/default, PackageVersion + GlobalPackageReference (is_global) Include/Version attr or child <Version>, $()/@()/%() MSBuild-property skip, empty-Include/no-Version skip, case-insensitive last-wins dedup, multi-ItemGroup; roxmltree XML matches ElementTree namespace-strip)",
+        "sca_nuget": "pass (differential vs nuget.parse_packages_config + parse_lockfile: packages.config <package id/version> w/ NuGet version-spec classification ([V]->exact, [lo,hi)/(,hi]/[lo,)->range w/ bare bound, bare->minimum range, pathological->unknown), key dedup; packages.lock.json dependencies-by-tfm resolved+type->direct. .csproj PackageReference CPM-chain resolution(filesystem) not ported)"
       }
     },
     "packages.sca.bump": {

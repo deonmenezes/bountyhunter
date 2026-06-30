@@ -21,6 +21,7 @@ pub mod gradle_version_catalog;
 pub mod helm_chart;
 pub mod kubernetes;
 pub mod models;
+pub mod nuget;
 pub mod package_lock_json;
 pub mod pipfile_lock;
 pub mod pnpm_lock;
