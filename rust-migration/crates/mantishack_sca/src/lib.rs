@@ -8,6 +8,7 @@
 
 pub mod cargo;
 pub mod composer;
+pub mod cmake_fetchcontent;
 pub mod compose;
 pub mod conan;
 pub mod gemfile;
