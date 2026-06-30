@@ -9,6 +9,7 @@
 pub mod cargo;
 pub mod composer;
 pub mod gemfile;
+pub mod gitmodules;
 pub mod gomod;
 pub mod gradle_lockfile;
 pub mod models;
