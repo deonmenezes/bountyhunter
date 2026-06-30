@@ -614,11 +614,17 @@ fn ts_contains_call(node: Node, depth: u32) -> bool {
     children(node).into_iter().any(|c| ts_contains_call(c, depth + 1))
 }
 
+/// Languages whose extraction surfaces module-scope `top_level` items.
+const TOP_LEVEL_LANGS: &[&str] = &["python", "javascript", "typescript", "tsx"];
+
 /// Module-scope executable statements (run at import) as `top_level` items —
 /// a root-level `expression_statement` containing a call but not an assignment.
-/// Faithful port of `_extract_top_level_ts` for Python.
-pub fn extract_python_top_level(content: &str) -> Vec<CodeItem> {
-    let Some(tree) = mantishack_ts::parse("python", content) else {
+/// Faithful port of `_extract_top_level_ts` (script-like languages only).
+pub fn extract_top_level(language: &str, content: &str) -> Vec<CodeItem> {
+    if !TOP_LEVEL_LANGS.contains(&language) {
+        return Vec::new();
+    }
+    let Some(tree) = mantishack_ts::parse(language, content) else {
         return Vec::new();
     };
     let root = tree.root_node();
@@ -720,6 +726,87 @@ pub fn extract_python_globals(content: &str) -> Vec<CodeItem> {
 /// Go globals convenience wrapper.
 pub fn extract_go_globals(content: &str) -> Vec<CodeItem> {
     extract_globals("go", content)
+}
+
+/// Python top-level convenience wrapper (kept for existing tests).
+pub fn extract_python_top_level(content: &str) -> Vec<CodeItem> {
+    extract_top_level("python", content)
+}
+
+/// A single inventory item: either a function (rich `FunctionInfo`) or a
+/// plain `CodeItem` (global / top-level / macro). Mirrors the Python
+/// `extract_items` list, which mixes `FunctionInfo` and `CodeItem`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum InventoryItem {
+    Function(FunctionInfo),
+    Item(CodeItem),
+}
+
+impl InventoryItem {
+    pub fn kind(&self) -> &str {
+        match self {
+            Self::Function(f) => &f.kind,
+            Self::Item(c) => &c.kind,
+        }
+    }
+
+    /// Serialize to the same shape as the Python `.to_dict()`.
+    pub fn to_json(&self) -> serde_json::Value {
+        match self {
+            Self::Function(f) => function_info_to_json(f),
+            Self::Item(c) => code_item_to_json(c),
+        }
+    }
+}
+
+fn code_item_to_json(c: &CodeItem) -> serde_json::Value {
+    serde_json::json!({
+        "name": c.name, "kind": c.kind, "line_start": c.line_start,
+        "line_end": c.line_end, "checked_by": c.checked_by,
+    })
+}
+
+fn function_info_to_json(f: &FunctionInfo) -> serde_json::Value {
+    let mut d = serde_json::json!({
+        "name": f.name, "kind": f.kind, "line_start": f.line_start,
+        "line_end": f.line_end, "signature": f.signature, "checked_by": f.checked_by,
+    });
+    if let Some(m) = &f.metadata {
+        let params: Vec<serde_json::Value> =
+            m.parameters.iter().map(|(n, t)| serde_json::json!([n, t])).collect();
+        d["metadata"] = serde_json::json!({
+            "class_name": m.class_name, "visibility": m.visibility,
+            "attributes": m.attributes, "return_type": m.return_type,
+            "parameters": params, "class_attributes": m.class_attributes,
+        });
+    }
+    d
+}
+
+/// Extract all inventory items (functions + globals + top-level + C/C++ macros)
+/// from a file — port of `extract_items` for the tree-sitter path.
+///
+/// Faithful when tree-sitter yields functions: items = functions ++ globals ++
+/// top-level ++ macros, in that order. The Python no-function fallback (which
+/// re-runs the `ast`/regex extractors for functions) is NOT applied — a
+/// documented gap that only affects files with zero extracted functions.
+pub fn extract_items(language: &str, content: &str) -> Vec<InventoryItem> {
+    let mut items: Vec<InventoryItem> = Vec::new();
+    for f in extract_functions(language, content) {
+        items.push(InventoryItem::Function(f));
+    }
+    for g in extract_globals(language, content) {
+        items.push(InventoryItem::Item(g));
+    }
+    for t in extract_top_level(language, content) {
+        items.push(InventoryItem::Item(t));
+    }
+    if matches!(language, "c" | "cpp") {
+        for m in crate::extractors::extract_macros(content) {
+            items.push(InventoryItem::Item(m));
+        }
+    }
+    items
 }
 
 fn global_names(node: Node, language: &str, src: &[u8]) -> Vec<String> {
@@ -1156,6 +1243,19 @@ mod tests {
         assert_eq!(m.attributes, vec!["GetMapping"]); // method annotation
         assert_eq!(m.class_attributes, vec!["Service"]); // class stereotype
         assert_eq!(m.parameters, vec![("req".to_string(), Some("Request".to_string()))]);
+    }
+
+    #[test]
+    fn extract_items_combines_functions_globals_top_level_macros() {
+        let src = "#define MAX 100\nint g = 5;\nint add(int a) { return a; }\n";
+        let items = extract_items("c", src);
+        let kinds: Vec<&str> = items.iter().map(|i| i.kind()).collect();
+        // function, then global, then macro (C order).
+        assert_eq!(kinds, vec!["function", "global", "macro"]);
+        match &items[0] {
+            InventoryItem::Function(f) => assert_eq!(f.name, "add"),
+            _ => panic!("expected function first"),
+        }
     }
 
     #[test]
