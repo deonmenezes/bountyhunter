@@ -87,6 +87,11 @@ pub fn extract_go_functions(content: &str) -> Vec<FunctionInfo> {
     extract_functions("go", content)
 }
 
+/// Java convenience wrapper.
+pub fn extract_java_functions(content: &str) -> Vec<FunctionInfo> {
+    extract_functions("java", content)
+}
+
 fn is_js_family(language: &str) -> bool {
     matches!(language, "javascript" | "typescript" | "tsx")
 }
@@ -100,6 +105,7 @@ fn func_types(language: &str) -> &'static [&'static str] {
         }
         "c" | "cpp" => &["function_definition"],
         "go" => &["function_declaration", "method_declaration"],
+        "java" => &["method_declaration", "constructor_declaration"],
         _ => &[],
     }
 }
@@ -110,6 +116,7 @@ fn class_types(language: &str) -> &'static [&'static str] {
         "python" => &["class_definition"],
         "javascript" => &["class_declaration"],
         "typescript" | "tsx" => &["class_declaration", "abstract_class_declaration"],
+        "java" => &["class_declaration", "interface_declaration"],
         _ => &[],
     }
 }
@@ -282,15 +289,56 @@ fn ts_member_visibility(node: Node, src: &[u8], language: &str) -> Option<String
 fn class_annotations(node: Node, src: &[u8]) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     for child in children(node) {
-        if child.kind() == "modifiers" {
-            for m in children(child) {
-                if matches!(m.kind(), "marker_annotation" | "annotation") {
-                    out.push(lstrip_at(text(m, src)));
+        match child.kind() {
+            "modifiers" => {
+                for m in children(child) {
+                    if matches!(m.kind(), "marker_annotation" | "annotation") {
+                        out.push(lstrip_at(text(m, src)));
+                    }
                 }
             }
+            // Java: `extends Foo` (superclass) / `implements Bar`
+            // (super_interfaces) — record the base type tail-names so a
+            // framework base (JpaRepository, Validator …) marks the class.
+            "superclass" | "super_interfaces" | "extends_interfaces" => {
+                java_base_names(child, src, &mut out);
+            }
+            _ => {}
         }
     }
     out
+}
+
+/// Append base type tail-names from a Java `superclass`/`super_interfaces`
+/// node (`JpaRepository<Owner,Integer>` -> `JpaRepository`; `org.x.Validator`
+/// -> `Validator`). A `type_list` separates multiple bases.
+fn java_base_names(node: Node, src: &[u8], out: &mut Vec<String>) {
+    const TYPE_NODES: &[&str] = &["type_identifier", "scoped_type_identifier", "generic_type"];
+    fn add(tn: Node, src: &[u8], out: &mut Vec<String>) {
+        let base = text(tn, src)
+            .split('<')
+            .next()
+            .unwrap_or("")
+            .trim()
+            .split('.')
+            .next_back()
+            .unwrap_or("")
+            .trim();
+        if !base.is_empty() {
+            out.push(base.to_string());
+        }
+    }
+    for n in children(node) {
+        if n.kind() == "type_list" {
+            for tn in children(n) {
+                if TYPE_NODES.contains(&tn.kind()) {
+                    add(tn, src, out);
+                }
+            }
+        } else if TYPE_NODES.contains(&n.kind()) {
+            add(n, src, out);
+        }
+    }
 }
 
 /// Extract visibility and (possibly updated) class_name. Python branch returns
@@ -302,13 +350,34 @@ fn extract_visibility(
     language: &str,
     name: &str,
     class_name: Option<&str>,
+    attrs: &mut Vec<String>,
 ) -> (Option<String>, Option<String>) {
     let mut visibility = None;
     let mut class_name_out = class_name.map(str::to_string);
     if node.kind() == "method_definition" {
         visibility = ts_member_visibility(node, src, language);
     }
-    // (csharp / java modifiers branches: added with those languages.)
+    // (csharp modifiers branch: added with C#.)
+
+    // Java: the `modifiers` block holds annotations (-> attributes) and access
+    // keywords (-> visibility); `static` is appended to the access keyword.
+    for child in children(node) {
+        if child.kind() == "modifiers" {
+            for m in children(child) {
+                match m.kind() {
+                    "marker_annotation" | "annotation" => attrs.push(lstrip_at(text(m, src))),
+                    "public" | "private" | "protected" => {
+                        visibility = Some(text(m, src).to_string());
+                    }
+                    "static" => {
+                        let base = visibility.take().unwrap_or_default();
+                        visibility = Some(format!("{base} static").trim().to_string());
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
 
     // C/C++: storage-class linkage. `extern` (external linkage) takes priority
     // over `static` (internal linkage); a following `inline` must not mask it.
@@ -397,8 +466,8 @@ fn extract_function(
     class_attributes: &[String],
 ) -> Option<FunctionInfo> {
     let name = get_name(node, src, language)?;
-    let (visibility, class_name) = extract_visibility(node, src, language, &name, class_name);
-    let _ = &mut attrs; // attrs is mutated by Java/C# branches (added later)
+    let (visibility, class_name) =
+        extract_visibility(node, src, language, &name, class_name, &mut attrs);
     let parameters = extract_parameters(node, src, language);
     let return_type = extract_return_type(node, src);
 
@@ -583,6 +652,7 @@ fn global_types(language: &str) -> &'static [&'static str] {
         "python" => &["expression_statement", "assignment"],
         "javascript" | "typescript" | "tsx" => &["lexical_declaration", "variable_declaration"],
         "c" | "cpp" => &["declaration"],
+        "java" => &["field_declaration"],
         "go" => &["var_declaration", "const_declaration"],
         _ => &[],
     }
@@ -599,8 +669,34 @@ pub fn extract_globals(language: &str, content: &str) -> Vec<CodeItem> {
         return Vec::new();
     };
     let src = content.as_bytes();
+    let root = tree.root_node();
+
+    // Java field_declarations live inside class/interface/enum/record bodies,
+    // not at the root — scan into those bodies. Other languages declare globals
+    // at file scope.
+    let scan_nodes: Vec<Node> = if language == "java" {
+        let mut nodes = Vec::new();
+        for top in children(root) {
+            if matches!(
+                top.kind(),
+                "class_declaration" | "interface_declaration" | "enum_declaration" | "record_declaration"
+            ) {
+                if let Some(body) = children(top).into_iter().find(|c| {
+                    matches!(c.kind(), "class_body" | "interface_body" | "enum_body" | "record_body")
+                }) {
+                    nodes.extend(children(body));
+                }
+            } else {
+                nodes.push(top);
+            }
+        }
+        nodes
+    } else {
+        children(root)
+    };
+
     let mut out: Vec<CodeItem> = Vec::new();
-    for child in children(tree.root_node()) {
+    for child in scan_nodes {
         if !target_types.contains(&child.kind()) {
             continue;
         }
@@ -632,8 +728,24 @@ fn global_names(node: Node, language: &str, src: &[u8]) -> Vec<String> {
         "go" => global_names_go(node, src),
         "javascript" | "typescript" | "tsx" => global_names_js(node, src),
         "c" | "cpp" => global_names_c(node, src),
+        "java" => global_names_java(node, src),
         _ => Vec::new(),
     }
+}
+
+/// Java field name — the first `variable_declarator`'s identifier
+/// (`_global_name` Java branch).
+fn global_names_java(node: Node, src: &[u8]) -> Vec<String> {
+    for child in children(node) {
+        if child.kind() == "variable_declarator" {
+            for sub in children(child) {
+                if sub.kind() == "identifier" {
+                    return vec![text(sub, src).to_string()];
+                }
+            }
+        }
+    }
+    Vec::new()
 }
 
 /// C/C++ global name. Function prototypes (a direct `function_declarator`
@@ -961,5 +1073,38 @@ mod tests {
         // var_spec_list and are dropped — matching Python.
         let g = extract_go_globals("var Global = 1\nconst Max = 9\nvar (\n  a int\n)\n");
         assert_eq!(item_names(&g), vec!["Global", "Max"]);
+    }
+
+    // --- Java ------------------------------------------------------------
+
+    #[test]
+    fn java_method_visibility_and_class_name() {
+        let src = "public class Foo {\n    public int add(int a, int b) { return a + b; }\n    private void helper() {}\n}\n";
+        let fns = extract_java_functions(src);
+        assert_eq!(names(&fns), vec!["add", "helper"]);
+        let m0 = fns[0].metadata.as_ref().unwrap();
+        assert_eq!(m0.class_name.as_deref(), Some("Foo"));
+        assert_eq!(m0.visibility.as_deref(), Some("public"));
+        // Java `int` is integral_type (not in the type set) → params lose types.
+        assert_eq!(fns[0].signature.as_deref(), Some("add(a, b)"));
+        assert_eq!(fns[1].metadata.as_ref().unwrap().visibility.as_deref(), Some("private"));
+    }
+
+    #[test]
+    fn java_annotations_and_stereotype() {
+        let src = "@Service\npublic class Svc {\n    @GetMapping\n    public String handle(Request req) { return \"x\"; }\n}\n";
+        let m = extract_java_functions(src)[0].metadata.clone().unwrap();
+        assert_eq!(m.attributes, vec!["GetMapping"]); // method annotation
+        assert_eq!(m.class_attributes, vec!["Service"]); // class stereotype
+        assert_eq!(m.parameters, vec![("req".to_string(), Some("Request".to_string()))]);
+    }
+
+    #[test]
+    fn java_base_type_and_fields() {
+        let src = "class Repo extends JpaRepository<Owner, Integer> {\n    public Owner find(int id) { return null; }\n}\n";
+        let m = extract_java_functions(src)[0].metadata.clone().unwrap();
+        assert_eq!(m.class_attributes, vec!["JpaRepository"]); // base tail-name
+        let g = extract_globals("java", "public class C {\n    static final int MAX = 1;\n    String name;\n}\n");
+        assert_eq!(item_names(&g), vec!["MAX", "name"]);
     }
 }
