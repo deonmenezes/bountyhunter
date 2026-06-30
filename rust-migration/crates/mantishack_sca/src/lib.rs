@@ -8,6 +8,7 @@
 
 pub mod cargo;
 pub mod composer;
+pub mod compose;
 pub mod conan;
 pub mod gemfile;
 pub mod gitmodules;
