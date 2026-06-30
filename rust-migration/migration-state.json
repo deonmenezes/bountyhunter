@@ -319,7 +319,8 @@
         "extractors.macros_and_count_sloc": "pass (5-case differential vs _extract_macros_regex + count_sloc: include guards, block comments, docstrings-as-code, trailing comments)",
         "extractors.extract_items": "pass (5-lang differential vs extract_items for function-present files: py/js/c/go/java, correct fn+global+top_level+macro ordering)",
         "call_graph.data_structures": "to_json shape matches FileCallGraph.to_dict (unit-tested: omit-empty optionals, sorted sets, method tuples, package_name)",
-        "call_graph.go": "pass (6-case differential vs extract_call_graph_go: bare/alias/dot/blank/versioned/hyphenated imports, selector chains, reflect indirection, identifier args, method-receiver caller, package_name)"
+        "call_graph.go": "pass (6-case differential vs extract_call_graph_go: bare/alias/dot/blank/versioned/hyphenated imports, selector chains, reflect indirection, identifier args, method-receiver caller, package_name)",
+        "call_graph.c": "pass (6-case differential vs extract_call_graph_c: system/quoted includes w/ basename+splitext, fn-pointer indirection, field chains a->b->c, pointer-return fn names)"
       }
     },
     "core.inventory.tests": {

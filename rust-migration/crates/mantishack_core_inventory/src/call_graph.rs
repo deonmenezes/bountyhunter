@@ -15,6 +15,7 @@ use tree_sitter::Node;
 // Indirection flags (subset; grows as language extractors are ported).
 const INDIRECTION_WILDCARD_IMPORT: &str = "wildcard_import";
 const INDIRECTION_REFLECT: &str = "reflect";
+const INDIRECTION_FN_POINTER: &str = "fn_pointer";
 
 fn cg_children<'a>(n: Node<'a>) -> Vec<Node<'a>> {
     let mut c = n.walk();
@@ -31,6 +32,10 @@ fn first_child_of_type<'a>(n: Node<'a>, types: &[&str]) -> Option<Node<'a>> {
 
 fn last_child_of_type<'a>(n: Node<'a>, types: &[&str]) -> Option<Node<'a>> {
     cg_children(n).into_iter().rfind(|c| types.contains(&c.kind()))
+}
+
+fn first_named_child(n: Node) -> Option<Node> {
+    cg_children(n).into_iter().find(|c| c.is_named())
 }
 
 /// One call expression in a file. `chain` is the callee's attribute chain
@@ -369,6 +374,229 @@ pub fn extract_call_graph_go(content: &str) -> FileCallGraph {
     w.graph
 }
 
+// ---------------------------------------------------------------------------
+// C call-graph extractor — port of extract_call_graph_c / _CCallGraph.
+// ---------------------------------------------------------------------------
+
+/// `os.path.splitext(base)[0]` — strip the last extension, skipping leading
+/// dots (so `.cshrc` keeps its full name).
+fn splitext_root(base: &str) -> &str {
+    match base.rfind('.') {
+        Some(dot) => {
+            let before = &base[..dot];
+            if before.bytes().any(|b| b != b'.') {
+                before
+            } else {
+                base
+            }
+        }
+        None => base,
+    }
+}
+
+struct CCallGraph {
+    graph: FileCallGraph,
+    enclosing: Vec<String>,
+}
+
+impl CCallGraph {
+    fn walk(&mut self, node: Node, src: &[u8]) {
+        match node.kind() {
+            "preproc_include" => {
+                self.visit_include(node, src);
+                return;
+            }
+            "function_definition" => {
+                if let Some(name) = self.function_name(node, src) {
+                    self.enclosing.push(name);
+                    for child in cg_children(node) {
+                        self.walk(child, src);
+                    }
+                    self.enclosing.pop();
+                    return;
+                }
+            }
+            "call_expression" => {
+                self.visit_call(node, src);
+            }
+            _ => {}
+        }
+        for child in cg_children(node) {
+            self.walk(child, src);
+        }
+    }
+
+    fn visit_include(&mut self, node: Node, src: &[u8]) {
+        for child in cg_children(node) {
+            match child.kind() {
+                "string_literal" => {
+                    if let Some(path) = unwrap_c_string(child, src) {
+                        self.record_include(&path);
+                    }
+                }
+                "system_lib_string" => {
+                    let raw = cg_text(child, src).trim();
+                    if raw.starts_with('<') && raw.ends_with('>') && raw.len() >= 2 {
+                        let path = &raw[1..raw.len() - 1];
+                        if !path.is_empty() {
+                            self.record_include(path);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn record_include(&mut self, path: &str) {
+        let base = path.rsplit('/').next().unwrap_or("");
+        let local = splitext_root(base);
+        if !local.is_empty() {
+            self.graph.imports.insert(local.to_string(), path.to_string());
+        }
+    }
+
+    fn visit_call(&mut self, node: Node, src: &[u8]) {
+        let mut callee = None;
+        for c in cg_children(node) {
+            if c.kind() == "argument_list" {
+                break;
+            }
+            if c.is_named() {
+                callee = Some(c);
+                break;
+            }
+        }
+        let Some(callee) = callee else { return };
+        let (chain, is_fn_pointer) = self.callee_chain(callee, src);
+        let Some(chain) = chain else { return };
+        if is_fn_pointer {
+            self.graph.indirection.insert(INDIRECTION_FN_POINTER.to_string());
+        }
+        let caller = self.enclosing.last().cloned();
+        self.graph.calls.push(CallSite {
+            line: node.start_position().row as i64 + 1,
+            chain,
+            caller,
+            ..Default::default()
+        });
+    }
+
+    fn callee_chain(&self, node: Node, src: &[u8]) -> (Option<Vec<String>>, bool) {
+        match node.kind() {
+            "parenthesized_expression" => {
+                let Some(inner) = first_named_child(node) else { return (None, false) };
+                let (chain, _) = self.callee_chain(inner, src);
+                let is_fp = chain.is_some() && inner.kind() == "pointer_expression";
+                (chain, is_fp)
+            }
+            "pointer_expression" => {
+                let Some(inner) = first_named_child(node) else { return (None, false) };
+                let (chain, _) = self.callee_chain(inner, src);
+                let is_fp = chain.is_some();
+                (chain, is_fp)
+            }
+            "identifier" => (Some(vec![cg_text(node, src).to_string()]), false),
+            "field_expression" => (self.field_chain(node, src), false),
+            _ => (None, false),
+        }
+    }
+
+    fn field_chain(&self, node: Node, src: &[u8]) -> Option<Vec<String>> {
+        let mut parts: Vec<String> = Vec::new();
+        let mut cur = Some(node);
+        while let Some(c) = cur {
+            if c.kind() != "field_expression" {
+                break;
+            }
+            let field = cg_children(c).into_iter().rfind(|x| x.kind() == "field_identifier")?;
+            parts.push(cg_text(field, src).to_string());
+            cur = cg_children(c)
+                .into_iter()
+                .find(|x| x.is_named() && x.kind() != "field_identifier");
+        }
+        let c = cur?;
+        if c.kind() == "identifier" {
+            parts.push(cg_text(c, src).to_string());
+            parts.reverse();
+            Some(parts)
+        } else {
+            None
+        }
+    }
+
+    fn function_name(&self, node: Node, src: &[u8]) -> Option<String> {
+        for c in cg_children(node) {
+            if !c.is_named() {
+                continue;
+            }
+            if c.kind() == "function_declarator" {
+                return self.declarator_name(c, src);
+            }
+            if c.kind() == "pointer_declarator" {
+                if let Some(inner) = self.find_function_declarator(c) {
+                    return self.declarator_name(inner, src);
+                }
+            }
+        }
+        None
+    }
+
+    fn declarator_name(&self, node: Node, src: &[u8]) -> Option<String> {
+        for c in cg_children(node) {
+            if !c.is_named() {
+                continue;
+            }
+            if c.kind() == "identifier" {
+                return Some(cg_text(c, src).to_string());
+            }
+            if c.kind() == "parenthesized_declarator" {
+                if let Some(inner) = first_named_child(c) {
+                    if inner.kind() == "identifier" {
+                        return Some(cg_text(inner, src).to_string());
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    fn find_function_declarator<'a>(&self, node: Node<'a>) -> Option<Node<'a>> {
+        for c in cg_children(node) {
+            if c.kind() == "function_declarator" {
+                return Some(c);
+            }
+            if matches!(c.kind(), "pointer_declarator" | "parenthesized_declarator") {
+                if let Some(inner) = self.find_function_declarator(c) {
+                    return Some(inner);
+                }
+            }
+        }
+        None
+    }
+}
+
+fn unwrap_c_string(node: Node, src: &[u8]) -> Option<String> {
+    if let Some(content) = first_child_of_type(node, &["string_content"]) {
+        return Some(cg_text(content, src).to_string());
+    }
+    let raw = cg_text(node, src);
+    if raw.len() >= 2 && raw.starts_with('"') && raw.ends_with('"') {
+        return Some(raw[1..raw.len() - 1].to_string());
+    }
+    None
+}
+
+/// Walk a C source string via tree-sitter-c and return its `FileCallGraph`.
+pub fn extract_call_graph_c(content: &str) -> FileCallGraph {
+    let Some(tree) = mantishack_ts::parse("c", content) else {
+        return FileCallGraph::default();
+    };
+    let mut w = CCallGraph { graph: FileCallGraph::default(), enclosing: Vec::new() };
+    w.walk(tree.root_node(), content.as_bytes());
+    w.graph
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -440,5 +668,30 @@ mod tests {
         let g = extract_call_graph_go("package p\nimport . \"errors\"\n");
         assert!(g.indirection.contains("wildcard_import"));
         assert!(g.imports.is_empty());
+    }
+
+    #[test]
+    fn splitext_root_cases() {
+        assert_eq!(splitext_root("dst.h"), "dst");
+        assert_eq!(splitext_root("a.b.h"), "a.b");
+        assert_eq!(splitext_root("stdio"), "stdio");
+        assert_eq!(splitext_root(".config"), ".config");
+    }
+
+    #[test]
+    fn c_includes_and_field_chain() {
+        let src = "#include <stdio.h>\n#include \"net/dst.h\"\nint main(void) {\n    printf(\"hi\");\n    a->b->c();\n}\n";
+        let g = extract_call_graph_c(src);
+        assert_eq!(g.imports.get("stdio").map(String::as_str), Some("stdio.h"));
+        assert_eq!(g.imports.get("dst").map(String::as_str), Some("net/dst.h"));
+        assert!(g.calls.iter().any(|c| c.chain == vec!["printf"] && c.caller.as_deref() == Some("main")));
+        assert!(g.calls.iter().any(|c| c.chain == vec!["a", "b", "c"]));
+    }
+
+    #[test]
+    fn c_function_pointer_indirection() {
+        let g = extract_call_graph_c("void f(void) {\n    int (*fp)(int);\n    (*fp)(5);\n}\n");
+        assert!(g.indirection.contains("fn_pointer"));
+        assert!(g.calls.iter().any(|c| c.chain == vec!["fp"]));
     }
 }
