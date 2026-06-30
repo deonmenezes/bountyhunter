@@ -11,6 +11,7 @@ pub mod composer;
 pub mod cmake_fetchcontent;
 pub mod compose;
 pub mod conan;
+pub mod directory_packages_props;
 pub mod gemfile;
 pub mod gitlab_ci;
 pub mod gitmodules;

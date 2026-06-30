@@ -31,3 +31,6 @@ regex = { workspace = true }
 toml = { version = "0.8", features = ["preserve_order"] }
 # YAML manifests/lockfiles (Yarn Berry, pnpm, compose, helm, k8s, gitlab-ci).
 serde_yaml = "0.9"
+# XML manifests (Directory.Packages.props, .csproj, pom.xml). roxmltree is
+# read-only + XXE-safe by default; local tag names match ElementTree namespace-strip.
+roxmltree = "0.19"
