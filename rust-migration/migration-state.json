@@ -998,11 +998,13 @@
     "packages.coccinelle": {
       "name": "packages.coccinelle",
       "disposition": "rust-glue",
-      "status": "pending",
-      "crate": "",
+      "status": "in progress (models+findings+coverage ported, 22 golden vectors; sarif+prereqs+runner subprocess glue pending)",
+      "crate": "rust-migration/crates/mantishack_coccinelle",
       "phase": 4,
       "notes": "",
-      "parity": {}
+      "parity": {
+        "rust": "pass (22 golden vectors, differential-checked vs live Python: to_dict/findings/coverage byte-identical)"
+      }
     },
     "packages.coccinelle.tests": {
       "name": "packages.coccinelle.tests",

@@ -8,3 +8,13 @@ rust-version.workspace = true
 [lib]
 name = "mantishack_coccinelle"
 crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python = ["dep:pyo3"]
+
+[dependencies]
+# preserve_order so emitted objects (to_dict / findings / coverage record)
+# iterate in the same key order as the Python dicts they mirror.
+serde_json = { version = "1", features = ["preserve_order"] }
+pyo3 = { workspace = true, optional = true }
