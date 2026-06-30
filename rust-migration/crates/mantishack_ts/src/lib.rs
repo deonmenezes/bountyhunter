@@ -11,7 +11,8 @@
 use tree_sitter::{Language, Parser, Tree};
 
 /// Language names recognised so far. Grows as extractor branches are ported.
-pub const SUPPORTED_LANGUAGES: &[&str] = &["python", "javascript", "c", "go", "java"];
+pub const SUPPORTED_LANGUAGES: &[&str] =
+    &["python", "javascript", "c", "go", "java", "typescript", "tsx"];
 
 /// The tree-sitter [`Language`] for a language name, or `None` if no grammar is
 /// wired yet (graceful degradation — callers treat absence as "no parse",
@@ -24,6 +25,10 @@ pub fn language_for(language: &str) -> Option<Language> {
         "c" => Some(tree_sitter_c::LANGUAGE.into()),
         "go" => Some(tree_sitter_go::LANGUAGE.into()),
         "java" => Some(tree_sitter_java::LANGUAGE.into()),
+        // `.ts` and `.tsx` need different grammars (the typescript grammar
+        // parses `<T>x` casts but errors on JSX; tsx is the reverse).
+        "typescript" => Some(tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()),
+        "tsx" => Some(tree_sitter_typescript::LANGUAGE_TSX.into()),
         _ => None,
     }
 }
@@ -53,6 +58,24 @@ mod tests {
         assert!(language_for("cobol").is_none());
         assert!(parser_for("cobol").is_none());
         assert!(parse("cobol", "x").is_none());
+    }
+
+    #[test]
+    fn all_wired_languages_parse() {
+        // Each wired grammar parses a trivial snippet without error.
+        let cases = [
+            ("python", "x = 1\n"),
+            ("javascript", "const x = 1;\n"),
+            ("c", "int x;\n"),
+            ("go", "package main\n"),
+            ("java", "class A {}\n"),
+            ("typescript", "const x: number = 1;\n"),
+            ("tsx", "const x = <div/>;\n"),
+        ];
+        for (lang, src) in cases {
+            let tree = parse(lang, src).unwrap_or_else(|| panic!("parse {lang}"));
+            assert!(!tree.root_node().has_error(), "{lang} parsed with errors");
+        }
     }
 
     #[test]
