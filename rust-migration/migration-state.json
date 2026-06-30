@@ -326,7 +326,8 @@
         "call_graph.cpp": "pass (6-case differential vs extract_call_graph_cpp: namespaces incl a::b, classes+bases, in-class method pre-pass + receiver_class, out-of-line methods w/ synthetic class, qualified ids std::cout/ns::sub::fn, templates, ctor init lists, fn-pointer indirection)",
         "call_graph.rust": "pass (5-case differential vs extract_call_graph_rust: use decls scoped/alias/list/wildcard, scoped call chains, impl-block struct binding + self receiver_class + method registration, trait supertraits+signatures, mod nesting)",
         "call_graph.ruby": "pass (5-case differential vs extract_call_graph_ruby: require imports, constant.method/bare/chain calls, send/const_get/eval indirection, module package_name, superclass incl scoped, self receiver_class, singleton methods)",
-        "call_graph.csharp": "pass (4-case differential vs extract_call_graph_csharp: using regular/static/alias, namespaces incl file-scoped, typed dispatch receiver_type, receiver_class implicit+this, GetMethod/Invoke->reflect + Assembly.Load->importlib, member access chains, base list)"
+        "call_graph.csharp": "pass (4-case differential vs extract_call_graph_csharp: using regular/static/alias, namespaces incl file-scoped, typed dispatch receiver_type, receiver_class implicit+this, GetMethod/Invoke->reflect + Assembly.Load->importlib, member access chains, base list)",
+        "call_graph.php": "pass (4-case differential vs extract_call_graph_php: namespace package_name, use decls w/ alias, extends+implements, scoped/member/function calls, $this->/self:: receiver_class, call_user_func/ReflectionClass/$var()->reflect, eval, include->dynamic_import, chained member access)"
       }
     },
     "core.inventory.tests": {

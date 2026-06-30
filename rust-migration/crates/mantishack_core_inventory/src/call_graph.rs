@@ -3051,6 +3051,308 @@ impl CSharpCallGraph {
     }
 }
 
+// ---------------------------------------------------------------------------
+// PHP call-graph extractor — port of extract_call_graph_php / _PhpCallGraph.
+// ---------------------------------------------------------------------------
+
+const PHP_REFLECT_FNS: &[&str] = &["call_user_func", "call_user_func_array", "ReflectionMethod", "ReflectionClass"];
+const PHP_EVAL_FNS: &[&str] = &["eval", "create_function", "assert"];
+const PHP_DYNAMIC_INCLUDE: &[&str] = &["include", "include_once", "require", "require_once"];
+
+struct PhpCallGraph {
+    graph: FileCallGraph,
+    enclosing: Vec<String>,
+    class_stack: Vec<usize>,
+}
+
+impl PhpCallGraph {
+    fn walk(&mut self, node: Node, src: &[u8]) {
+        match node.kind() {
+            "namespace_definition" => {
+                if let Some(ns_name) = first_child_of_type(node, &["namespace_name"]) {
+                    let parts = self.namespace_parts(ns_name, src);
+                    if !parts.is_empty() {
+                        self.graph.package_name = Some(parts.join("."));
+                    }
+                }
+                for c in cg_children(node) {
+                    self.walk(c, src);
+                }
+                return;
+            }
+            "class_declaration" | "interface_declaration" | "trait_declaration"
+            | "enum_declaration" => {
+                self.visit_class(node, src);
+                return;
+            }
+            "function_definition" | "method_declaration" => {
+                let name = first_child_of_type(node, &["name"])
+                    .map(|n| cg_text(n, src).to_string())
+                    .unwrap_or_else(|| "<anon>".to_string());
+                if node.kind() == "method_declaration"
+                    && !self.class_stack.is_empty()
+                    && self.enclosing.is_empty()
+                {
+                    let idx = *self.class_stack.last().unwrap();
+                    self.graph.classes[idx].methods.push((name.clone(), node.start_position().row as i64 + 1));
+                }
+                self.enclosing.push(name);
+                for c in cg_children(node) {
+                    self.walk(c, src);
+                }
+                self.enclosing.pop();
+                return;
+            }
+            "namespace_use_declaration" => {
+                for c in cg_children(node) {
+                    if c.kind() == "namespace_use_clause" {
+                        self.handle_use_clause(c, src);
+                    }
+                }
+                return;
+            }
+            "function_call_expression" | "scoped_call_expression" | "member_call_expression" => {
+                self.handle_call(node, src);
+                for c in cg_children(node) {
+                    self.walk(c, src);
+                }
+                return;
+            }
+            _ => {}
+        }
+        for c in cg_children(node) {
+            self.walk(c, src);
+        }
+    }
+
+    fn visit_class(&mut self, node: Node, src: &[u8]) {
+        let Some(name_node) = first_child_of_type(node, &["name"]) else {
+            for c in cg_children(node) {
+                self.walk(c, src);
+            }
+            return;
+        };
+        // `extends Base` (base_clause) + `implements I1, I2` (class_interface_clause).
+        let mut bases: Vec<String> = Vec::new();
+        for clause_kind in ["base_clause", "class_interface_clause"] {
+            if let Some(clause) = first_child_of_type(node, &[clause_kind]) {
+                for sub in cg_children(clause) {
+                    if sub.kind() == "name" {
+                        bases.push(cg_text(sub, src).to_string());
+                    } else if sub.kind() == "qualified_name" {
+                        let q = self.namespace_parts(sub, src);
+                        if !q.is_empty() {
+                            bases.push(q.join("."));
+                        }
+                    }
+                }
+            }
+        }
+        let nested = !self.class_stack.is_empty() || !self.enclosing.is_empty();
+        self.graph.classes.push(ClassDef {
+            name: cg_text(name_node, src).to_string(),
+            line: node.start_position().row as i64 + 1,
+            bases,
+            methods: Vec::new(),
+            nested,
+        });
+        self.class_stack.push(self.graph.classes.len() - 1);
+        for c in cg_children(node) {
+            self.walk(c, src);
+        }
+        self.class_stack.pop();
+    }
+
+    fn handle_use_clause(&mut self, node: Node, src: &[u8]) {
+        let mut target_parts: Vec<String> = Vec::new();
+        let mut alias_name: Option<String> = None;
+        for c in cg_children(node) {
+            if matches!(c.kind(), "qualified_name" | "namespace_name") {
+                target_parts = self.namespace_parts(c, src);
+            } else if c.kind() == "name" && !target_parts.is_empty() {
+                alias_name = Some(cg_text(c, src).to_string());
+            }
+        }
+        if target_parts.is_empty() {
+            return;
+        }
+        let full = target_parts.join("\\");
+        let bound = alias_name.unwrap_or_else(|| target_parts[target_parts.len() - 1].clone());
+        self.graph.imports.insert(bound, full);
+    }
+
+    fn namespace_parts(&self, node: Node, src: &[u8]) -> Vec<String> {
+        let mut parts: Vec<String> = Vec::new();
+        for c in cg_children(node) {
+            if c.kind() == "name" {
+                parts.push(cg_text(c, src).to_string());
+            } else if matches!(c.kind(), "qualified_name" | "namespace_name") {
+                let mut nested = self.namespace_parts(c, src);
+                nested.extend(parts);
+                parts = nested;
+            }
+        }
+        parts
+    }
+
+    fn handle_call(&mut self, node: Node, src: &[u8]) {
+        let chain = match node.kind() {
+            "function_call_expression" => self.function_call_chain(node, src),
+            "scoped_call_expression" => self.scoped_call_chain(node, src),
+            "member_call_expression" => self.member_call_chain(node, src),
+            _ => None,
+        };
+        let Some(chain) = chain else { return };
+        if chain.is_empty() {
+            return;
+        }
+        let caller = self.enclosing.last().cloned();
+        let mut receiver_class = None;
+        if let Some(&idx) = self.class_stack.last() {
+            let cls = &self.graph.classes[idx];
+            if !cls.nested && !self.enclosing.is_empty() && chain.len() >= 2 {
+                if node.kind() == "member_call_expression" && chain[0] == "this" {
+                    receiver_class = Some(cls.name.clone());
+                } else if node.kind() == "scoped_call_expression"
+                    && matches!(chain[0].as_str(), "self" | "static")
+                {
+                    receiver_class = Some(cls.name.clone());
+                }
+            }
+        }
+        let tail = chain.last().cloned().unwrap_or_default();
+        let head = chain[0].clone();
+        self.graph.calls.push(CallSite {
+            line: node.start_position().row as i64 + 1,
+            chain,
+            caller,
+            receiver_class,
+            ..Default::default()
+        });
+        if PHP_REFLECT_FNS.contains(&tail.as_str()) || PHP_REFLECT_FNS.contains(&head.as_str()) {
+            self.graph.indirection.insert(INDIRECTION_REFLECT.to_string());
+        }
+        if PHP_EVAL_FNS.contains(&tail.as_str()) || PHP_EVAL_FNS.contains(&head.as_str()) {
+            self.graph.indirection.insert(INDIRECTION_EVAL.to_string());
+        }
+        if PHP_DYNAMIC_INCLUDE.contains(&head.as_str()) {
+            self.graph.indirection.insert(INDIRECTION_DYNAMIC_IMPORT.to_string());
+        }
+    }
+
+    fn function_call_chain(&mut self, node: Node, src: &[u8]) -> Option<Vec<String>> {
+        for c in cg_children(node) {
+            if c.kind() == "arguments" {
+                break;
+            }
+            if matches!(c.kind(), "qualified_name" | "namespace_name") {
+                let parts = self.namespace_parts(c, src);
+                if !parts.is_empty() {
+                    return Some(parts);
+                }
+            }
+            if c.kind() == "name" {
+                return Some(vec![cg_text(c, src).to_string()]);
+            }
+            if c.kind() == "variable_name" {
+                self.graph.indirection.insert(INDIRECTION_REFLECT.to_string());
+                return None;
+            }
+        }
+        None
+    }
+
+    fn scoped_call_chain(&self, node: Node, src: &[u8]) -> Option<Vec<String>> {
+        let mut scope = None;
+        let mut method = None;
+        for c in cg_children(node) {
+            if c.kind() == "arguments" {
+                break;
+            }
+            if c.is_named() {
+                if scope.is_none() {
+                    scope = Some(c);
+                } else if method.is_none() {
+                    method = Some(c);
+                }
+            }
+        }
+        let (scope, method) = (scope?, method?);
+        let scope_parts = match scope.kind() {
+            "name" => vec![cg_text(scope, src).to_string()],
+            "qualified_name" | "namespace_name" => self.namespace_parts(scope, src),
+            "relative_scope" => {
+                let kw = cg_children(scope)
+                    .into_iter()
+                    .find(|s| matches!(s.kind(), "self" | "static" | "parent"))
+                    .map(|s| s.kind().to_string());
+                match kw {
+                    Some(k) => vec![k],
+                    None => return None,
+                }
+            }
+            _ => return None,
+        };
+        let mut out = scope_parts;
+        out.push(cg_text(method, src).to_string());
+        Some(out)
+    }
+
+    fn member_call_chain(&self, node: Node, src: &[u8]) -> Option<Vec<String>> {
+        let mut obj = None;
+        let mut method = None;
+        for c in cg_children(node) {
+            if c.kind() == "arguments" {
+                break;
+            }
+            if c.is_named() {
+                if obj.is_none() {
+                    obj = Some(c);
+                } else if method.is_none() {
+                    method = Some(c);
+                }
+            }
+        }
+        let (obj, method) = (obj?, method?);
+        let obj_chain = self.object_chain(obj, src)?;
+        let mut out = obj_chain;
+        out.push(cg_text(method, src).to_string());
+        Some(out)
+    }
+
+    fn object_chain(&self, node: Node, src: &[u8]) -> Option<Vec<String>> {
+        match node.kind() {
+            "variable_name" => Some(vec![cg_text(node, src).trim_start_matches('$').to_string()]),
+            "name" => Some(vec![cg_text(node, src).to_string()]),
+            "member_access_expression" => {
+                let mut flat: Vec<String> = Vec::new();
+                for c in cg_children(node) {
+                    if c.is_named() {
+                        flat.extend(self.object_chain(c, src).unwrap_or_default());
+                    }
+                }
+                Some(flat)
+            }
+            "member_call_expression" => self.member_call_chain(node, src),
+            _ => None,
+        }
+    }
+}
+
+/// Walk a PHP source string via tree-sitter-php and return its `FileCallGraph`.
+pub fn extract_call_graph_php(content: &str) -> FileCallGraph {
+    let Some(tree) = mantishack_ts::parse("php", content) else {
+        return FileCallGraph::default();
+    };
+    let mut w = PhpCallGraph {
+        graph: FileCallGraph::default(),
+        enclosing: Vec::new(),
+        class_stack: Vec::new(),
+    };
+    w.walk(tree.root_node(), content.as_bytes());
+    w.graph
+}
+
 /// Walk a C# source string via tree-sitter-c-sharp and return its `FileCallGraph`.
 pub fn extract_call_graph_csharp(content: &str) -> FileCallGraph {
     let Some(tree) = mantishack_ts::parse("csharp", content) else {
@@ -3341,6 +3643,31 @@ mod tests {
         assert!(g.indirection.contains("reflect"));
         assert!(g.indirection.contains("importlib"));
         assert!(g.indirection.contains("eval"));
+    }
+
+    #[test]
+    fn php_namespace_use_and_call_shapes() {
+        let src = "<?php\nnamespace App\\Svc;\nuse Foo\\Bar\\Baz;\nuse Foo\\Qux as Q;\nclass A extends Base {\n    function run() {\n        Baz::method();\n        $this->helper();\n        self::staticM();\n    }\n    function helper() {}\n}\n";
+        let g = extract_call_graph_php(src);
+        assert_eq!(g.package_name.as_deref(), Some("App.Svc"));
+        assert_eq!(g.imports.get("Baz").map(String::as_str), Some("Foo\\Bar\\Baz"));
+        assert_eq!(g.imports.get("Q").map(String::as_str), Some("Foo\\Qux"));
+        let a = g.classes.iter().find(|c| c.name == "A").unwrap();
+        assert_eq!(a.bases, vec!["Base"]);
+        // $this->helper() and self::staticM() get receiver_class A.
+        let th = g.calls.iter().find(|c| c.chain == vec!["this", "helper"]).unwrap();
+        assert_eq!(th.receiver_class.as_deref(), Some("A"));
+        let sm = g.calls.iter().find(|c| c.chain == vec!["self", "staticM"]).unwrap();
+        assert_eq!(sm.receiver_class.as_deref(), Some("A"));
+        assert!(g.calls.iter().any(|c| c.chain == vec!["Baz", "method"]));
+    }
+
+    #[test]
+    fn php_reflection_and_dynamic_include() {
+        let g = extract_call_graph_php("<?php\ncall_user_func($cb);\neval('c');\ninclude $p;\n$fn();\n");
+        assert!(g.indirection.contains("reflect"));
+        assert!(g.indirection.contains("eval"));
+        assert!(g.indirection.contains("dynamic_import"));
     }
 
     #[test]
