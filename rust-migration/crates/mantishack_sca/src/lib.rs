@@ -16,6 +16,7 @@ pub mod gemfile;
 pub mod gitlab_ci;
 pub mod gitmodules;
 pub mod gomod;
+pub mod gradle_dsl;
 pub mod gradle_lockfile;
 pub mod gradle_version_catalog;
 pub mod helm_chart;
