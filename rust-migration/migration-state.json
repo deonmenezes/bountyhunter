@@ -1556,7 +1556,7 @@
       "parity": {}
     },
     "packages.sca": {
-      "status": "in progress (models + 13 parsers incl gitmodules; toml+serde_yaml wired; 19 more parsers + registry/resolvers pending)",
+      "status": "in progress (models + 14 parsers incl conan txt+lock; 18 more parsers + conanfile.py(ast gap) + registry/resolvers pending)",
       "parity": {
         "sca_models_gomod": "pass (differential vs gomod.parse_manifest/parse_lockfile: require block+single, indirect, pseudo-version->git pin, replace redirect + path replace, go.sum dedup + /go.mod suffix; full Dependency model incl pin_style/purl/parser_confidence level+reason+numeric/key)",
         "sca_gemfile": "pass (differential vs gemfile.parse_manifest/parse_lockfile: version specs tilde/range/exact/caret, git/github/path overrides, control-flow->medium confidence, non-digit version rejection, Gemfile.lock specs block 4-space rows + platform suffix + templated skip)",
@@ -1571,7 +1571,8 @@
         "sca_vcpkg": "pass (differential vs vcpkg.parse: string entries->wildcard, version/version-semver/version-date/version-string->exact, version>=->range, port-name regex validation, empty-version->wildcard, features-block deps)",
         "sca_yarn_lock": "pass (differential vs yarn_lock.parse, both formats: classic v1 line-oriented [multi-spec comma headers, quoted/scoped descriptors, version/resolved props, git+/file: pins, no-version wildcard] + Berry YAML [__metadata skip, comma-descriptor first, npm/workspace/portal/file/git resolution pins]; serde_yaml matches PyYAML safe_load)",
         "sca_pnpm_lock": "pass (differential vs pnpm_lock.parse: v6 /name@ver + /@scope/name@ver keys, v5 /@scope/name/ver keys, peer-key (suffix) strip, dev/peer/optional scopes, resolution repo/commit->git + file: tarball->path, direct from importers + top-level buckets)",
-        "sca_gitmodules": "pass (differential vs gitmodules.parse, content-based sha=None: git-config [submodule \"x\"] sections + key=value, github->GitHub owner/repo + pkg:github purl, git@ssh normalisation, git:// + subgroup->GitGeneric host/path + pkg:generic purl, url/path source_extra, incomplete-section skip)"
+        "sca_gitmodules": "pass (differential vs gitmodules.parse, content-based sha=None: git-config [submodule \"x\"] sections + key=value, github->GitHub owner/repo + pkg:github purl, git@ssh normalisation, git:// + subgroup->GitGeneric host/path + pkg:generic purl, url/path source_extra, incomplete-section skip)",
+        "sca_conan": "pass (differential vs conan.parse_txt/parse_lock: conanfile.txt [requires]/[tool_requires]/[test_requires]/[build_requires] sections, name/version refs w/ @user/channel + #hexrev, [range] versions, bare names, non-section lines ignored; conan.lock requires/build_requires/python_requires arrays. parse_py(conanfile.py via ast) is the documented gap)"
       }
     },
     "packages.sca.bump": {
