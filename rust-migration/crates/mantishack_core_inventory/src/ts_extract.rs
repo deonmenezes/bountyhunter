@@ -160,6 +160,10 @@ fn func_types(language: &str) -> &'static [&'static str] {
         "c" | "cpp" => &["function_definition"],
         "go" => &["function_declaration", "method_declaration"],
         "java" => &["method_declaration", "constructor_declaration"],
+        "csharp" | "c_sharp" => {
+            &["method_declaration", "constructor_declaration", "local_function_statement"]
+        }
+        "ruby" => &["method", "singleton_method"],
         _ => &[],
     }
 }
@@ -171,6 +175,10 @@ fn class_types(language: &str) -> &'static [&'static str] {
         "javascript" => &["class_declaration"],
         "typescript" | "tsx" => &["class_declaration", "abstract_class_declaration"],
         "java" => &["class_declaration", "interface_declaration"],
+        "csharp" | "c_sharp" => {
+            &["class_declaration", "interface_declaration", "struct_declaration", "record_declaration"]
+        }
+        "ruby" => &["class", "module"],
         _ => &[],
     }
 }
@@ -262,8 +270,9 @@ fn walk(
             }
         } else if fts.contains(&k) {
             // JS/TS decorators are preceding siblings; Python uses a
-            // decorated_definition wrapper.
+            // decorated_definition wrapper. C# methods also carry [Attr]s.
             let mut attrs = ts_decorators(child, src, language);
+            attrs.extend(csharp_attributes(child, src, language));
             let mut fnode = child;
             if let Some(parent) = child.parent() {
                 if parent.kind() == "decorated_definition" {
@@ -351,13 +360,54 @@ fn class_annotations(node: Node, src: &[u8]) -> Vec<String> {
                     }
                 }
             }
-            // Java: `extends Foo` (superclass) / `implements Bar`
-            // (super_interfaces) — record the base type tail-names so a
-            // framework base (JpaRepository, Validator …) marks the class.
-            "superclass" | "super_interfaces" | "extends_interfaces" => {
+            // C#: `[Attr]` attributes on the class.
+            "attribute_list" => csharp_attr_names(child, src, &mut out),
+            // Ruby: `class X < Base` — base is a constant / scope_resolution.
+            // Java: `extends Foo` — base is a type_identifier / generic_type.
+            "superclass" => {
+                for sc in children(child) {
+                    if matches!(sc.kind(), "constant" | "scope_resolution") {
+                        out.push(text(sc, src).to_string());
+                    }
+                }
+                java_base_names(child, src, &mut out);
+            }
+            // Java: `implements Bar` / interface `extends Baz`.
+            "super_interfaces" | "extends_interfaces" => {
                 java_base_names(child, src, &mut out);
             }
             _ => {}
+        }
+    }
+    out
+}
+
+/// Attribute names in one C# `attribute_list` (`[HttpGet, Route("x")]` ->
+/// `["HttpGet", "Route"]`) — the leading identifier/qualified_name of each
+/// `attribute` (`_csharp_attr_names`).
+fn csharp_attr_names(node: Node, src: &[u8], out: &mut Vec<String>) {
+    for a in children(node) {
+        if a.kind() != "attribute" {
+            continue;
+        }
+        for ac in children(a) {
+            if matches!(ac.kind(), "identifier" | "qualified_name") {
+                out.push(text(ac, src).to_string());
+                break;
+            }
+        }
+    }
+}
+
+/// C# attributes on a method/ctor — its `attribute_list` children
+/// (`_csharp_attributes`).
+fn csharp_attributes(node: Node, src: &[u8], language: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    if matches!(language, "csharp" | "c_sharp") {
+        for child in children(node) {
+            if child.kind() == "attribute_list" {
+                csharp_attr_names(child, src, &mut out);
+            }
         }
     }
     out
@@ -411,7 +461,21 @@ fn extract_visibility(
     if node.kind() == "method_definition" {
         visibility = ts_member_visibility(node, src, language);
     }
-    // (csharp modifiers branch: added with C#.)
+    // C#: `modifier` children carry access keywords; members default to private.
+    if matches!(language, "csharp" | "c_sharp")
+        && matches!(node.kind(), "method_declaration" | "constructor_declaration")
+    {
+        visibility = Some("private".to_string());
+        for child in children(node) {
+            if child.kind() == "modifier" {
+                let t = text(child, src);
+                if matches!(t, "public" | "private" | "protected" | "internal") {
+                    visibility = Some(t.to_string());
+                    break;
+                }
+            }
+        }
+    }
 
     // Java: the `modifiers` block holds annotations (-> attributes) and access
     // keywords (-> visibility); `static` is appended to the access keyword.
