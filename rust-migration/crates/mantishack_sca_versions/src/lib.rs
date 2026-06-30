@@ -160,11 +160,21 @@ fn py_in_range(
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.0))
 }
 
+/// `semver.bounds(spec)` — best-effort `(floor, ceiling)` corridor for an
+/// npm/Cargo semver range. Mirrors `packages/sca/versions/semver.py::bounds`,
+/// returning a 2-tuple with `None` for a missing bound.
+#[cfg(feature = "python")]
+#[pyfunction]
+fn py_bounds(spec: &str) -> (Option<String>, Option<String>) {
+    semver::bounds(spec)
+}
+
 #[cfg(feature = "python")]
 #[pymodule]
 fn mantishack_sca_versions(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(py_compare, m)?)?;
     m.add_function(wrap_pyfunction!(py_in_range, m)?)?;
+    m.add_function(wrap_pyfunction!(py_bounds, m)?)?;
     Ok(())
 }
 

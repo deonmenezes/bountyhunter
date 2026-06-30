@@ -1818,7 +1818,7 @@
       "phase": 1,
       "notes": "",
       "parity": {
-        "rust": "pass (77 golden vectors)"
+        "rust": "pass (79 golden vectors incl semver.bounds range corridor)"
       }
     },
     "packages.sca.versions.tests": {
