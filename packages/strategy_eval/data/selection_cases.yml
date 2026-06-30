@@ -62,6 +62,52 @@ cases:
     expect_selected: [auth_privilege]
     expect_not_selected: [lifecycle_drift]
 
+  # --- web/app + AI strategy packs: each pins on its distinctive CWE ---
+
+  - name: ai_tool_abuse via CWE-1427 prompt injection
+    signals: {file_path: src/agents/runner.py, candidate_cwes: [CWE-1427]}
+    expect_selected: [ai_tool_abuse]
+
+  - name: auth_token_confusion via CWE-294 capture-replay
+    signals: {file_path: src/auth/jwt.py, candidate_cwes: [CWE-294]}
+    expect_selected: [auth_token_confusion]
+
+  - name: broken_object_authz via CWE-862 missing authorization
+    signals: {file_path: src/controllers/orders.py, candidate_cwes: [CWE-862]}
+    expect_selected: [broken_object_authz]
+
+  - name: business_logic via CWE-840 business logic errors
+    signals: {file_path: src/api/checkout.py, candidate_cwes: [CWE-840]}
+    expect_selected: [business_logic]
+
+  - name: cicd_supply_chain via CWE-1395 dependency confusion
+    signals: {file_path: .github/workflows/deploy.yml, candidate_cwes: [CWE-1395]}
+    expect_selected: [cicd_supply_chain]
+
+  - name: deserialization via CWE-502 untrusted deserialization
+    signals: {file_path: src/loader.py, candidate_cwes: [CWE-502]}
+    expect_selected: [deserialization]
+
+  - name: oauth_saml_oidc via CWE-1275 sensitive cookie
+    signals: {file_path: src/oauth/callback.py, candidate_cwes: [CWE-1275]}
+    expect_selected: [oauth_saml_oidc]
+
+  - name: request_smuggling via CWE-444 HTTP desync
+    signals: {file_path: src/proxy.py, candidate_cwes: [CWE-444]}
+    expect_selected: [request_smuggling_cache_poisoning]
+
+  - name: ssrf via CWE-918 server-side request forgery
+    signals: {file_path: src/fetch.py, candidate_cwes: [CWE-918]}
+    expect_selected: [ssrf]
+
+  - name: template_injection via CWE-1336 SSTI
+    signals: {file_path: src/templates/render.py, candidate_cwes: [CWE-1336]}
+    expect_selected: [template_injection]
+
+  - name: toctou_race via CWE-367 time-of-check time-of-use
+    signals: {file_path: src/api/reserve.py, candidate_cwes: [CWE-367]}
+    expect_selected: [toctou_race]
+
   # --- always-on fallback ---
 
   - name: general always present on a signal-less target

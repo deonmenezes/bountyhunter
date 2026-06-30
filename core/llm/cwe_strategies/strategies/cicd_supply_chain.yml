@@ -62,7 +62,6 @@ signals:
     - prepublish
     - install
     - deploy
-    - release
     - publish
     - checkout
     - artifact
@@ -87,7 +86,6 @@ signals:
   cwes:
     - CWE-1395  # dependency on vulnerable / attacker-controlled third-party component
     - CWE-94    # code injection (expression interpolation into run:)
-    - CWE-78    # OS command injection (untrusted event data into shell)
     - CWE-426   # untrusted search path (registry/namespace/dep resolution order)
     - CWE-250   # execution with unnecessary privileges (privileged runner/container/IAM)
     - CWE-15    # external control of system/configuration setting

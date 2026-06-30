@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import unittest
 from datetime import datetime, timezone
 
@@ -22,8 +23,13 @@ class TestOracle(unittest.TestCase):
         self.assertEqual(Oracle.MANUAL.value, "manual")
 
     def test_str_serialisation(self):
-        self.assertEqual(str(Oracle.SANDBOX), "Oracle.SANDBOX")
-        self.assertEqual(f"{Oracle.SANDBOX.value}", "sandbox")
+        # ``str`` subclass: the member IS its value, so it serialises
+        # as a plain string in JSON without a custom encoder. Assert
+        # the version-stable contract rather than ``str(...)`` repr,
+        # which changed for str-Enums in Python 3.12.
+        self.assertIsInstance(Oracle.SANDBOX, str)
+        self.assertEqual(Oracle.SANDBOX, "sandbox")
+        self.assertEqual(json.dumps(Oracle.SANDBOX), '"sandbox"')
 
     def test_from_value(self):
         self.assertEqual(Oracle("sandbox"), Oracle.SANDBOX)
