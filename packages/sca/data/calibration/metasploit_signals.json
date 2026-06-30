@@ -1,11 +1,11 @@
 {
   "_source": {
-    "fetched_at": "2026-05-26T17:00:37Z",
+    "fetched_at": "2026-06-30T09:23:06Z",
     "license": "Metasploit Framework is BSD-3-Clause. We embed only module-path references + booleans (a public fact about the framework's contents); no MSF code is stored.",
-    "modules_scanned": 6640,
+    "modules_scanned": 6661,
     "name": "Metasploit Framework module metadata",
     "provenance": "rapid7/metasploit-framework modules_metadata_base.json. We extract the CVE→module-path mapping; framework code itself is not redistributed.",
-    "url": "https://raw.githubusercontent.com/rapid7/metasploit-framework/master/db/modules_metadata_base.json"
+    "url": "https://raw.githubusercontent.com/rapid7/metasploit-framework/HEAD/db/modules_metadata_base.json"
   },
   "signals": {
     "CVE-1999-0103": {
@@ -92,6 +92,12 @@
       "module_paths": [
         "auxiliary_scanner/snmp/snmp_enum",
         "auxiliary_scanner/snmp/snmp_login"
+      ]
+    },
+    "CVE-1999-0512": {
+      "has_msf_module": true,
+      "module_paths": [
+        "auxiliary_scanner/smtp/smtp_relay"
       ]
     },
     "CVE-1999-0516": {
@@ -6514,6 +6520,12 @@
         "exploit_windows/browser/keyhelp_launchtripane_exec"
       ]
     },
+    "CVE-2012-2576": {
+      "has_msf_module": true,
+      "module_paths": [
+        "exploit_windows/http/solarwinds_storage_manager_sql"
+      ]
+    },
     "CVE-2012-2611": {
       "has_msf_module": true,
       "module_paths": [
@@ -9658,6 +9670,12 @@
       "has_msf_module": true,
       "module_paths": [
         "exploit_unix/webapp/wp_platform_exec"
+      ]
+    },
+    "CVE-2015-10144": {
+      "has_msf_module": true,
+      "module_paths": [
+        "exploit_multi/http/wp_responsive_thumbnail_slider_upload"
       ]
     },
     "CVE-2015-1126": {
@@ -13275,6 +13293,12 @@
         "exploit_linux/http/rconfig_ajaxarchivefiles_rce"
       ]
     },
+    "CVE-2019-19699": {
+      "has_msf_module": true,
+      "module_paths": [
+        "exploit_linux/http/centreon_pollers_auth_rce"
+      ]
+    },
     "CVE-2019-19726": {
       "has_msf_module": true,
       "module_paths": [
@@ -14387,6 +14411,12 @@
       "has_msf_module": true,
       "module_paths": [
         "exploit_multi/http/wp_ait_csv_rce"
+      ]
+    },
+    "CVE-2020-36939": {
+      "has_msf_module": true,
+      "module_paths": [
+        "auxiliary_scanner/http/cassandra_web_file_read"
       ]
     },
     "CVE-2020-3950": {
@@ -16555,7 +16585,14 @@
     "CVE-2023-28458": {
       "has_msf_module": true,
       "module_paths": [
+        "auxiliary_scanner/http/pretalx_file_read_cve_2023_28459",
         "exploit_linux/http/pretalx_rce_cve_2023_28458"
+      ]
+    },
+    "CVE-2023-28459": {
+      "has_msf_module": true,
+      "module_paths": [
+        "auxiliary_scanner/http/pretalx_file_read_cve_2023_28459"
       ]
     },
     "CVE-2023-28502": {
@@ -18005,6 +18042,12 @@
         "exploit_freebsd/misc/rtsold_dnssl_cmdinject"
       ]
     },
+    "CVE-2025-14611": {
+      "has_msf_module": true,
+      "module_paths": [
+        "auxiliary_gather/gladinet_storage_access_ticket_forge"
+      ]
+    },
     "CVE-2025-14847": {
       "has_msf_module": true,
       "module_paths": [
@@ -18089,6 +18132,12 @@
         "exploit_unix/webapp/sugarcrm_rest_unserialize_exec"
       ]
     },
+    "CVE-2025-25205": {
+      "has_msf_module": true,
+      "module_paths": [
+        "auxiliary_scanner/http/audiobookshelf_auth_bypass"
+      ]
+    },
     "CVE-2025-2563": {
       "has_msf_module": true,
       "module_paths": [
@@ -18129,6 +18178,12 @@
       "has_msf_module": true,
       "module_paths": [
         "exploit_multi/http/pgadmin_query_tool_authenticated"
+      ]
+    },
+    "CVE-2025-29927": {
+      "has_msf_module": true,
+      "module_paths": [
+        "auxiliary_scanner/http/nextjs_middleware_auth_bypass"
       ]
     },
     "CVE-2025-30004": {
@@ -18874,6 +18929,12 @@
         "auxiliary_scanner/http/nable_ncentral_auth_bypass_xxe"
       ]
     },
+    "CVE-2026-0826": {
+      "has_msf_module": true,
+      "module_paths": [
+        "exploit_linux/misc/poly_unauth_rce_cve_2026_0826"
+      ]
+    },
     "CVE-2026-1281": {
       "has_msf_module": true,
       "module_paths": [
@@ -19006,10 +19067,58 @@
         "exploit_linux/local/cve_2026_31431_copy_fail"
       ]
     },
+    "CVE-2026-32985": {
+      "has_msf_module": true,
+      "module_paths": [
+        "exploit_multi/http/xerte_unauthenticated_template_import_rce"
+      ]
+    },
+    "CVE-2026-34197": {
+      "has_msf_module": true,
+      "module_paths": [
+        "exploit_multi/http/apache_activemq_jolokia_rce"
+      ]
+    },
+    "CVE-2026-34413": {
+      "has_msf_module": true,
+      "module_paths": [
+        "exploit_multi/http/xerte_unauthenticated_mediaupload"
+      ]
+    },
+    "CVE-2026-34414": {
+      "has_msf_module": true,
+      "module_paths": [
+        "exploit_multi/http/xerte_unauthenticated_mediaupload"
+      ]
+    },
+    "CVE-2026-34415": {
+      "has_msf_module": true,
+      "module_paths": [
+        "exploit_multi/http/xerte_unauthenticated_mediaupload"
+      ]
+    },
+    "CVE-2026-41459": {
+      "has_msf_module": true,
+      "module_paths": [
+        "exploit_multi/http/xerte_unauthenticated_mediaupload"
+      ]
+    },
+    "CVE-2026-41679": {
+      "has_msf_module": true,
+      "module_paths": [
+        "exploit_linux/http/paperclipai_unauth_rce_cve_2026_41679"
+      ]
+    },
     "CVE-2026-41940": {
       "has_msf_module": true,
       "module_paths": [
         "exploit_multi/http/cpanel_whm_auth_bypass_rce"
+      ]
+    },
+    "CVE-2026-42208": {
+      "has_msf_module": true,
+      "module_paths": [
+        "auxiliary_scanner/http/litellm_proxy_sqli"
       ]
     },
     "CVE-2026-4257": {
@@ -19028,6 +19137,18 @@
       "has_msf_module": true,
       "module_paths": [
         "exploit_linux/local/cve_2026_43500_dirty_frag"
+      ]
+    },
+    "CVE-2026-45087": {
+      "has_msf_module": true,
+      "module_paths": [
+        "exploit_linux/http/dalfox_server_rce_cve_2026_45087"
+      ]
+    },
+    "CVE-2026-46333": {
+      "has_msf_module": true,
+      "module_paths": [
+        "post_linux/gather/cve_2026_46333_chage"
       ]
     }
   }

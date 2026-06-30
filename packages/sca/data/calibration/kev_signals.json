@@ -1,6 +1,6 @@
 {
   "_source": {
-    "fetched_at": "2026-05-26T17:00:21Z",
+    "fetched_at": "2026-06-30T09:23:06Z",
     "license": "Public Domain (US Government work)",
     "name": "CISA KEV",
     "provenance": "CISA Known Exploited Vulnerabilities Catalog. Public Domain; embedded verbatim.",
@@ -6391,6 +6391,13 @@
       "ransomware_use": false,
       "vendor": "Linux"
     },
+    "CVE-2022-0492": {
+      "date_added": "2026-06-02",
+      "kev": true,
+      "product": "Kernel",
+      "ransomware_use": false,
+      "vendor": "Linux"
+    },
     "CVE-2022-0543": {
       "date_added": "2022-03-28",
       "kev": true,
@@ -8596,6 +8603,13 @@
       "ransomware_use": false,
       "vendor": "Oracle"
     },
+    "CVE-2024-21182": {
+      "date_added": "2026-06-01",
+      "kev": true,
+      "product": "WebLogic Server",
+      "ransomware_use": false,
+      "vendor": "Oracle"
+    },
     "CVE-2024-21287": {
       "date_added": "2024-11-21",
       "kev": true,
@@ -10430,6 +10444,13 @@
       "ransomware_use": false,
       "vendor": "Android"
     },
+    "CVE-2025-48595": {
+      "date_added": "2026-06-02",
+      "kev": true,
+      "product": "Framework",
+      "ransomware_use": false,
+      "vendor": "Android"
+    },
     "CVE-2025-48633": {
       "date_added": "2025-12-02",
       "kev": true,
@@ -10766,6 +10787,13 @@
       "ransomware_use": false,
       "vendor": "Array Networks "
     },
+    "CVE-2025-67038": {
+      "date_added": "2026-06-23",
+      "kev": true,
+      "product": "EDS5000",
+      "ransomware_use": false,
+      "vendor": "Lantronix"
+    },
     "CVE-2025-68461": {
       "date_added": "2026-02-20",
       "kev": true,
@@ -10836,12 +10864,40 @@
       "ransomware_use": false,
       "vendor": "TP-Link"
     },
+    "CVE-2026-0257": {
+      "date_added": "2026-05-29",
+      "kev": true,
+      "product": "PAN-OS",
+      "ransomware_use": false,
+      "vendor": "Palo Alto Networks"
+    },
     "CVE-2026-0300": {
       "date_added": "2026-05-06",
       "kev": true,
       "product": "PAN-OS",
       "ransomware_use": false,
       "vendor": "Palo Alto Networks"
+    },
+    "CVE-2026-10520": {
+      "date_added": "2026-06-11",
+      "kev": true,
+      "product": "Sentry",
+      "ransomware_use": false,
+      "vendor": "Ivanti"
+    },
+    "CVE-2026-11645": {
+      "date_added": "2026-06-09",
+      "kev": true,
+      "product": "Chromium V8",
+      "ransomware_use": false,
+      "vendor": "Google"
+    },
+    "CVE-2026-12569": {
+      "date_added": "2026-06-25",
+      "kev": true,
+      "product": "Windchill and FlexPLM",
+      "ransomware_use": false,
+      "vendor": "PTC"
     },
     "CVE-2026-1281": {
       "date_added": "2026-01-29",
@@ -10917,6 +10973,34 @@
       "date_added": "2026-05-14",
       "kev": true,
       "product": "Catalyst SD-WAN",
+      "ransomware_use": false,
+      "vendor": "Cisco"
+    },
+    "CVE-2026-20230": {
+      "date_added": "2026-06-25",
+      "kev": true,
+      "product": "Unified Communications Manager",
+      "ransomware_use": false,
+      "vendor": "Cisco"
+    },
+    "CVE-2026-20245": {
+      "date_added": "2026-06-09",
+      "kev": true,
+      "product": "Catalyst SD-WAN Manager",
+      "ransomware_use": false,
+      "vendor": "Cisco"
+    },
+    "CVE-2026-20253": {
+      "date_added": "2026-06-18",
+      "kev": true,
+      "product": "Enterprise",
+      "ransomware_use": false,
+      "vendor": "Splunk"
+    },
+    "CVE-2026-20262": {
+      "date_added": "2026-06-15",
+      "kev": true,
+      "product": "Catalyst SD-WAN Manager",
       "ransomware_use": false,
       "vendor": "Cisco"
     },
@@ -11060,6 +11144,13 @@
       "ransomware_use": false,
       "vendor": "Soliton Systems K.K"
     },
+    "CVE-2026-28318": {
+      "date_added": "2026-06-05",
+      "kev": true,
+      "product": "Serv-U",
+      "ransomware_use": false,
+      "vendor": "SolarWinds"
+    },
     "CVE-2026-3055": {
       "date_added": "2026-03-30",
       "kev": true,
@@ -11106,7 +11197,7 @@
       "date_added": "2026-04-22",
       "kev": true,
       "product": "Defender",
-      "ransomware_use": false,
+      "ransomware_use": true,
       "vendor": "Microsoft"
     },
     "CVE-2026-34197": {
@@ -11123,6 +11214,27 @@
       "ransomware_use": false,
       "vendor": "Adobe"
     },
+    "CVE-2026-34908": {
+      "date_added": "2026-06-23",
+      "kev": true,
+      "product": "UniFi OS",
+      "ransomware_use": false,
+      "vendor": "Ubiquiti"
+    },
+    "CVE-2026-34909": {
+      "date_added": "2026-06-23",
+      "kev": true,
+      "product": "UniFi OS",
+      "ransomware_use": false,
+      "vendor": "Ubiquiti"
+    },
+    "CVE-2026-34910": {
+      "date_added": "2026-06-23",
+      "kev": true,
+      "product": "UniFi OS",
+      "ransomware_use": false,
+      "vendor": "Ubiquiti"
+    },
     "CVE-2026-34926": {
       "date_added": "2026-05-21",
       "kev": true,
@@ -11136,6 +11248,13 @@
       "product": "Client",
       "ransomware_use": false,
       "vendor": "TrueConf"
+    },
+    "CVE-2026-35273": {
+      "date_added": "2026-06-12",
+      "kev": true,
+      "product": " PeopleSoft Enterprise PeopleTools",
+      "ransomware_use": true,
+      "vendor": "Oracle"
     },
     "CVE-2026-35616": {
       "date_added": "2026-04-06",
@@ -11186,12 +11305,33 @@
       "ransomware_use": false,
       "vendor": "BerriAI"
     },
+    "CVE-2026-42271": {
+      "date_added": "2026-06-08",
+      "kev": true,
+      "product": "LiteLLM",
+      "ransomware_use": false,
+      "vendor": "BerriAI"
+    },
     "CVE-2026-42897": {
       "date_added": "2026-05-15",
       "kev": true,
       "product": "Microsoft",
       "ransomware_use": false,
       "vendor": "Microsoft"
+    },
+    "CVE-2026-45247": {
+      "date_added": "2026-06-03",
+      "kev": true,
+      "product": "Mirasvit Full Page Cache Warmer",
+      "ransomware_use": false,
+      "vendor": "Mirasvit"
+    },
+    "CVE-2026-45321": {
+      "date_added": "2026-05-27",
+      "kev": true,
+      "product": "TanStack",
+      "ransomware_use": true,
+      "vendor": "TanStack"
     },
     "CVE-2026-45498": {
       "date_added": "2026-05-20",
@@ -11200,6 +11340,41 @@
       "ransomware_use": false,
       "vendor": "Microsoft"
     },
+    "CVE-2026-48027": {
+      "date_added": "2026-05-27",
+      "kev": true,
+      "product": "Nx Console",
+      "ransomware_use": true,
+      "vendor": "Nx"
+    },
+    "CVE-2026-48172": {
+      "date_added": "2026-05-26",
+      "kev": true,
+      "product": "cPanel Plugin",
+      "ransomware_use": false,
+      "vendor": "LiteSpeed"
+    },
+    "CVE-2026-48558": {
+      "date_added": "2026-06-29",
+      "kev": true,
+      "product": "SimpleHelp",
+      "ransomware_use": false,
+      "vendor": "SimpleHelp "
+    },
+    "CVE-2026-48907": {
+      "date_added": "2026-06-16",
+      "kev": true,
+      "product": "Joomla Content Editor ",
+      "ransomware_use": false,
+      "vendor": "Widget Factory"
+    },
+    "CVE-2026-50751": {
+      "date_added": "2026-06-08",
+      "kev": true,
+      "product": "Security Gateway",
+      "ransomware_use": true,
+      "vendor": "Check Point"
+    },
     "CVE-2026-5281": {
       "date_added": "2026-04-01",
       "kev": true,
@@ -11207,12 +11382,33 @@
       "ransomware_use": false,
       "vendor": "Google"
     },
+    "CVE-2026-54420": {
+      "date_added": "2026-06-15",
+      "kev": true,
+      "product": "cPanel Plugin",
+      "ransomware_use": false,
+      "vendor": "LiteSpeed"
+    },
     "CVE-2026-6973": {
       "date_added": "2026-05-07",
       "kev": true,
       "product": "Endpoint Manager Mobile (EPMM)",
       "ransomware_use": false,
       "vendor": "Ivanti"
+    },
+    "CVE-2026-7473": {
+      "date_added": "2026-06-09",
+      "kev": true,
+      "product": "Extensible Operating System",
+      "ransomware_use": false,
+      "vendor": "Arista"
+    },
+    "CVE-2026-8398": {
+      "date_added": "2026-05-27",
+      "kev": true,
+      "product": "Daemon Tools Lite",
+      "ransomware_use": false,
+      "vendor": "Daemon"
     },
     "CVE-2026-9082": {
       "date_added": "2026-05-22",
