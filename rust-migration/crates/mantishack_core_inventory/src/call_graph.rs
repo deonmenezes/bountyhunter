@@ -2512,11 +2512,9 @@ impl RubyCallGraph {
                 } else {
                     method = Some(c);
                 }
-            } else if c.kind() == "self" && receiver.is_none() {
-                receiver = Some(c);
-            } else if c.kind() == "scope_resolution" {
-                receiver = Some(c);
-            } else if c.kind() == "call" {
+            } else if matches!(c.kind(), "scope_resolution" | "call")
+                || (c.kind() == "self" && receiver.is_none())
+            {
                 receiver = Some(c);
             }
         }
