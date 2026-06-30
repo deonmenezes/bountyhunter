@@ -129,13 +129,10 @@
       "parity": {}
     },
     "core.cve": {
-      "name": "core.cve",
-      "disposition": "rust-port",
-      "status": "pending",
-      "crate": "",
-      "phase": 3,
-      "notes": "",
-      "parity": {}
+      "status": "ported (pure parsers: epss/kev/vulnrichment; HTTP+JsonCache clients stay in Python)",
+      "parity": {
+        "core_cve": "pass (differential vs _parse_response/_extract_cves/_url_for_cve/_decode_ssvc: EPSS string+number+sentinel+bad, KEV cveID/cve_id dedup, Vulnrichment URL sharding 0xxx/NNNxxx, SSVC decode + has_exploit/is_active + non-CISA-ADP/malformed -> None)"
+      }
     },
     "core.cve.tests": {
       "name": "core.cve.tests",

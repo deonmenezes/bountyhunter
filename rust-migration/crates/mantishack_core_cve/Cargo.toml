@@ -1,0 +1,22 @@
+[package]
+name = "mantishack_core_cve"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+# CVE enrichment data parsers — Rust port of core/cve (epss / kev / vulnrichment).
+# Only the pure data-transform core is ported; the HTTP clients + JsonCache layer
+# (core.http / core.json) stay in Python, so this crate has no network/IO code.
+
+[lib]
+name = "mantishack_core_cve"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python = ["dep:pyo3"]
+
+[dependencies]
+pyo3 = { workspace = true, optional = true }
+serde_json = "1"
