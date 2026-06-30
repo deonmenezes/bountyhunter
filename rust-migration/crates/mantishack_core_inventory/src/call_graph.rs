@@ -3210,14 +3210,11 @@ impl PhpCallGraph {
         let mut receiver_class = None;
         if let Some(&idx) = self.class_stack.last() {
             let cls = &self.graph.classes[idx];
-            if !cls.nested && !self.enclosing.is_empty() && chain.len() >= 2 {
-                if node.kind() == "member_call_expression" && chain[0] == "this" {
-                    receiver_class = Some(cls.name.clone());
-                } else if node.kind() == "scoped_call_expression"
-                    && matches!(chain[0].as_str(), "self" | "static")
-                {
-                    receiver_class = Some(cls.name.clone());
-                }
+            let this_member = node.kind() == "member_call_expression" && chain[0] == "this";
+            let self_scoped = node.kind() == "scoped_call_expression"
+                && matches!(chain[0].as_str(), "self" | "static");
+            if !cls.nested && !self.enclosing.is_empty() && chain.len() >= 2 && (this_member || self_scoped) {
+                receiver_class = Some(cls.name.clone());
             }
         }
         let tail = chain.last().cloned().unwrap_or_default();
@@ -3663,11 +3660,14 @@ mod tests {
     }
 
     #[test]
-    fn php_reflection_and_dynamic_include() {
+    fn php_reflection_and_eval() {
+        // call_user_func + $fn() (variable callable) -> reflect; eval -> eval.
+        // `include $p` is an include_expression (not a function_call), so it
+        // does not set dynamic_import — matching the oracle.
         let g = extract_call_graph_php("<?php\ncall_user_func($cb);\neval('c');\ninclude $p;\n$fn();\n");
         assert!(g.indirection.contains("reflect"));
         assert!(g.indirection.contains("eval"));
-        assert!(g.indirection.contains("dynamic_import"));
+        assert!(!g.indirection.contains("dynamic_import"));
     }
 
     #[test]
