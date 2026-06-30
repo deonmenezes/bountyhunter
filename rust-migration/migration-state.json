@@ -328,7 +328,8 @@
         "call_graph.ruby": "pass (5-case differential vs extract_call_graph_ruby: require imports, constant.method/bare/chain calls, send/const_get/eval indirection, module package_name, superclass incl scoped, self receiver_class, singleton methods)",
         "call_graph.csharp": "pass (4-case differential vs extract_call_graph_csharp: using regular/static/alias, namespaces incl file-scoped, typed dispatch receiver_type, receiver_class implicit+this, GetMethod/Invoke->reflect + Assembly.Load->importlib, member access chains, base list)",
         "call_graph.php": "pass (4-case differential vs extract_call_graph_php: namespace package_name, use decls w/ alias, extends+implements, scoped/member/function calls, $this->/self:: receiver_class, call_user_func/ReflectionClass/$var()->reflect, eval, include->dynamic_import, chained member access)",
-        "reachability.accessors": "pass (Verdict enum + module_aborts_on_load/build_excluded/is_lexically_dead dict accessors, differential vs reachability.py incl dup-name/line disambiguation)"
+        "reachability.accessors": "pass (Verdict enum + module_aborts_on_load/build_excluded/is_lexically_dead dict accessors, differential vs reachability.py incl dup-name/line disambiguation)",
+        "reachability.item_is_entry": "pass (18-case differential vs _item_is_entry: main, go init, C static/extern, Go exported/cap, Rust pub, Java servlet/dispatch-annotation/stereotype/framework-base, TS/C# decorators, Ruby base+*Controller, python/php public negatives)"
       }
     },
     "core.inventory.tests": {
