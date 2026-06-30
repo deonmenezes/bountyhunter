@@ -5,6 +5,7 @@
 //! their Python data shapes through `serde_json::Value`.
 
 pub mod build_membership;
+pub mod call_graph;
 pub mod coverage;
 pub mod dead_scope;
 pub mod diff;
