@@ -335,7 +335,8 @@
         "reachability.file_helpers": "pass (differential vs _file_language/_file_has_masking: language lookup + masking-flag/macro-target detection)",
         "reachability.adjacency_index": "pass (comprehensive differential vs callers_of/callees_of/call_lines_of/is_framework_callable/is_registered_via_call/is_virtual_dispatch_candidate: full _AdjacencyIndex multi-pass build incl definitions, framework_callable decorators, framework_registered call-args, class_bases/override_methods/class_of_method, qualified_to_internal + re-export aliases, forward/reverse/method_match/uncertain edges, test-file exclusion)",
         "reachability.closures_entry": "pass (differential vs forward_closure/reverse_closure/shortest_path/entry_reachability: BFS over adjacency index, closure_sort_key node ordering, External-terminal forward, test-file filtering, entry-reachable set + closeable-lang/masking gating for no_path_from_entry vs uncertain)",
-        "reach_audit.classify_and_audit": "pass (differential vs classify_reachability + audit_corpus: 7-stage precedence chain module_aborts/lexical_dead/build_excluded/framework/registered/entry/one_hop, AuditReport tally incl not_found bucket + coverage)"
+        "reach_audit.classify_and_audit": "pass (differential vs classify_reachability + audit_corpus: 7-stage precedence chain module_aborts/lexical_dead/build_excluded/framework/registered/entry/one_hop, AuditReport tally incl not_found bucket + coverage)",
+        "builder.process_file_content": "pass (differential vs _process_single_file across go/c/java/cpp/ts: full file-record assembly \u2014 items+interstitials, sloc, sha256, lines, per-language call_graph, lexical_dead tagging, module_aborts_on_load, build_excluded, macro_call_targets). Gap: extract_items lacks rust/ruby/csharp/php function extraction (call_graph present); python-ast call_graph + filesystem walk/cache out of scope."
       }
     },
     "core.inventory.tests": {

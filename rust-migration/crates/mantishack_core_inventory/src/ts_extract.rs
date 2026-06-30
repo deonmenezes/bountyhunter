@@ -750,6 +750,20 @@ impl InventoryItem {
         }
     }
 
+    pub fn line_start(&self) -> i64 {
+        match self {
+            Self::Function(f) => f.line_start,
+            Self::Item(c) => c.line_start,
+        }
+    }
+
+    pub fn line_end(&self) -> Option<i64> {
+        match self {
+            Self::Function(f) => f.line_end,
+            Self::Item(c) => c.line_end,
+        }
+    }
+
     /// Serialize to the same shape as the Python `.to_dict()`.
     pub fn to_json(&self) -> serde_json::Value {
         match self {
