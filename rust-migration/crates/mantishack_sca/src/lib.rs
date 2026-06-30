@@ -15,5 +15,6 @@ pub mod package_lock_json;
 pub mod pipfile_lock;
 pub mod poetry_lock;
 pub mod toml_util;
+pub mod uv_lock;
 
 pub use models::{Confidence, Dependency, PinStyle};
