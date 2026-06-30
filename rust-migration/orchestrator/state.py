@@ -18,7 +18,8 @@ Only `verified` and beyond count as "done" for progress accounting.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, asdict, fields
+from functools import lru_cache
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -40,6 +41,32 @@ class PackageState:
     parity: dict = field(default_factory=dict)  # {"py_tests": n, "passed": n}
 
 
+@lru_cache(maxsize=1)
+def _manifest_dispositions() -> dict[str, str]:
+    """`{package: disposition}` from the manifest, for backfilling state rows
+    that were hand-edited without the required identity fields."""
+    if not MANIFEST_PATH.exists():
+        return {}
+    man = json.loads(MANIFEST_PATH.read_text())
+    return {name: p.get("disposition", "review") for name, p in man["packages"].items()}
+
+
+def _coerce_package(key: str, raw: dict) -> "PackageState":
+    """Build a PackageState from a possibly-partial on-disk row.
+
+    Partial-port rows (e.g. core.cve, packages.sca) are hand-annotated with
+    rich free-text `status`/`parity` and may omit the identity fields. Backfill
+    `name` from the dict key and `disposition` from the manifest, and drop any
+    keys the dataclass doesn't know about, so a malformed row never crashes the
+    whole ledger load (R8: idempotent & resumable)."""
+    known = {f.name for f in fields(PackageState)}
+    data = {k: v for k, v in raw.items() if k in known}
+    data.setdefault("name", key)
+    if "disposition" not in data:
+        data["disposition"] = _manifest_dispositions().get(key, "review")
+    return PackageState(**data)
+
+
 class MigrationState:
     def __init__(self) -> None:
         self.packages: dict[str, PackageState] = {}
@@ -49,7 +76,9 @@ class MigrationState:
     def load(self) -> None:
         if STATE_PATH.exists():
             raw = json.loads(STATE_PATH.read_text())
-            self.packages = {k: PackageState(**v) for k, v in raw.get("packages", {}).items()}
+            self.packages = {
+                k: _coerce_package(k, v) for k, v in raw.get("packages", {}).items()
+            }
         else:
             self._seed_from_manifest()
 
