@@ -14,6 +14,7 @@ pub mod gemfile;
 pub mod gitmodules;
 pub mod gomod;
 pub mod gradle_lockfile;
+pub mod kubernetes;
 pub mod models;
 pub mod package_lock_json;
 pub mod pipfile_lock;
