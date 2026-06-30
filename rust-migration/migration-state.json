@@ -324,7 +324,8 @@
         "call_graph.java": "pass (5-case differential vs extract_call_graph_java: regular/static/wildcard imports, package, receiver_class (implicit+this), typed-dispatch receiver_type from params/locals/fields, Class.forName/invoke/newInstance indirection, field-access chains, extends/implements bases)",
         "call_graph.javascript_typescript": "pass (6-case JS + 2-case TS differential vs extract_call_graph_javascript: ES/CommonJS imports, dynamic-import/eval/new-Function/bracket-dispatch indirection, getattr_targets, class methods/expressions, this receiver_class, TS typed dispatch)",
         "call_graph.cpp": "pass (6-case differential vs extract_call_graph_cpp: namespaces incl a::b, classes+bases, in-class method pre-pass + receiver_class, out-of-line methods w/ synthetic class, qualified ids std::cout/ns::sub::fn, templates, ctor init lists, fn-pointer indirection)",
-        "call_graph.rust": "pass (5-case differential vs extract_call_graph_rust: use decls scoped/alias/list/wildcard, scoped call chains, impl-block struct binding + self receiver_class + method registration, trait supertraits+signatures, mod nesting)"
+        "call_graph.rust": "pass (5-case differential vs extract_call_graph_rust: use decls scoped/alias/list/wildcard, scoped call chains, impl-block struct binding + self receiver_class + method registration, trait supertraits+signatures, mod nesting)",
+        "call_graph.ruby": "pass (5-case differential vs extract_call_graph_ruby: require imports, constant.method/bare/chain calls, send/const_get/eval indirection, module package_name, superclass incl scoped, self receiver_class, singleton methods)"
       }
     },
     "core.inventory.tests": {

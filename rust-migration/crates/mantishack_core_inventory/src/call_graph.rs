@@ -2397,6 +2397,265 @@ impl RustCallGraph {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Ruby call-graph extractor — port of extract_call_graph_ruby / _RubyCallGraph.
+// ---------------------------------------------------------------------------
+
+const RUBY_REFLECT_NAMES: &[&str] = &["send", "public_send", "__send__"];
+const RUBY_CONST_GET_NAMES: &[&str] = &["const_get"];
+const RUBY_EVAL_NAMES: &[&str] = &["eval", "instance_eval", "class_eval", "module_eval"];
+const RUBY_REQUIRE_NAMES: &[&str] = &["require", "require_relative", "load"];
+
+struct RubyCallGraph {
+    graph: FileCallGraph,
+    enclosing: Vec<String>,
+    class_stack: Vec<usize>,
+    mod_stack: Vec<String>,
+}
+
+impl RubyCallGraph {
+    fn walk(&mut self, node: Node, src: &[u8]) {
+        match node.kind() {
+            "module" => {
+                if let Some(name_node) = first_child_of_type(node, &["constant"]) {
+                    self.mod_stack.push(cg_text(name_node, src).to_string());
+                    self.graph.package_name = Some(self.mod_stack.join("."));
+                    for c in cg_children(node) {
+                        self.walk(c, src);
+                    }
+                    self.mod_stack.pop();
+                    return;
+                }
+                for c in cg_children(node) {
+                    self.walk(c, src);
+                }
+                return;
+            }
+            "class" => {
+                self.visit_class(node, src);
+                return;
+            }
+            "method" | "singleton_method" => {
+                let name = first_child_of_type(node, &["identifier"])
+                    .map(|n| cg_text(n, src).to_string())
+                    .unwrap_or_else(|| "<anon>".to_string());
+                if !self.class_stack.is_empty() && self.enclosing.is_empty() {
+                    let idx = *self.class_stack.last().unwrap();
+                    self.graph.classes[idx].methods.push((name.clone(), node.start_position().row as i64 + 1));
+                }
+                self.enclosing.push(name);
+                for c in cg_children(node) {
+                    self.walk(c, src);
+                }
+                self.enclosing.pop();
+                return;
+            }
+            "call" => {
+                self.handle_call(node, src);
+                for c in cg_children(node) {
+                    self.walk(c, src);
+                }
+                return;
+            }
+            _ => {}
+        }
+        for c in cg_children(node) {
+            self.walk(c, src);
+        }
+    }
+
+    fn visit_class(&mut self, node: Node, src: &[u8]) {
+        let Some(name_node) = first_child_of_type(node, &["constant"]) else {
+            for c in cg_children(node) {
+                self.walk(c, src);
+            }
+            return;
+        };
+        let mut bases: Vec<String> = Vec::new();
+        if let Some(supercls) = first_child_of_type(node, &["superclass"]) {
+            if let Some(base_node) = first_child_of_type(supercls, &["constant", "scope_resolution"]) {
+                if base_node.kind() == "scope_resolution" {
+                    bases = vec![self.chain_from_node(Some(base_node), src).join(".")];
+                } else {
+                    bases = vec![cg_text(base_node, src).to_string()];
+                }
+            }
+        }
+        let nested = !self.class_stack.is_empty() || !self.enclosing.is_empty();
+        self.graph.classes.push(ClassDef {
+            name: cg_text(name_node, src).to_string(),
+            line: node.start_position().row as i64 + 1,
+            bases,
+            methods: Vec::new(),
+            nested,
+        });
+        self.class_stack.push(self.graph.classes.len() - 1);
+        for c in cg_children(node) {
+            self.walk(c, src);
+        }
+        self.class_stack.pop();
+    }
+
+    fn handle_call(&mut self, node: Node, src: &[u8]) {
+        let mut receiver = None;
+        let mut method = None;
+        for c in cg_children(node) {
+            if c.kind() == "argument_list" {
+                break;
+            }
+            if !c.is_named() {
+                continue;
+            }
+            if method.is_none() && matches!(c.kind(), "identifier" | "constant") {
+                if receiver.is_none() {
+                    receiver = Some(c);
+                } else {
+                    method = Some(c);
+                }
+            } else if c.kind() == "self" && receiver.is_none() {
+                receiver = Some(c);
+            } else if c.kind() == "scope_resolution" {
+                receiver = Some(c);
+            } else if c.kind() == "call" {
+                receiver = Some(c);
+            }
+        }
+
+        if method.is_none() {
+            if let Some(receiver) = receiver {
+                let chain = self.chain_from_node(Some(receiver), src);
+                if !chain.is_empty() {
+                    let bare = chain[0].clone();
+                    self.record(node, chain);
+                    if RUBY_REQUIRE_NAMES.contains(&bare.as_str()) {
+                        self.extract_require_arg(node, src);
+                    }
+                    if RUBY_EVAL_NAMES.contains(&bare.as_str()) {
+                        self.graph.indirection.insert(INDIRECTION_EVAL.to_string());
+                    }
+                    if RUBY_REFLECT_NAMES.contains(&bare.as_str()) {
+                        self.graph.indirection.insert(INDIRECTION_REFLECT.to_string());
+                    }
+                    if RUBY_CONST_GET_NAMES.contains(&bare.as_str()) {
+                        self.graph.indirection.insert(INDIRECTION_IMPORTLIB.to_string());
+                    }
+                }
+            }
+            return;
+        }
+
+        let method = method.unwrap();
+        let receiver_chain = if let Some(r) = receiver { self.chain_from_node(Some(r), src) } else { Vec::new() };
+        let method_name = cg_text(method, src).to_string();
+        let mut chain = receiver_chain;
+        chain.push(method_name.clone());
+        self.record(node, chain);
+        if RUBY_REFLECT_NAMES.contains(&method_name.as_str()) {
+            self.graph.indirection.insert(INDIRECTION_REFLECT.to_string());
+        }
+        if RUBY_CONST_GET_NAMES.contains(&method_name.as_str()) {
+            self.graph.indirection.insert(INDIRECTION_IMPORTLIB.to_string());
+        }
+        if RUBY_EVAL_NAMES.contains(&method_name.as_str()) {
+            self.graph.indirection.insert(INDIRECTION_EVAL.to_string());
+        }
+    }
+
+    fn extract_require_arg(&mut self, node: Node, src: &[u8]) {
+        let Some(args) = first_child_of_type(node, &["argument_list"]) else { return };
+        for a in cg_children(args) {
+            if a.kind() == "string" {
+                for sc in cg_children(a) {
+                    if sc.kind() == "string_content" {
+                        let path = cg_text(sc, src).to_string();
+                        let bound = path.rsplit('/').next().unwrap_or("").to_string();
+                        self.graph.imports.insert(bound, path);
+                    }
+                }
+            }
+        }
+    }
+
+    fn chain_from_node(&self, node: Option<Node>, src: &[u8]) -> Vec<String> {
+        let Some(node) = node else { return Vec::new() };
+        match node.kind() {
+            "identifier" | "constant" => vec![cg_text(node, src).to_string()],
+            "self" => vec!["self".to_string()],
+            "scope_resolution" => {
+                let mut parts: Vec<String> = Vec::new();
+                for c in cg_children(node) {
+                    if matches!(c.kind(), "identifier" | "constant") {
+                        parts.push(cg_text(c, src).to_string());
+                    } else if c.kind() == "scope_resolution" {
+                        let mut nested = self.chain_from_node(Some(c), src);
+                        nested.extend(parts);
+                        parts = nested;
+                    }
+                }
+                parts
+            }
+            "call" => self.chain_from_call(node, src),
+            _ => Vec::new(),
+        }
+    }
+
+    fn chain_from_call(&self, node: Node, src: &[u8]) -> Vec<String> {
+        let mut receiver = None;
+        let mut method = None;
+        for c in cg_children(node) {
+            if c.kind() == "argument_list" {
+                break;
+            }
+            if !c.is_named() {
+                continue;
+            }
+            if receiver.is_none() && matches!(c.kind(), "identifier" | "constant" | "scope_resolution" | "call") {
+                receiver = Some(c);
+            } else if method.is_none() && matches!(c.kind(), "identifier" | "constant") {
+                method = Some(c);
+            }
+        }
+        let Some(receiver) = receiver else { return Vec::new() };
+        let rc = self.chain_from_node(Some(receiver), src);
+        match method {
+            Some(m) => {
+                let mut out = rc;
+                out.push(cg_text(m, src).to_string());
+                out
+            }
+            None => rc,
+        }
+    }
+
+    fn record(&mut self, node: Node, chain: Vec<String>) {
+        let line = node.start_position().row as i64 + 1;
+        let caller = self.enclosing.last().cloned();
+        let mut receiver_class = None;
+        if let Some(&idx) = self.class_stack.last() {
+            let cls = &self.graph.classes[idx];
+            if !cls.nested && !self.enclosing.is_empty() && chain.len() >= 2 && chain[0] == "self" {
+                receiver_class = Some(cls.name.clone());
+            }
+        }
+        self.graph.calls.push(CallSite { line, chain, caller, receiver_class, ..Default::default() });
+    }
+}
+
+/// Walk a Ruby source string via tree-sitter-ruby and return its `FileCallGraph`.
+pub fn extract_call_graph_ruby(content: &str) -> FileCallGraph {
+    let Some(tree) = mantishack_ts::parse("ruby", content) else {
+        return FileCallGraph::default();
+    };
+    let mut w = RubyCallGraph {
+        graph: FileCallGraph::default(),
+        enclosing: Vec::new(),
+        class_stack: Vec::new(),
+        mod_stack: Vec::new(),
+    };
+    w.walk(tree.root_node(), content.as_bytes());
+    w.graph
+}
+
 /// Walk a Rust source string via tree-sitter-rust and return its `FileCallGraph`.
 pub fn extract_call_graph_rust(content: &str) -> FileCallGraph {
     let Some(tree) = mantishack_ts::parse("rust", content) else {
@@ -2634,6 +2893,27 @@ mod tests {
         let g = extract_call_graph_rust("use foo::{Bar, Qux as Q};\n");
         assert_eq!(g.imports.get("Bar").map(String::as_str), Some("foo.Bar"));
         assert_eq!(g.imports.get("Q").map(String::as_str), Some("foo.Qux"));
+    }
+
+    #[test]
+    fn ruby_require_module_and_self() {
+        let src = "require 'json'\nmodule M\nclass W < Base\n  def run\n    self.helper\n    Foo.bar\n  end\n  def helper; end\nend\nend\n";
+        let g = extract_call_graph_ruby(src);
+        assert_eq!(g.imports.get("json").map(String::as_str), Some("json"));
+        assert_eq!(g.package_name.as_deref(), Some("M"));
+        let w = g.classes.iter().find(|c| c.name == "W").unwrap();
+        assert_eq!(w.bases, vec!["Base"]);
+        let h = g.calls.iter().find(|c| c.chain == vec!["self", "helper"]).unwrap();
+        assert_eq!(h.receiver_class.as_deref(), Some("W"));
+        assert!(g.calls.iter().any(|c| c.chain == vec!["Foo", "bar"]));
+    }
+
+    #[test]
+    fn ruby_reflection_indirection() {
+        let g = extract_call_graph_ruby("obj.send(:m)\nKernel.const_get('X')\neval('c')\n");
+        assert!(g.indirection.contains("reflect"));
+        assert!(g.indirection.contains("importlib"));
+        assert!(g.indirection.contains("eval"));
     }
 
     #[test]
