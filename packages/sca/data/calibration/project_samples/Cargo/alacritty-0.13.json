@@ -1,6 +1,6 @@
 {
   "_source": {
-    "fetched_at": "2026-05-26T23:49:08Z",
+    "fetched_at": "2026-07-01T10:00:57Z",
     "git_ref": "v0.13.0",
     "license": "MIT (MANTISHACK-generated scan output)",
     "name": "MANTISHACK SCA scan of alacritty-0.13",
@@ -39,8 +39,8 @@
       },
       "finding_id": "sca:vuln:Cargo:adler:1.0.2:RUSTSEC-2025-0056",
       "in_kev": false,
-      "purl": "pkg:cargo/adler@1.0.2",
       "mantishack_risk_estimate": 5.610417356617499,
+      "purl": "pkg:cargo/adler@1.0.2",
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -102,8 +102,8 @@
       },
       "finding_id": "sca:vuln:Cargo:anstream:0.6.5:GHSA-2rxc-gjrp-vjhx",
       "in_kev": false,
-      "purl": "pkg:cargo/anstream@0.6.5",
       "mantishack_risk_estimate": 5.610417356617499,
+      "purl": "pkg:cargo/anstream@0.6.5",
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -166,8 +166,8 @@
       },
       "finding_id": "sca:vuln:Cargo:anstream:0.6.5:RUSTSEC-2024-0404",
       "in_kev": false,
-      "purl": "pkg:cargo/anstream@0.6.5",
       "mantishack_risk_estimate": 5.610417356617499,
+      "purl": "pkg:cargo/anstream@0.6.5",
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -222,7 +222,7 @@
       "dep_name": "bytes",
       "dep_version": "1.5.0",
       "ecosystem": "Cargo",
-      "epss": 0.00019,
+      "epss": 0.00559,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -232,8 +232,8 @@
       },
       "finding_id": "sca:vuln:Cargo:bytes:1.5.0:GHSA-434x-w66g-qw3r",
       "in_kev": false,
+      "mantishack_risk_estimate": 9.910856765910943,
       "purl": "pkg:cargo/bytes@1.5.0",
-      "mantishack_risk_estimate": 9.842945836867514,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -248,15 +248,78 @@
         "cvss_base": 40.0,
         "cvss_source": "severity_label",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399396957,
+        "epss_multiplier": 0.402152577,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 9.842945836867514,
+        "final": 9.910856765910943,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
         "ssvc_automatable_multiplier": 1.0,
         "ssvc_poc_multiplier": 1.4399,
+        "version_match_confidence": 0.95
+      },
+      "severity": "medium",
+      "ssvc_automatable": null,
+      "ssvc_exploitation": null
+    },
+    {
+      "advisory": {
+        "aliases": [],
+        "fixed_versions": [
+          "0.9.11"
+        ],
+        "id": "RUSTSEC-2026-0186",
+        "informational": "unsound",
+        "modified": "2026-06-22T18:15:03.600280+00:00",
+        "published": "2026-06-20T12:00:00+00:00",
+        "references": [
+          "https://crates.io/crates/memmap2",
+          "https://rustsec.org/advisories/RUSTSEC-2026-0186.html",
+          "https://github.com/RazrFalcon/memmap2-rs/issues/169",
+          "https://github.com/RazrFalcon/memmap2-rs/pull/170"
+        ],
+        "severity": null,
+        "summary": "Unchecked pointer offset in crate `memmap2`"
+      },
+      "cvss_score": null,
+      "dep_name": "memmap2",
+      "dep_version": "0.9.3",
+      "ecosystem": "Cargo",
+      "epss": null,
+      "exploit_evidence": {
+        "edb_ids": [],
+        "github_poc_urls": [],
+        "has_any": false,
+        "kev_listed": false,
+        "msf_modules": []
+      },
+      "finding_id": "sca:vuln:Cargo:memmap2:0.9.3:RUSTSEC-2026-0186",
+      "in_kev": false,
+      "mantishack_risk_estimate": 5.610417356617499,
+      "purl": "pkg:cargo/memmap2@0.9.3",
+      "reachability": {
+        "confidence": {
+          "level": "medium",
+          "numeric": 0.7,
+          "reason": "no `use memmap2` / `extern crate memmap2` found"
+        },
+        "evidence": [],
+        "verdict": "not_reachable"
+      },
+      "risk_components": {
+        "calibration_status": "validated_v1",
+        "cvss_base": 40.0,
+        "cvss_source": "severity_label",
+        "depth_multiplier": 0.7,
+        "epss_multiplier": 0.65445,
+        "exploit_evidence_multiplier": 1.0,
+        "exposure_multiplier": 0.5,
+        "final": 5.610417356617499,
+        "kev_multiplier": 1.0,
+        "parser_confidence": 0.95,
+        "reachability_multiplier": 0.67849,
+        "ssvc_automatable_multiplier": 1.0,
         "version_match_confidence": 0.95
       },
       "severity": "medium",
@@ -293,7 +356,7 @@
       "dep_name": "mio",
       "dep_version": "0.8.10",
       "ecosystem": "Cargo",
-      "epss": 0.00937,
+      "epss": 0.00889,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -303,8 +366,8 @@
       },
       "finding_id": "sca:vuln:Cargo:mio:0.8.10:GHSA-r8w9-5wcg-vfj7",
       "in_kev": false,
+      "mantishack_risk_estimate": 13.246588350545512,
       "purl": "pkg:cargo/mio@0.8.10",
-      "mantishack_risk_estimate": 13.254622968017229,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -319,10 +382,10 @@
         "cvss_base": 75.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.404081511,
+        "epss_multiplier": 0.403836567,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 13.254622968017229,
+        "final": 13.246588350545512,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -364,8 +427,8 @@
       },
       "finding_id": "sca:vuln:Cargo:servo-fontconfig:0.5.1:RUSTSEC-2025-0059",
       "in_kev": false,
-      "purl": "pkg:cargo/servo-fontconfig@0.5.1",
       "mantishack_risk_estimate": 5.610417356617499,
+      "purl": "pkg:cargo/servo-fontconfig@0.5.1",
       "reachability": {
         "confidence": {
           "level": "medium",

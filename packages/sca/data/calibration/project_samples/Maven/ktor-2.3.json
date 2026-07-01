@@ -1,6 +1,6 @@
 {
   "_source": {
-    "fetched_at": "2026-05-26T23:50:30Z",
+    "fetched_at": "2026-07-01T10:02:26Z",
     "git_ref": "2.3.7",
     "license": "MIT (MANTISHACK-generated scan output)",
     "name": "MANTISHACK SCA scan of ktor-2.3",
@@ -35,7 +35,7 @@
       "dep_name": "ajv",
       "dep_version": "6.12.6",
       "ecosystem": "npm",
-      "epss": 0.00015,
+      "epss": 0.00492,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -45,8 +45,8 @@
       },
       "finding_id": "sca:vuln:npm:ajv:6.12.6:GHSA-2g4f-4pwh-qvx6",
       "in_kev": false,
+      "mantishack_risk_estimate": 13.18013536853986,
       "purl": "pkg:npm/ajv@6.12.6",
-      "mantishack_risk_estimate": 13.100291357414683,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -61,10 +61,10 @@
         "cvss_base": 40.0,
         "cvss_source": "severity_label",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.39937654499999997,
+        "epss_multiplier": 0.401810676,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 13.100291357414683,
+        "final": 13.18013536853986,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -104,7 +104,7 @@
       "dep_name": "body-parser",
       "dep_version": "1.19.1",
       "ecosystem": "npm",
-      "epss": 0.01387,
+      "epss": 0.00824,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -114,8 +114,8 @@
       },
       "finding_id": "sca:vuln:npm:body-parser:1.19.1:GHSA-qwcr-r2fm-qrc7",
       "in_kev": false,
+      "mantishack_risk_estimate": 6.48587765685458,
       "purl": "pkg:npm/body-parser@1.19.1",
-      "mantishack_risk_estimate": 6.532057657287112,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -130,10 +130,10 @@
         "cvss_base": 75.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.406377861,
+        "epss_multiplier": 0.403504872,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 6.532057657287112,
+        "final": 6.48587765685458,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -176,7 +176,7 @@
       "dep_name": "brace-expansion",
       "dep_version": "1.1.11",
       "ecosystem": "npm",
-      "epss": 0.00024,
+      "epss": 0.0043,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -186,8 +186,8 @@
       },
       "finding_id": "sca:vuln:npm:brace-expansion:1.1.11:GHSA-f886-m6hf-6m8v",
       "in_kev": false,
+      "mantishack_risk_estimate": 5.593085211166753,
       "purl": "pkg:npm/brace-expansion@1.1.11",
-      "mantishack_risk_estimate": 5.564223394436984,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -202,10 +202,10 @@
         "cvss_base": 65.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399422472,
+        "epss_multiplier": 0.40149429,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 5.564223394436984,
+        "final": 5.593085211166753,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -248,7 +248,7 @@
       "dep_name": "brace-expansion",
       "dep_version": "1.1.11",
       "ecosystem": "npm",
-      "epss": 0.00092,
+      "epss": 0.00459,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -258,8 +258,8 @@
       },
       "finding_id": "sca:vuln:npm:brace-expansion:1.1.11:GHSA-v6h2-p8h4-qcjw",
       "in_kev": false,
+      "mantishack_risk_estimate": 9.898280667939938,
       "purl": "pkg:npm/brace-expansion@1.1.11",
-      "mantishack_risk_estimate": 9.852126388386347,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -274,10 +274,10 @@
         "cvss_base": 31.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399769476,
+        "epss_multiplier": 0.401642277,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 9.852126388386347,
+        "final": 9.898280667939938,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -321,7 +321,7 @@
       "dep_name": "brace-expansion",
       "dep_version": "2.0.1",
       "ecosystem": "npm",
-      "epss": 0.00024,
+      "epss": 0.0043,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -331,8 +331,8 @@
       },
       "finding_id": "sca:vuln:npm:brace-expansion:2.0.1:GHSA-f886-m6hf-6m8v",
       "in_kev": false,
+      "mantishack_risk_estimate": 5.593085211166753,
       "purl": "pkg:npm/brace-expansion@2.0.1",
-      "mantishack_risk_estimate": 5.564223394436984,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -347,10 +347,10 @@
         "cvss_base": 65.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399422472,
+        "epss_multiplier": 0.40149429,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 5.564223394436984,
+        "final": 5.593085211166753,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -393,7 +393,7 @@
       "dep_name": "brace-expansion",
       "dep_version": "2.0.1",
       "ecosystem": "npm",
-      "epss": 0.00092,
+      "epss": 0.00459,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -403,8 +403,8 @@
       },
       "finding_id": "sca:vuln:npm:brace-expansion:2.0.1:GHSA-v6h2-p8h4-qcjw",
       "in_kev": false,
+      "mantishack_risk_estimate": 9.898280667939938,
       "purl": "pkg:npm/brace-expansion@2.0.1",
-      "mantishack_risk_estimate": 9.852126388386347,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -419,10 +419,10 @@
         "cvss_base": 31.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399769476,
+        "epss_multiplier": 0.401642277,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 9.852126388386347,
+        "final": 9.898280667939938,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -463,7 +463,7 @@
       "dep_name": "braces",
       "dep_version": "3.0.2",
       "ecosystem": "npm",
-      "epss": 0.00203,
+      "epss": 0.01471,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -473,8 +473,8 @@
       },
       "finding_id": "sca:vuln:npm:braces:3.0.2:GHSA-grv7-fg5c-xmjg",
       "in_kev": false,
+      "mantishack_risk_estimate": 6.538947746161593,
       "purl": "pkg:npm/braces@3.0.2",
-      "mantishack_risk_estimate": 6.434940214103953,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -489,10 +489,10 @@
         "cvss_base": 75.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.400335909,
+        "epss_multiplier": 0.406806513,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 6.434940214103953,
+        "final": 6.538947746161593,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -527,7 +527,7 @@
       "dep_name": "cookie",
       "dep_version": "0.4.2",
       "ecosystem": "npm",
-      "epss": 0.00211,
+      "epss": 0.00749,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -537,8 +537,8 @@
       },
       "finding_id": "sca:vuln:npm:cookie:0.4.2:GHSA-pxg6-pf52-xh8x",
       "in_kev": false,
+      "mantishack_risk_estimate": 3.4558537556203093,
       "purl": "pkg:npm/cookie@0.4.2",
-      "mantishack_risk_estimate": 3.432318086957002,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -553,10 +553,10 @@
         "cvss_base": 40.0,
         "cvss_source": "severity_label",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.400376733,
+        "epss_multiplier": 0.403122147,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 3.432318086957002,
+        "final": 3.4558537556203093,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -597,7 +597,7 @@
       "dep_name": "cross-spawn",
       "dep_version": "7.0.3",
       "ecosystem": "npm",
-      "epss": 0.00069,
+      "epss": 0.00873,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -607,8 +607,8 @@
       },
       "finding_id": "sca:vuln:npm:cross-spawn:7.0.3:GHSA-3xgq-45jj-v275",
       "in_kev": false,
+      "mantishack_risk_estimate": 13.243910144721605,
       "purl": "pkg:npm/cross-spawn@7.0.3",
-      "mantishack_risk_estimate": 13.109330302070363,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -623,10 +623,10 @@
         "cvss_base": 75.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399652107,
+        "epss_multiplier": 0.403754919,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 13.109330302070363,
+        "final": 13.243910144721605,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -666,7 +666,7 @@
       "dep_name": "diff",
       "dep_version": "5.0.0",
       "ecosystem": "npm",
-      "epss": 0.00023,
+      "epss": 0.00562,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -676,8 +676,8 @@
       },
       "finding_id": "sca:vuln:npm:diff:5.0.0:GHSA-73rr-hh4g-fpgx",
       "in_kev": false,
+      "mantishack_risk_estimate": 3.4476731421629885,
       "purl": "pkg:npm/diff@5.0.0",
-      "mantishack_risk_estimate": 3.4240937269036538,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -692,10 +692,10 @@
         "cvss_base": 40.0,
         "cvss_source": "severity_label",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.39941736899999997,
+        "epss_multiplier": 0.402167886,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 3.4240937269036538,
+        "final": 3.4476731421629885,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -735,7 +735,7 @@
       "dep_name": "engine.io",
       "dep_version": "6.2.1",
       "ecosystem": "npm",
-      "epss": 0.01086,
+      "epss": 0.01327,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -745,8 +745,8 @@
       },
       "finding_id": "sca:vuln:npm:engine.io:6.2.1:GHSA-q9mw-68c2-j6m5",
       "in_kev": false,
+      "mantishack_risk_estimate": 5.656851343202724,
       "purl": "pkg:npm/engine.io@6.2.1",
-      "mantishack_risk_estimate": 5.639719082533083,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -761,10 +761,10 @@
         "cvss_base": 65.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.404841858,
+        "epss_multiplier": 0.40607168099999996,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 5.639719082533083,
+        "final": 5.656851343202724,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -804,7 +804,7 @@
       "dep_name": "flatted",
       "dep_version": "3.2.7",
       "ecosystem": "npm",
-      "epss": 0.00022,
+      "epss": 0.00777,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -814,8 +814,8 @@
       },
       "finding_id": "sca:vuln:npm:flatted:3.2.7:GHSA-25h7-pfq9-p65f",
       "in_kev": false,
+      "mantishack_risk_estimate": 13.227840909778175,
       "purl": "pkg:npm/flatted@3.2.7",
-      "mantishack_risk_estimate": 13.101463072462643,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -830,10 +830,10 @@
         "cvss_base": 75.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399412266,
+        "epss_multiplier": 0.403265031,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 13.101463072462643,
+        "final": 13.227840909778175,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -870,7 +870,7 @@
       "dep_name": "flatted",
       "dep_version": "3.2.7",
       "ecosystem": "npm",
-      "epss": 0.00067,
+      "epss": 0.00704,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -880,8 +880,8 @@
       },
       "finding_id": "sca:vuln:npm:flatted:3.2.7:GHSA-rf6f-7fwh-wjgh",
       "in_kev": false,
+      "mantishack_risk_estimate": 13.215621595706606,
       "purl": "pkg:npm/flatted@3.2.7",
-      "mantishack_risk_estimate": 13.108995526342374,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -896,10 +896,10 @@
         "cvss_base": 40.0,
         "cvss_source": "severity_label",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.39964190099999997,
+        "epss_multiplier": 0.402892512,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 13.108995526342374,
+        "final": 13.215621595706606,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -940,7 +940,7 @@
       "dep_name": "follow-redirects",
       "dep_version": "1.14.8",
       "ecosystem": "npm",
-      "epss": 0.01106,
+      "epss": 0.01044,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -950,8 +950,8 @@
       },
       "finding_id": "sca:vuln:npm:follow-redirects:1.14.8:GHSA-cxjh-pqwp-8mfp",
       "in_kev": false,
+      "mantishack_risk_estimate": 9.971850841070319,
       "purl": "pkg:npm/follow-redirects@1.14.8",
-      "mantishack_risk_estimate": 9.979648021812343,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -966,10 +966,10 @@
         "cvss_base": 65.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.404943918,
+        "epss_multiplier": 0.404627532,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 9.979648021812343,
+        "final": 9.971850841070319,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -1010,7 +1010,7 @@
       "dep_name": "follow-redirects",
       "dep_version": "1.14.8",
       "ecosystem": "npm",
-      "epss": 0.00103,
+      "epss": 0.00797,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -1020,8 +1020,8 @@
       },
       "finding_id": "sca:vuln:npm:follow-redirects:1.14.8:GHSA-jchw-25xp-jwwc",
       "in_kev": false,
+      "mantishack_risk_estimate": 9.940787879081936,
       "purl": "pkg:npm/follow-redirects@1.14.8",
-      "mantishack_risk_estimate": 9.853509759163156,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -1036,10 +1036,10 @@
         "cvss_base": 61.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.39982560899999997,
+        "epss_multiplier": 0.403367091,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 9.853509759163156,
+        "final": 9.940787879081936,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -1082,8 +1082,8 @@
       },
       "finding_id": "sca:vuln:npm:follow-redirects:1.14.8:GHSA-r4q5-vmmm-2653",
       "in_kev": false,
-      "purl": "pkg:npm/follow-redirects@1.14.8",
       "mantishack_risk_estimate": 5.610417356617499,
+      "purl": "pkg:npm/follow-redirects@1.14.8",
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -1102,6 +1102,74 @@
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
         "final": 5.610417356617499,
+        "kev_multiplier": 1.0,
+        "parser_confidence": 0.95,
+        "reachability_multiplier": 0.67849,
+        "ssvc_automatable_multiplier": 1.0,
+        "version_match_confidence": 0.95
+      },
+      "severity": "medium",
+      "ssvc_automatable": null,
+      "ssvc_exploitation": null
+    },
+    {
+      "advisory": {
+        "aliases": [
+          "CVE-2026-53550"
+        ],
+        "fixed_versions": [
+          "4.2.0",
+          "3.15.0"
+        ],
+        "id": "GHSA-h67p-54hq-rp68",
+        "modified": "2026-06-29T15:15:07.504738+00:00",
+        "published": "2026-06-15T17:15:07+00:00",
+        "references": [
+          "https://github.com/nodeca/js-yaml/security/advisories/GHSA-h67p-54hq-rp68",
+          "https://nvd.nist.gov/vuln/detail/CVE-2026-53550",
+          "https://github.com/nodeca/js-yaml"
+        ],
+        "severity": {
+          "score": 5.3,
+          "severity": "medium",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L"
+        },
+        "summary": "JS-YAML: Quadratic-complexity DoS in merge key handling via repeated aliases"
+      },
+      "cvss_score": 5.3,
+      "dep_name": "js-yaml",
+      "dep_version": "4.1.0",
+      "ecosystem": "npm",
+      "epss": 0.00259,
+      "exploit_evidence": {
+        "edb_ids": [],
+        "github_poc_urls": [],
+        "has_any": false,
+        "kev_listed": false,
+        "msf_modules": []
+      },
+      "finding_id": "sca:vuln:npm:js-yaml:4.1.0:GHSA-h67p-54hq-rp68",
+      "in_kev": false,
+      "mantishack_risk_estimate": 4.550603748725439,
+      "purl": "pkg:npm/js-yaml@4.1.0",
+      "reachability": {
+        "confidence": {
+          "level": "medium",
+          "numeric": 0.7,
+          "reason": "no import/require for 'js-yaml' found"
+        },
+        "evidence": [],
+        "verdict": "not_reachable"
+      },
+      "risk_components": {
+        "calibration_status": "validated_v1",
+        "cvss_base": 53.0,
+        "cvss_source": "numeric",
+        "depth_multiplier": 0.7,
+        "epss_multiplier": 0.400621677,
+        "exploit_evidence_multiplier": 1.0,
+        "exposure_multiplier": 0.5,
+        "final": 4.550603748725439,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -1142,7 +1210,7 @@
       "dep_name": "js-yaml",
       "dep_version": "4.1.0",
       "ecosystem": "npm",
-      "epss": 0.00034,
+      "epss": 0.0037,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -1152,8 +1220,8 @@
       },
       "finding_id": "sca:vuln:npm:js-yaml:4.1.0:GHSA-mh29-5h37-fv8m",
       "in_kev": false,
+      "mantishack_risk_estimate": 4.557037779336323,
       "purl": "pkg:npm/js-yaml@4.1.0",
-      "mantishack_risk_estimate": 4.537561794784455,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -1168,10 +1236,10 @@
         "cvss_base": 53.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399473502,
+        "epss_multiplier": 0.40118811,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 4.537561794784455,
+        "final": 4.557037779336323,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -1210,7 +1278,7 @@
       "dep_name": "lodash",
       "dep_version": "4.17.21",
       "ecosystem": "npm",
-      "epss": 0.00025,
+      "epss": 0.00317,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -1220,8 +1288,8 @@
       },
       "finding_id": "sca:vuln:npm:lodash:4.17.21:GHSA-f23m-r3pf-42rh",
       "in_kev": false,
+      "mantishack_risk_estimate": 5.585052242471029,
       "purl": "pkg:npm/lodash@4.17.21",
-      "mantishack_risk_estimate": 5.56429448265553,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -1236,10 +1304,10 @@
         "cvss_base": 65.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399427575,
+        "epss_multiplier": 0.400917651,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 5.56429448265553,
+        "final": 5.585052242471029,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -1279,7 +1347,7 @@
       "dep_name": "lodash",
       "dep_version": "4.17.21",
       "ecosystem": "npm",
-      "epss": 0.00044,
+      "epss": 0.01735,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -1289,8 +1357,8 @@
       },
       "finding_id": "sca:vuln:npm:lodash:4.17.21:GHSA-r5fr-rjxr-66jc",
       "in_kev": false,
+      "mantishack_risk_estimate": 7.08545049609133,
       "purl": "pkg:npm/lodash@4.17.21",
-      "mantishack_risk_estimate": 6.935650120976009,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -1305,10 +1373,10 @@
         "cvss_base": 81.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399524532,
+        "epss_multiplier": 0.408153705,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 6.935650120976009,
+        "final": 7.08545049609133,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -1328,12 +1396,13 @@
           "4.17.23"
         ],
         "id": "GHSA-xxjr-mmjv-4gpg",
-        "modified": "2026-02-04T03:38:10.856561+00:00",
+        "modified": "2026-06-09T11:15:10.330415+00:00",
         "published": "2026-01-21T23:01:22+00:00",
         "references": [
           "https://github.com/lodash/lodash/security/advisories/GHSA-xxjr-mmjv-4gpg",
           "https://nvd.nist.gov/vuln/detail/CVE-2025-13465",
           "https://github.com/lodash/lodash/commit/edadd452146f7e4bad4ea684e955708931d84d81",
+          "https://cert-portal.siemens.com/productcert/html/ssa-253495.html",
           "https://github.com/lodash/lodash"
         ],
         "severity": {
@@ -1347,7 +1416,7 @@
       "dep_name": "lodash",
       "dep_version": "4.17.21",
       "ecosystem": "npm",
-      "epss": 0.00037,
+      "epss": 0.01535,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -1357,8 +1426,8 @@
       },
       "finding_id": "sca:vuln:npm:lodash:4.17.21:GHSA-xxjr-mmjv-4gpg",
       "in_kev": false,
+      "mantishack_risk_estimate": 5.671637692660339,
       "purl": "pkg:npm/lodash@4.17.21",
-      "mantishack_risk_estimate": 5.565147541278086,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -1373,10 +1442,10 @@
         "cvss_base": 65.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399488811,
+        "epss_multiplier": 0.407133105,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 5.565147541278086,
+        "final": 5.671637692660339,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -1422,7 +1491,7 @@
       "dep_name": "minimatch",
       "dep_version": "3.1.1",
       "ecosystem": "npm",
-      "epss": 0.00026,
+      "epss": 0.00472,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -1432,8 +1501,8 @@
       },
       "finding_id": "sca:vuln:npm:minimatch:3.1.1:GHSA-23c5-xmqv-rm74",
       "in_kev": false,
+      "mantishack_risk_estimate": 9.899915560676167,
       "purl": "pkg:npm/minimatch@3.1.1",
-      "mantishack_risk_estimate": 9.843826163725483,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -1448,10 +1517,10 @@
         "cvss_base": 75.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399432678,
+        "epss_multiplier": 0.40170861599999996,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 9.843826163725483,
+        "final": 9.899915560676167,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -1494,7 +1563,7 @@
       "dep_name": "minimatch",
       "dep_version": "3.1.1",
       "ecosystem": "npm",
-      "epss": 0.00026,
+      "epss": 0.00519,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -1504,8 +1573,8 @@
       },
       "finding_id": "sca:vuln:npm:minimatch:3.1.1:GHSA-3ppc-4f35-3m26",
       "in_kev": false,
+      "mantishack_risk_estimate": 3.4457920385337646,
       "purl": "pkg:npm/minimatch@3.1.1",
-      "mantishack_risk_estimate": 3.4242249666917393,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -1520,10 +1589,10 @@
         "cvss_base": 40.0,
         "cvss_source": "severity_label",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399432678,
+        "epss_multiplier": 0.401948457,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 3.4242249666917393,
+        "final": 3.4457920385337646,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -1569,7 +1638,7 @@
       "dep_name": "minimatch",
       "dep_version": "3.1.1",
       "ecosystem": "npm",
-      "epss": 0.00036,
+      "epss": 0.00517,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -1579,8 +1648,8 @@
       },
       "finding_id": "sca:vuln:npm:minimatch:3.1.1:GHSA-7r86-cg39-jmmj",
       "in_kev": false,
+      "mantishack_risk_estimate": 9.90557480476312,
       "purl": "pkg:npm/minimatch@3.1.1",
-      "mantishack_risk_estimate": 9.845083773522584,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -1595,10 +1664,10 @@
         "cvss_base": 75.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399483708,
+        "epss_multiplier": 0.40193825099999997,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 9.845083773522584,
+        "final": 9.90557480476312,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -1645,7 +1714,7 @@
       "dep_name": "minimatch",
       "dep_version": "5.0.1",
       "ecosystem": "npm",
-      "epss": 0.00026,
+      "epss": 0.00472,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -1655,8 +1724,8 @@
       },
       "finding_id": "sca:vuln:npm:minimatch:5.0.1:GHSA-23c5-xmqv-rm74",
       "in_kev": false,
+      "mantishack_risk_estimate": 9.899915560676167,
       "purl": "pkg:npm/minimatch@5.0.1",
-      "mantishack_risk_estimate": 9.843826163725483,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -1671,10 +1740,10 @@
         "cvss_base": 75.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399432678,
+        "epss_multiplier": 0.40170861599999996,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 9.843826163725483,
+        "final": 9.899915560676167,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -1717,7 +1786,7 @@
       "dep_name": "minimatch",
       "dep_version": "5.0.1",
       "ecosystem": "npm",
-      "epss": 0.00026,
+      "epss": 0.00519,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -1727,8 +1796,8 @@
       },
       "finding_id": "sca:vuln:npm:minimatch:5.0.1:GHSA-3ppc-4f35-3m26",
       "in_kev": false,
+      "mantishack_risk_estimate": 3.4457920385337646,
       "purl": "pkg:npm/minimatch@5.0.1",
-      "mantishack_risk_estimate": 3.4242249666917393,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -1743,10 +1812,10 @@
         "cvss_base": 40.0,
         "cvss_source": "severity_label",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399432678,
+        "epss_multiplier": 0.401948457,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 3.4242249666917393,
+        "final": 3.4457920385337646,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -1792,7 +1861,7 @@
       "dep_name": "minimatch",
       "dep_version": "5.0.1",
       "ecosystem": "npm",
-      "epss": 0.00036,
+      "epss": 0.00517,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -1802,8 +1871,8 @@
       },
       "finding_id": "sca:vuln:npm:minimatch:5.0.1:GHSA-7r86-cg39-jmmj",
       "in_kev": false,
+      "mantishack_risk_estimate": 9.90557480476312,
       "purl": "pkg:npm/minimatch@5.0.1",
-      "mantishack_risk_estimate": 9.845083773522584,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -1818,10 +1887,10 @@
         "cvss_base": 75.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399483708,
+        "epss_multiplier": 0.40193825099999997,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 9.845083773522584,
+        "final": 9.90557480476312,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -1863,7 +1932,7 @@
       "dep_name": "minimist",
       "dep_version": "1.2.5",
       "ecosystem": "npm",
-      "epss": 0.00789,
+      "epss": 0.04581,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -1873,8 +1942,8 @@
       },
       "finding_id": "sca:vuln:npm:minimist:1.2.5:GHSA-xvch-5gv4-984h",
       "in_kev": false,
+      "mantishack_risk_estimate": 8.877552243423256,
       "purl": "pkg:npm/minimist@1.2.5",
-      "mantishack_risk_estimate": 8.471128867680546,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -1889,10 +1958,10 @@
         "cvss_base": 98.00000000000001,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.40332626699999996,
+        "epss_multiplier": 0.42267684299999997,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 8.471128867680546,
+        "final": 8.877552243423256,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -1933,7 +2002,7 @@
       "dep_name": "nanoid",
       "dep_version": "3.3.3",
       "ecosystem": "npm",
-      "epss": 0.0011,
+      "epss": 0.00666,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -1943,8 +2012,8 @@
       },
       "finding_id": "sca:vuln:npm:nanoid:3.3.3:GHSA-mwcw-c2x4-8c55",
       "in_kev": false,
+      "mantishack_risk_estimate": 3.7111394972611933,
       "purl": "pkg:npm/nanoid@3.3.3",
-      "mantishack_risk_estimate": 3.6849921568149893,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -1959,10 +2028,10 @@
         "cvss_base": 43.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.39986133,
+        "epss_multiplier": 0.40269859799999996,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 3.6849921568149893,
+        "final": 3.7111394972611933,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -2003,7 +2072,7 @@
       "dep_name": "picomatch",
       "dep_version": "2.3.1",
       "ecosystem": "npm",
-      "epss": 0.00057,
+      "epss": 0.0041,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -2013,8 +2082,8 @@
       },
       "finding_id": "sca:vuln:npm:picomatch:2.3.1:GHSA-3v7f-55p6-f55p",
       "in_kev": false,
+      "mantishack_risk_estimate": 4.55935634892583,
       "purl": "pkg:npm/picomatch@2.3.1",
-      "mantishack_risk_estimate": 4.538894972298424,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -2029,10 +2098,10 @@
         "cvss_base": 53.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399590871,
+        "epss_multiplier": 0.40139222999999996,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 4.538894972298424,
+        "final": 4.55935634892583,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -2073,7 +2142,7 @@
       "dep_name": "picomatch",
       "dep_version": "2.3.1",
       "ecosystem": "npm",
-      "epss": 0.00019,
+      "epss": 0.00412,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -2083,8 +2152,8 @@
       },
       "finding_id": "sca:vuln:npm:picomatch:2.3.1:GHSA-c2c7-rcm5-vvqj",
       "in_kev": false,
+      "mantishack_risk_estimate": 6.452083411422601,
       "purl": "pkg:npm/picomatch@2.3.1",
-      "mantishack_risk_estimate": 6.419847638474138,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -2099,10 +2168,10 @@
         "cvss_base": 75.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399396957,
+        "epss_multiplier": 0.401402436,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 6.419847638474138,
+        "final": 6.452083411422601,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -2141,7 +2210,7 @@
       "dep_name": "qs",
       "dep_version": "6.9.6",
       "ecosystem": "npm",
-      "epss": 0.00072,
+      "epss": 0.0041,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -2151,8 +2220,8 @@
       },
       "finding_id": "sca:vuln:npm:qs:6.9.6:GHSA-6rw7-vpxm-498p",
       "in_kev": false,
+      "mantishack_risk_estimate": 3.182946885099164,
       "purl": "pkg:npm/qs@6.9.6",
-      "mantishack_risk_estimate": 3.1692695118508696,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -2167,10 +2236,10 @@
         "cvss_base": 37.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399667416,
+        "epss_multiplier": 0.40139222999999996,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 3.1692695118508696,
+        "final": 3.182946885099164,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -2218,7 +2287,7 @@
       "dep_name": "qs",
       "dep_version": "6.9.6",
       "ecosystem": "npm",
-      "epss": 0.01543,
+      "epss": 0.14663,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -2228,8 +2297,8 @@
       },
       "finding_id": "sca:vuln:npm:qs:6.9.6:GHSA-hrpp-h998-j3pp",
       "in_kev": false,
+      "mantishack_risk_estimate": 15.552188789200025,
       "purl": "pkg:npm/qs@6.9.6",
-      "mantishack_risk_estimate": 13.356060013597642,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -2244,10 +2313,10 @@
         "cvss_base": 75.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.407173929,
+        "epss_multiplier": 0.474125289,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 13.356060013597642,
+        "final": 15.552188789200025,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -2287,7 +2356,7 @@
       "dep_name": "qs",
       "dep_version": "6.9.6",
       "ecosystem": "npm",
-      "epss": 0.0005,
+      "epss": 0.00478,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -2297,8 +2366,8 @@
       },
       "finding_id": "sca:vuln:npm:qs:6.9.6:GHSA-w7fw-mjwx-w883",
       "in_kev": false,
+      "mantishack_risk_estimate": 13.177791938443942,
       "purl": "pkg:npm/qs@6.9.6",
-      "mantishack_risk_estimate": 13.106149932654473,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -2313,10 +2382,10 @@
         "cvss_base": 37.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.39955514999999997,
+        "epss_multiplier": 0.401739234,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 13.106149932654473,
+        "final": 13.177791938443942,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -2365,8 +2434,8 @@
       },
       "finding_id": "sca:vuln:npm:serialize-javascript:6.0.0:GHSA-5c6j-r48x-rmvq",
       "in_kev": false,
-      "purl": "pkg:npm/serialize-javascript@6.0.0",
       "mantishack_risk_estimate": 11.361095147150438,
+      "purl": "pkg:npm/serialize-javascript@6.0.0",
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -2424,7 +2493,7 @@
       "dep_name": "serialize-javascript",
       "dep_version": "6.0.0",
       "ecosystem": "npm",
-      "epss": 0.01129,
+      "epss": 0.01006,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -2434,8 +2503,8 @@
       },
       "finding_id": "sca:vuln:npm:serialize-javascript:6.0.0:GHSA-76p7-773f-r4q5",
       "in_kev": false,
+      "mantishack_risk_estimate": 4.6805804515794875,
       "purl": "pkg:npm/serialize-javascript@6.0.0",
-      "mantishack_risk_estimate": 4.687844573850012,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -2450,10 +2519,10 @@
         "cvss_base": 54.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.405061287,
+        "epss_multiplier": 0.404433618,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 4.687844573850012,
+        "final": 4.6805804515794875,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -2493,7 +2562,7 @@
       "dep_name": "serialize-javascript",
       "dep_version": "6.0.0",
       "ecosystem": "npm",
-      "epss": 0.00018,
+      "epss": 0.00472,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -2503,8 +2572,8 @@
       },
       "finding_id": "sca:vuln:npm:serialize-javascript:6.0.0:GHSA-qj8w-gfj5-8c6v",
       "in_kev": false,
+      "mantishack_risk_estimate": 5.079510524067632,
       "purl": "pkg:npm/serialize-javascript@6.0.0",
-      "mantishack_risk_estimate": 5.05021561603718,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -2519,10 +2588,10 @@
         "cvss_base": 59.00000000000001,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399391854,
+        "epss_multiplier": 0.40170861599999996,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 5.05021561603718,
+        "final": 5.079510524067632,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -2570,8 +2639,8 @@
       },
       "finding_id": "sca:vuln:npm:serialize-javascript:6.0.1:GHSA-5c6j-r48x-rmvq",
       "in_kev": false,
-      "purl": "pkg:npm/serialize-javascript@6.0.1",
       "mantishack_risk_estimate": 11.361095147150438,
+      "purl": "pkg:npm/serialize-javascript@6.0.1",
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -2629,7 +2698,7 @@
       "dep_name": "serialize-javascript",
       "dep_version": "6.0.1",
       "ecosystem": "npm",
-      "epss": 0.01129,
+      "epss": 0.01006,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -2639,8 +2708,8 @@
       },
       "finding_id": "sca:vuln:npm:serialize-javascript:6.0.1:GHSA-76p7-773f-r4q5",
       "in_kev": false,
+      "mantishack_risk_estimate": 4.6805804515794875,
       "purl": "pkg:npm/serialize-javascript@6.0.1",
-      "mantishack_risk_estimate": 4.687844573850012,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -2655,10 +2724,10 @@
         "cvss_base": 54.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.405061287,
+        "epss_multiplier": 0.404433618,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 4.687844573850012,
+        "final": 4.6805804515794875,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -2698,7 +2767,7 @@
       "dep_name": "serialize-javascript",
       "dep_version": "6.0.1",
       "ecosystem": "npm",
-      "epss": 0.00018,
+      "epss": 0.00472,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -2708,8 +2777,8 @@
       },
       "finding_id": "sca:vuln:npm:serialize-javascript:6.0.1:GHSA-qj8w-gfj5-8c6v",
       "in_kev": false,
+      "mantishack_risk_estimate": 5.079510524067632,
       "purl": "pkg:npm/serialize-javascript@6.0.1",
-      "mantishack_risk_estimate": 5.05021561603718,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -2724,10 +2793,10 @@
         "cvss_base": 59.00000000000001,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399391854,
+        "epss_multiplier": 0.40170861599999996,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 5.05021561603718,
+        "final": 5.079510524067632,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -2765,7 +2834,7 @@
       "dep_name": "socket.io-parser",
       "dep_version": "4.2.1",
       "ecosystem": "npm",
-      "epss": 0.0006,
+      "epss": 0.00514,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -2775,8 +2844,8 @@
       },
       "finding_id": "sca:vuln:npm:socket.io-parser:4.2.1:GHSA-677m-j7p3-52f9",
       "in_kev": false,
+      "mantishack_risk_estimate": 3.445573305553623,
       "purl": "pkg:npm/socket.io-parser@4.2.1",
-      "mantishack_risk_estimate": 3.4257123509567067,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -2791,10 +2860,10 @@
         "cvss_base": 40.0,
         "cvss_source": "severity_label",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.39960618,
+        "epss_multiplier": 0.401922942,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 3.4257123509567067,
+        "final": 3.445573305553623,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -2836,7 +2905,7 @@
       "dep_name": "socket.io-parser",
       "dep_version": "4.2.1",
       "ecosystem": "npm",
-      "epss": 0.00302,
+      "epss": 0.01059,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -2846,8 +2915,8 @@
       },
       "finding_id": "sca:vuln:npm:socket.io-parser:4.2.1:GHSA-cqmj-92xf-r6r9",
       "in_kev": false,
+      "mantishack_risk_estimate": 6.331682740710159,
       "purl": "pkg:npm/socket.io-parser@4.2.1",
-      "mantishack_risk_estimate": 6.271245724631954,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -2862,10 +2931,10 @@
         "cvss_base": 73.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.400841106,
+        "epss_multiplier": 0.404704077,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 6.271245724631954,
+        "final": 6.331682740710159,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -2906,7 +2975,7 @@
       "dep_name": "socket.io",
       "dep_version": "4.5.4",
       "ecosystem": "npm",
-      "epss": 0.00136,
+      "epss": 0.0069,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -2916,8 +2985,8 @@
       },
       "finding_id": "sca:vuln:npm:socket.io:4.5.4:GHSA-25hc-qcg6-38wj",
       "in_kev": false,
+      "mantishack_risk_estimate": 6.3022226892796995,
       "purl": "pkg:npm/socket.io@4.5.4",
-      "mantishack_risk_estimate": 6.257992693365137,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -2932,10 +3001,10 @@
         "cvss_base": 73.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399994008,
+        "epss_multiplier": 0.40282107,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 6.257992693365137,
+        "final": 6.3022226892796995,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -2973,7 +3042,7 @@
       "dep_name": "tar-fs",
       "dep_version": "2.1.1",
       "ecosystem": "npm",
-      "epss": 0.01003,
+      "epss": 0.00474,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -2983,8 +3052,8 @@
       },
       "finding_id": "sca:vuln:npm:tar-fs:2.1.1:GHSA-8cj5-5rvv-wf4v",
       "in_kev": false,
+      "mantishack_risk_estimate": 3.4438234417124844,
       "purl": "pkg:npm/tar-fs@2.1.1",
-      "mantishack_risk_estimate": 3.466965391011535,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -2999,10 +3068,10 @@
         "cvss_base": 40.0,
         "cvss_source": "severity_label",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.404418309,
+        "epss_multiplier": 0.401718822,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 3.466965391011535,
+        "final": 3.4438234417124844,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -3044,7 +3113,7 @@
       "dep_name": "tar-fs",
       "dep_version": "2.1.1",
       "ecosystem": "npm",
-      "epss": 0.00806,
+      "epss": 0.02186,
       "exploit_evidence": {
         "edb_ids": [
           52268
@@ -3056,8 +3125,8 @@
       },
       "finding_id": "sca:vuln:npm:tar-fs:2.1.1:GHSA-pq67-2wwv-3xjx",
       "in_kev": false,
+      "mantishack_risk_estimate": 11.127087119086289,
       "purl": "pkg:npm/tar-fs@2.1.1",
-      "mantishack_risk_estimate": 10.936180746593335,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -3072,10 +3141,10 @@
         "cvss_base": 75.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.403413018,
+        "epss_multiplier": 0.410455158,
         "exploit_evidence_multiplier": 1.5839,
         "exposure_multiplier": 0.5,
-        "final": 10.936180746593335,
+        "final": 11.127087119086289,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -3113,7 +3182,7 @@
       "dep_name": "tar-fs",
       "dep_version": "2.1.1",
       "ecosystem": "npm",
-      "epss": 0.0003,
+      "epss": 0.00516,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -3123,8 +3192,8 @@
       },
       "finding_id": "sca:vuln:npm:tar-fs:2.1.1:GHSA-vj76-c3g6-qr5v",
       "in_kev": false,
+      "mantishack_risk_estimate": 3.44566079874568,
       "purl": "pkg:npm/tar-fs@2.1.1",
-      "mantishack_risk_estimate": 3.424399953075853,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -3139,10 +3208,10 @@
         "cvss_base": 40.0,
         "cvss_source": "severity_label",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.39945309,
+        "epss_multiplier": 0.40193314799999996,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 3.424399953075853,
+        "final": 3.44566079874568,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -3182,7 +3251,7 @@
       "dep_name": "tmp",
       "dep_version": "0.2.1",
       "ecosystem": "npm",
-      "epss": 0.00166,
+      "epss": 0.00309,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -3192,8 +3261,8 @@
       },
       "finding_id": "sca:vuln:npm:tmp:0.2.1:GHSA-52f5-9888-hmc6",
       "in_kev": false,
+      "mantishack_risk_estimate": 9.87941652098343,
       "purl": "pkg:npm/tmp@0.2.1",
-      "mantishack_risk_estimate": 9.86143270088489,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -3208,10 +3277,10 @@
         "cvss_base": 25.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.400147098,
+        "epss_multiplier": 0.400876827,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 9.86143270088489,
+        "final": 9.87941652098343,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -3220,6 +3289,71 @@
         "version_match_confidence": 0.95
       },
       "severity": "low",
+      "ssvc_automatable": null,
+      "ssvc_exploitation": null
+    },
+    {
+      "advisory": {
+        "aliases": [
+          "CVE-2026-44705"
+        ],
+        "fixed_versions": [
+          "0.2.6"
+        ],
+        "id": "GHSA-ph9p-34f9-6g65",
+        "modified": "2026-06-12T19:30:08.366659+00:00",
+        "published": "2026-05-27T00:34:06+00:00",
+        "references": [
+          "https://github.com/raszi/node-tmp/security/advisories/GHSA-ph9p-34f9-6g65",
+          "https://nvd.nist.gov/vuln/detail/CVE-2026-44705",
+          "https://github.com/raszi/node-tmp/commit/efa4a06f24374797ae32ab2b6ae39b7a611ae429",
+          "https://github.com/raszi/node-tmp"
+        ],
+        "severity": null,
+        "summary": "tmp has Path Traversal via unsanitized prefix/postfix that enables directory escape"
+      },
+      "cvss_score": null,
+      "dep_name": "tmp",
+      "dep_version": "0.2.1",
+      "ecosystem": "npm",
+      "epss": 0.00354,
+      "exploit_evidence": {
+        "edb_ids": [],
+        "github_poc_urls": [],
+        "has_any": false,
+        "kev_listed": false,
+        "msf_modules": []
+      },
+      "finding_id": "sca:vuln:npm:tmp:0.2.1:GHSA-ph9p-34f9-6g65",
+      "in_kev": false,
+      "mantishack_risk_estimate": 9.88507576507038,
+      "purl": "pkg:npm/tmp@0.2.1",
+      "reachability": {
+        "confidence": {
+          "level": "medium",
+          "numeric": 0.7,
+          "reason": "no import/require for 'tmp' found"
+        },
+        "evidence": [],
+        "verdict": "not_reachable"
+      },
+      "risk_components": {
+        "calibration_status": "validated_v1",
+        "cvss_base": 40.0,
+        "cvss_source": "severity_label",
+        "depth_multiplier": 0.7,
+        "epss_multiplier": 0.401106462,
+        "exploit_evidence_multiplier": 1.0,
+        "exposure_multiplier": 0.5,
+        "final": 9.88507576507038,
+        "kev_multiplier": 1.0,
+        "parser_confidence": 0.95,
+        "reachability_multiplier": 0.67849,
+        "ssvc_automatable_multiplier": 1.0,
+        "ssvc_poc_multiplier": 1.4399,
+        "version_match_confidence": 0.95
+      },
+      "severity": "medium",
       "ssvc_automatable": null,
       "ssvc_exploitation": null
     },
@@ -3253,7 +3387,7 @@
       "dep_name": "ua-parser-js",
       "dep_version": "0.7.32",
       "ecosystem": "npm",
-      "epss": 0.01453,
+      "epss": 0.01725,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -3263,8 +3397,8 @@
       },
       "finding_id": "sca:vuln:npm:ua-parser-js:0.7.32:GHSA-fhg7-m89q-25r3",
       "in_kev": false,
+      "mantishack_risk_estimate": 13.386524604844565,
       "purl": "pkg:npm/ua-parser-js@0.7.32",
-      "mantishack_risk_estimate": 13.340995105838175,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -3279,10 +3413,10 @@
         "cvss_base": 75.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.406714659,
+        "epss_multiplier": 0.40810267499999997,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 13.340995105838175,
+        "final": 13.386524604844565,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -3321,7 +3455,7 @@
       "dep_name": "webpack",
       "dep_version": "5.82.0",
       "ecosystem": "npm",
-      "epss": 0.00011,
+      "epss": 0.002,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -3331,8 +3465,8 @@
       },
       "finding_id": "sca:vuln:npm:webpack:5.82.0:GHSA-38r7-794h-5758",
       "in_kev": false,
+      "mantishack_risk_estimate": 9.86570857419503,
       "purl": "pkg:npm/webpack@5.82.0",
-      "mantishack_risk_estimate": 9.84193974902983,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -3347,10 +3481,10 @@
         "cvss_base": 37.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399356133,
+        "epss_multiplier": 0.40032059999999997,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 9.84193974902983,
+        "final": 9.86570857419503,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -3391,7 +3525,7 @@
       "dep_name": "webpack",
       "dep_version": "5.82.0",
       "ecosystem": "npm",
-      "epss": 0.01562,
+      "epss": 0.00897,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -3401,8 +3535,8 @@
       },
       "finding_id": "sca:vuln:npm:webpack:5.82.0:GHSA-4vvj-4cpr-p986",
       "in_kev": false,
+      "mantishack_risk_estimate": 9.953363977052941,
       "purl": "pkg:npm/webpack@5.82.0",
-      "mantishack_risk_estimate": 10.036995028560128,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -3417,10 +3551,10 @@
         "cvss_base": 64.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.407270886,
+        "epss_multiplier": 0.403877391,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 10.036995028560128,
+        "final": 9.953363977052941,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -3459,7 +3593,7 @@
       "dep_name": "webpack",
       "dep_version": "5.82.0",
       "ecosystem": "npm",
-      "epss": 0.00011,
+      "epss": 0.002,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -3469,8 +3603,8 @@
       },
       "finding_id": "sca:vuln:npm:webpack:5.82.0:GHSA-8fgc-7cc6-rx7x",
       "in_kev": false,
+      "mantishack_risk_estimate": 9.86570857419503,
       "purl": "pkg:npm/webpack@5.82.0",
-      "mantishack_risk_estimate": 9.84193974902983,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -3485,10 +3619,10 @@
         "cvss_base": 37.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399356133,
+        "epss_multiplier": 0.40032059999999997,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 9.84193974902983,
+        "final": 9.86570857419503,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -3532,7 +3666,7 @@
       "dep_name": "ws",
       "dep_version": "8.2.3",
       "ecosystem": "npm",
-      "epss": 0.00541,
+      "epss": 0.01357,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -3542,8 +3676,8 @@
       },
       "finding_id": "sca:vuln:npm:ws:8.2.3:GHSA-3h5v-q93c-6h6q",
       "in_kev": false,
+      "mantishack_risk_estimate": 13.324925870894742,
       "purl": "pkg:npm/ws@8.2.3",
-      "mantishack_risk_estimate": 13.188337373875571,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -3558,10 +3692,10 @@
         "cvss_base": 75.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.402060723,
+        "epss_multiplier": 0.406224771,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 13.188337373875571,
+        "final": 13.324925870894742,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -3601,7 +3735,7 @@
       "dep_name": "ws",
       "dep_version": "8.2.3",
       "ecosystem": "npm",
-      "epss": 0.00012,
+      "epss": 0.00717,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -3611,8 +3745,8 @@
       },
       "finding_id": "sca:vuln:npm:ws:8.2.3:GHSA-58qx-3vcg-4xpx",
       "in_kev": false,
+      "mantishack_risk_estimate": 9.930727000705133,
       "purl": "pkg:npm/ws@8.2.3",
-      "mantishack_risk_estimate": 9.842065510009542,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -3627,10 +3761,10 @@
         "cvss_base": 44.00000000000001,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399361236,
+        "epss_multiplier": 0.402958851,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 9.842065510009542,
+        "final": 9.930727000705133,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -3639,6 +3773,79 @@
         "version_match_confidence": 0.95
       },
       "severity": "medium",
+      "ssvc_automatable": null,
+      "ssvc_exploitation": null
+    },
+    {
+      "advisory": {
+        "aliases": [
+          "CVE-2026-48779"
+        ],
+        "fixed_versions": [
+          "5.2.5",
+          "6.2.4",
+          "7.5.11",
+          "8.21.0"
+        ],
+        "id": "GHSA-96hv-2xvq-fx4p",
+        "modified": "2026-06-16T16:44:28.450917+00:00",
+        "published": "2026-06-15T16:34:23+00:00",
+        "references": [
+          "https://github.com/websockets/ws/security/advisories/GHSA-96hv-2xvq-fx4p",
+          "https://github.com/websockets/ws/commit/86d3e8a5fb0246ed373860c5fbb0de88824a27f7",
+          "https://github.com/websockets/ws/commit/b5372ac67bb97a773727b8e9f5035a8123556d53",
+          "https://github.com/websockets/ws/commit/bca91adf15677e47dbe4f959653452727be28b94",
+          "https://github.com/websockets/ws/commit/fd36cd864fcdf62a08273a99e19a7d975401fee8"
+        ],
+        "severity": {
+          "score": 7.5,
+          "severity": "high",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        },
+        "summary": "ws: Memory exhaustion DoS from tiny fragments and data chunks"
+      },
+      "cvss_score": 7.5,
+      "dep_name": "ws",
+      "dep_version": "8.2.3",
+      "ecosystem": "npm",
+      "epss": 0.00725,
+      "exploit_evidence": {
+        "edb_ids": [],
+        "github_poc_urls": [],
+        "has_any": false,
+        "kev_listed": false,
+        "msf_modules": []
+      },
+      "finding_id": "sca:vuln:npm:ws:8.2.3:GHSA-96hv-2xvq-fx4p",
+      "in_kev": false,
+      "mantishack_risk_estimate": 13.219136740850482,
+      "purl": "pkg:npm/ws@8.2.3",
+      "reachability": {
+        "confidence": {
+          "level": "medium",
+          "numeric": 0.7,
+          "reason": "no import/require for 'ws' found"
+        },
+        "evidence": [],
+        "verdict": "not_reachable"
+      },
+      "risk_components": {
+        "calibration_status": "validated_v1",
+        "cvss_base": 75.0,
+        "cvss_source": "numeric",
+        "depth_multiplier": 0.7,
+        "epss_multiplier": 0.402999675,
+        "exploit_evidence_multiplier": 1.0,
+        "exposure_multiplier": 0.5,
+        "final": 13.219136740850482,
+        "kev_multiplier": 1.0,
+        "parser_confidence": 0.95,
+        "reachability_multiplier": 0.67849,
+        "ssvc_automatable_multiplier": 1.331,
+        "ssvc_poc_multiplier": 1.4399,
+        "version_match_confidence": 0.95
+      },
+      "severity": "high",
       "ssvc_automatable": null,
       "ssvc_exploitation": null
     },
@@ -3674,7 +3881,7 @@
       "dep_name": "ws",
       "dep_version": "8.5.0",
       "ecosystem": "npm",
-      "epss": 0.00541,
+      "epss": 0.01357,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -3684,8 +3891,8 @@
       },
       "finding_id": "sca:vuln:npm:ws:8.5.0:GHSA-3h5v-q93c-6h6q",
       "in_kev": false,
+      "mantishack_risk_estimate": 13.324925870894742,
       "purl": "pkg:npm/ws@8.5.0",
-      "mantishack_risk_estimate": 13.188337373875571,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -3700,10 +3907,10 @@
         "cvss_base": 75.0,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.402060723,
+        "epss_multiplier": 0.406224771,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 13.188337373875571,
+        "final": 13.324925870894742,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -3743,7 +3950,7 @@
       "dep_name": "ws",
       "dep_version": "8.5.0",
       "ecosystem": "npm",
-      "epss": 0.00012,
+      "epss": 0.00717,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -3753,8 +3960,8 @@
       },
       "finding_id": "sca:vuln:npm:ws:8.5.0:GHSA-58qx-3vcg-4xpx",
       "in_kev": false,
+      "mantishack_risk_estimate": 9.930727000705133,
       "purl": "pkg:npm/ws@8.5.0",
-      "mantishack_risk_estimate": 9.842065510009542,
       "reachability": {
         "confidence": {
           "level": "medium",
@@ -3769,10 +3976,10 @@
         "cvss_base": 44.00000000000001,
         "cvss_source": "numeric",
         "depth_multiplier": 0.7,
-        "epss_multiplier": 0.399361236,
+        "epss_multiplier": 0.402958851,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 9.842065510009542,
+        "final": 9.930727000705133,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.67849,
@@ -3781,6 +3988,79 @@
         "version_match_confidence": 0.95
       },
       "severity": "medium",
+      "ssvc_automatable": null,
+      "ssvc_exploitation": null
+    },
+    {
+      "advisory": {
+        "aliases": [
+          "CVE-2026-48779"
+        ],
+        "fixed_versions": [
+          "5.2.5",
+          "6.2.4",
+          "7.5.11",
+          "8.21.0"
+        ],
+        "id": "GHSA-96hv-2xvq-fx4p",
+        "modified": "2026-06-16T16:44:28.450917+00:00",
+        "published": "2026-06-15T16:34:23+00:00",
+        "references": [
+          "https://github.com/websockets/ws/security/advisories/GHSA-96hv-2xvq-fx4p",
+          "https://github.com/websockets/ws/commit/86d3e8a5fb0246ed373860c5fbb0de88824a27f7",
+          "https://github.com/websockets/ws/commit/b5372ac67bb97a773727b8e9f5035a8123556d53",
+          "https://github.com/websockets/ws/commit/bca91adf15677e47dbe4f959653452727be28b94",
+          "https://github.com/websockets/ws/commit/fd36cd864fcdf62a08273a99e19a7d975401fee8"
+        ],
+        "severity": {
+          "score": 7.5,
+          "severity": "high",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        },
+        "summary": "ws: Memory exhaustion DoS from tiny fragments and data chunks"
+      },
+      "cvss_score": 7.5,
+      "dep_name": "ws",
+      "dep_version": "8.5.0",
+      "ecosystem": "npm",
+      "epss": 0.00725,
+      "exploit_evidence": {
+        "edb_ids": [],
+        "github_poc_urls": [],
+        "has_any": false,
+        "kev_listed": false,
+        "msf_modules": []
+      },
+      "finding_id": "sca:vuln:npm:ws:8.5.0:GHSA-96hv-2xvq-fx4p",
+      "in_kev": false,
+      "mantishack_risk_estimate": 13.219136740850482,
+      "purl": "pkg:npm/ws@8.5.0",
+      "reachability": {
+        "confidence": {
+          "level": "medium",
+          "numeric": 0.7,
+          "reason": "no import/require for 'ws' found"
+        },
+        "evidence": [],
+        "verdict": "not_reachable"
+      },
+      "risk_components": {
+        "calibration_status": "validated_v1",
+        "cvss_base": 75.0,
+        "cvss_source": "numeric",
+        "depth_multiplier": 0.7,
+        "epss_multiplier": 0.402999675,
+        "exploit_evidence_multiplier": 1.0,
+        "exposure_multiplier": 0.5,
+        "final": 13.219136740850482,
+        "kev_multiplier": 1.0,
+        "parser_confidence": 0.95,
+        "reachability_multiplier": 0.67849,
+        "ssvc_automatable_multiplier": 1.331,
+        "ssvc_poc_multiplier": 1.4399,
+        "version_match_confidence": 0.95
+      },
+      "severity": "high",
       "ssvc_automatable": null,
       "ssvc_exploitation": null
     }

@@ -1,6 +1,6 @@
 {
   "_source": {
-    "fetched_at": "2026-05-26T23:45:45Z",
+    "fetched_at": "2026-07-01T09:58:06Z",
     "git_ref": "3.0.0",
     "license": "MIT (MANTISHACK-generated scan output)",
     "name": "MANTISHACK SCA scan of flask",
@@ -34,7 +34,7 @@
       "dep_name": "black",
       "dep_version": "23.7.0",
       "ecosystem": "PyPI",
-      "epss": 0.00023,
+      "epss": 0.00572,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -44,8 +44,8 @@
       },
       "finding_id": "sca:vuln:PyPI:black:23.7.0:GHSA-3936-cmfr-pm3m",
       "in_kev": false,
+      "mantishack_risk_estimate": 4.94917706242146,
       "purl": "pkg:pypi/black@23.7.0",
-      "mantishack_risk_estimate": 4.914704909073764,
       "reachability": {
         "confidence": {
           "level": "low",
@@ -60,10 +60,10 @@
         "cvss_base": 40.0,
         "cvss_source": "severity_label",
         "depth_multiplier": 1.0,
-        "epss_multiplier": 0.39941736899999997,
+        "epss_multiplier": 0.402218916,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 4.914704909073764,
+        "final": 4.94917706242146,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.6817,
@@ -104,7 +104,7 @@
       "dep_name": "black",
       "dep_version": "23.7.0",
       "ecosystem": "PyPI",
-      "epss": 0.00081,
+      "epss": 0.00971,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -114,8 +114,8 @@
       },
       "finding_id": "sca:vuln:PyPI:black:23.7.0:GHSA-fj7x-q9j7-g6q6",
       "in_kev": false,
+      "mantishack_risk_estimate": 19.032928498222788,
       "purl": "pkg:pypi/black@23.7.0",
-      "mantishack_risk_estimate": 18.81909990589183,
       "reachability": {
         "confidence": {
           "level": "low",
@@ -130,10 +130,10 @@
         "cvss_base": 53.0,
         "cvss_source": "numeric",
         "depth_multiplier": 1.0,
-        "epss_multiplier": 0.399713343,
+        "epss_multiplier": 0.404255013,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 18.81909990589183,
+        "final": 19.032928498222788,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 0.6817,
@@ -170,7 +170,7 @@
       "dep_name": "flask",
       "dep_version": "2.2.2",
       "ecosystem": "PyPI",
-      "epss": 0.00018,
+      "epss": 0.00374,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -180,8 +180,8 @@
       },
       "finding_id": "sca:vuln:PyPI:flask:2.2.2:GHSA-68rp-wp8r-4726",
       "in_kev": false,
+      "mantishack_risk_estimate": 7.2418138221,
       "purl": "pkg:pypi/flask@2.2.2",
-      "mantishack_risk_estimate": 7.2090229647,
       "reachability": {
         "confidence": {
           "level": "high",
@@ -203,10 +203,10 @@
         "cvss_base": 40.0,
         "cvss_source": "severity_label",
         "depth_multiplier": 1.0,
-        "epss_multiplier": 0.399391854,
+        "epss_multiplier": 0.401208522,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 7.2090229647,
+        "final": 7.2418138221,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 1.0,
@@ -248,7 +248,7 @@
       "dep_name": "flask",
       "dep_version": "2.2.2",
       "ecosystem": "PyPI",
-      "epss": 0.00185,
+      "epss": 0.01261,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -258,8 +258,8 @@
       },
       "finding_id": "sca:vuln:PyPI:flask:2.2.2:GHSA-m2qf-hxjv-5gpq",
       "in_kev": false,
+      "mantishack_risk_estimate": 13.731589946531248,
       "purl": "pkg:pypi/flask@2.2.2",
-      "mantishack_risk_estimate": 13.545759736406248,
       "reachability": {
         "confidence": {
           "level": "high",
@@ -281,10 +281,10 @@
         "cvss_base": 75.0,
         "cvss_source": "numeric",
         "depth_multiplier": 1.0,
-        "epss_multiplier": 0.400244055,
+        "epss_multiplier": 0.405734883,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 13.545759736406248,
+        "final": 13.731589946531248,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 1.0,
@@ -320,7 +320,7 @@
       "dep_name": "jinja2",
       "dep_version": "3.1.2",
       "ecosystem": "PyPI",
-      "epss": 0.00121,
+      "epss": 0.00465,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -330,8 +330,8 @@
       },
       "finding_id": "sca:vuln:PyPI:jinja2:3.1.2:GHSA-cpwx-vrp4-4pq7",
       "in_kev": false,
+      "mantishack_risk_estimate": 7.250195754749999,
       "purl": "pkg:pypi/jinja2@3.1.2",
-      "mantishack_risk_estimate": 7.218510207149999,
       "reachability": {
         "confidence": {
           "level": "high",
@@ -352,10 +352,10 @@
         "cvss_base": 40.0,
         "cvss_source": "severity_label",
         "depth_multiplier": 1.0,
-        "epss_multiplier": 0.399917463,
+        "epss_multiplier": 0.401672895,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 7.218510207149999,
+        "final": 7.250195754749999,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 1.0,
@@ -395,7 +395,7 @@
       "dep_name": "jinja2",
       "dep_version": "3.1.2",
       "ecosystem": "PyPI",
-      "epss": 0.00589,
+      "epss": 0.00301,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -405,8 +405,8 @@
       },
       "finding_id": "sca:vuln:PyPI:jinja2:3.1.2:GHSA-gmj6-6f8f-6699",
       "in_kev": false,
+      "mantishack_risk_estimate": 15.91719767913,
       "purl": "pkg:pypi/jinja2@3.1.2",
-      "mantishack_risk_estimate": 15.97555803657,
       "reachability": {
         "confidence": {
           "level": "high",
@@ -427,10 +427,10 @@
         "cvss_base": 88.00000000000001,
         "cvss_source": "numeric",
         "depth_multiplier": 1.0,
-        "epss_multiplier": 0.402305667,
+        "epss_multiplier": 0.400836003,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 15.97555803657,
+        "final": 15.91719767913,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 1.0,
@@ -470,7 +470,7 @@
       "dep_name": "jinja2",
       "dep_version": "3.1.2",
       "ecosystem": "PyPI",
-      "epss": 0.00151,
+      "epss": 0.00892,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -480,8 +480,8 @@
       },
       "finding_id": "sca:vuln:PyPI:jinja2:3.1.2:GHSA-h5c8-rqwp-cp95",
       "in_kev": false,
+      "mantishack_risk_estimate": 9.840860588429999,
       "purl": "pkg:pypi/jinja2@3.1.2",
-      "mantishack_risk_estimate": 9.748719200227498,
       "reachability": {
         "confidence": {
           "level": "high",
@@ -502,10 +502,10 @@
         "cvss_base": 54.0,
         "cvss_source": "numeric",
         "depth_multiplier": 1.0,
-        "epss_multiplier": 0.400070553,
+        "epss_multiplier": 0.403851876,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 9.748719200227498,
+        "final": 9.840860588429999,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 1.0,
@@ -545,7 +545,7 @@
       "dep_name": "jinja2",
       "dep_version": "3.1.2",
       "ecosystem": "PyPI",
-      "epss": 0.0123,
+      "epss": 0.00979,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -555,8 +555,8 @@
       },
       "finding_id": "sca:vuln:PyPI:jinja2:3.1.2:GHSA-h75v-3vvj-5mfj",
       "in_kev": false,
+      "mantishack_risk_estimate": 9.851678808097498,
       "purl": "pkg:pypi/jinja2@3.1.2",
-      "mantishack_risk_estimate": 9.882889993574999,
       "reachability": {
         "confidence": {
           "level": "high",
@@ -577,10 +577,10 @@
         "cvss_base": 54.0,
         "cvss_source": "numeric",
         "depth_multiplier": 1.0,
-        "epss_multiplier": 0.40557668999999996,
+        "epss_multiplier": 0.404295837,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 9.882889993574999,
+        "final": 9.851678808097498,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 1.0,
@@ -620,7 +620,7 @@
       "dep_name": "jinja2",
       "dep_version": "3.1.2",
       "ecosystem": "PyPI",
-      "epss": 0.00586,
+      "epss": 0.005,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -630,8 +630,8 @@
       },
       "finding_id": "sca:vuln:PyPI:jinja2:3.1.2:GHSA-q2x7-8rv6-6q7h",
       "in_kev": false,
+      "mantishack_risk_estimate": 14.144168171249996,
       "purl": "pkg:pypi/jinja2@3.1.2",
-      "mantishack_risk_estimate": 14.159614875705,
       "reachability": {
         "confidence": {
           "level": "high",
@@ -652,10 +652,10 @@
         "cvss_base": 78.0,
         "cvss_source": "numeric",
         "depth_multiplier": 1.0,
-        "epss_multiplier": 0.402290358,
+        "epss_multiplier": 0.4018515,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 14.159614875705,
+        "final": 14.144168171249996,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 1.0,
@@ -691,7 +691,7 @@
       "dep_name": "werkzeug",
       "dep_version": "2.3.3",
       "ecosystem": "PyPI",
-      "epss": 0.00027,
+      "epss": 0.00556,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -701,8 +701,8 @@
       },
       "finding_id": "sca:vuln:PyPI:werkzeug:2.3.3:GHSA-29vq-49wr-vm6x",
       "in_kev": false,
+      "mantishack_risk_estimate": 7.258577687399999,
       "purl": "pkg:pypi/werkzeug@2.3.3",
-      "mantishack_risk_estimate": 7.209851947049999,
       "reachability": {
         "confidence": {
           "level": "high",
@@ -710,11 +710,11 @@
           "reason": "import found in non-test source"
         },
         "evidence": [
-          "src/flask/app.py:15",
-          "src/flask/app.py:16",
-          "src/flask/app.py:17",
-          "src/flask/app.py:18",
-          "src/flask/app.py:19",
+          "src/flask/ctx.py:9",
+          "src/flask/helpers.py:11",
+          "src/flask/helpers.py:12",
+          "src/flask/helpers.py:13",
+          "src/flask/helpers.py:23",
           "... and 104 more"
         ],
         "verdict": "imported"
@@ -724,10 +724,10 @@
         "cvss_base": 40.0,
         "cvss_source": "severity_label",
         "depth_multiplier": 1.0,
-        "epss_multiplier": 0.399437781,
+        "epss_multiplier": 0.402137268,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 7.209851947049999,
+        "final": 7.258577687399999,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 1.0,
@@ -767,7 +767,7 @@
       "dep_name": "werkzeug",
       "dep_version": "2.3.3",
       "ecosystem": "PyPI",
-      "epss": 0.4365,
+      "epss": 0.03397,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -779,8 +779,8 @@
       },
       "finding_id": "sca:vuln:PyPI:werkzeug:2.3.3:GHSA-2g68-c3qc-8985",
       "in_kev": false,
+      "mantishack_risk_estimate": 23.780989251018358,
       "purl": "pkg:pypi/werkzeug@2.3.3",
-      "mantishack_risk_estimate": 35.505591034596044,
       "reachability": {
         "confidence": {
           "level": "high",
@@ -788,11 +788,11 @@
           "reason": "import found in non-test source"
         },
         "evidence": [
-          "src/flask/app.py:15",
-          "src/flask/app.py:16",
-          "src/flask/app.py:17",
-          "src/flask/app.py:18",
-          "src/flask/app.py:19",
+          "src/flask/ctx.py:9",
+          "src/flask/helpers.py:11",
+          "src/flask/helpers.py:12",
+          "src/flask/helpers.py:13",
+          "src/flask/helpers.py:23",
           "... and 104 more"
         ],
         "verdict": "imported"
@@ -802,10 +802,10 @@
         "cvss_base": 75.0,
         "cvss_source": "numeric",
         "depth_multiplier": 1.0,
-        "epss_multiplier": 0.62204595,
+        "epss_multiplier": 0.416634891,
         "exploit_evidence_multiplier": 1.5839,
         "exposure_multiplier": 0.5,
-        "final": 35.505591034596044,
+        "final": 23.780989251018358,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 1.0,
@@ -844,7 +844,7 @@
       "dep_name": "werkzeug",
       "dep_version": "2.3.3",
       "ecosystem": "PyPI",
-      "epss": 0.00034,
+      "epss": 0.00424,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -854,8 +854,8 @@
       },
       "finding_id": "sca:vuln:PyPI:werkzeug:2.3.3:GHSA-87hc-h4r5-73f7",
       "in_kev": false,
+      "mantishack_risk_estimate": 9.601505545469998,
       "purl": "pkg:pypi/werkzeug@2.3.3",
-      "mantishack_risk_estimate": 9.553908142207499,
       "reachability": {
         "confidence": {
           "level": "high",
@@ -863,11 +863,11 @@
           "reason": "import found in non-test source"
         },
         "evidence": [
-          "src/flask/app.py:15",
-          "src/flask/app.py:16",
-          "src/flask/app.py:17",
-          "src/flask/app.py:18",
-          "src/flask/app.py:19",
+          "src/flask/ctx.py:9",
+          "src/flask/helpers.py:11",
+          "src/flask/helpers.py:12",
+          "src/flask/helpers.py:13",
+          "src/flask/helpers.py:23",
           "... and 104 more"
         ],
         "verdict": "imported"
@@ -877,10 +877,10 @@
         "cvss_base": 53.0,
         "cvss_source": "numeric",
         "depth_multiplier": 1.0,
-        "epss_multiplier": 0.399473502,
+        "epss_multiplier": 0.401463672,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 9.553908142207499,
+        "final": 9.601505545469998,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 1.0,
@@ -916,7 +916,7 @@
       "dep_name": "werkzeug",
       "dep_version": "2.3.3",
       "ecosystem": "PyPI",
-      "epss": 0.01392,
+      "epss": 0.00786,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -926,8 +926,8 @@
       },
       "finding_id": "sca:vuln:PyPI:werkzeug:2.3.3:GHSA-f9vj-2wh5-fj8j",
       "in_kev": false,
+      "mantishack_risk_estimate": 7.279762791899999,
       "purl": "pkg:pypi/werkzeug@2.3.3",
-      "mantishack_risk_estimate": 7.3355809368,
       "reachability": {
         "confidence": {
           "level": "high",
@@ -935,11 +935,11 @@
           "reason": "import found in non-test source"
         },
         "evidence": [
-          "src/flask/app.py:15",
-          "src/flask/app.py:16",
-          "src/flask/app.py:17",
-          "src/flask/app.py:18",
-          "src/flask/app.py:19",
+          "src/flask/ctx.py:9",
+          "src/flask/helpers.py:11",
+          "src/flask/helpers.py:12",
+          "src/flask/helpers.py:13",
+          "src/flask/helpers.py:23",
           "... and 104 more"
         ],
         "verdict": "imported"
@@ -949,10 +949,10 @@
         "cvss_base": 40.0,
         "cvss_source": "severity_label",
         "depth_multiplier": 1.0,
-        "epss_multiplier": 0.406403376,
+        "epss_multiplier": 0.403310958,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 7.3355809368,
+        "final": 7.279762791899999,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 1.0,
@@ -988,7 +988,7 @@
       "dep_name": "werkzeug",
       "dep_version": "2.3.3",
       "ecosystem": "PyPI",
-      "epss": 0.00032,
+      "epss": 0.00474,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -998,8 +998,8 @@
       },
       "finding_id": "sca:vuln:PyPI:werkzeug:2.3.3:GHSA-hgf8-39gv-g3f2",
       "in_kev": false,
+      "mantishack_risk_estimate": 7.251024737099998,
       "purl": "pkg:pypi/werkzeug@2.3.3",
-      "mantishack_risk_estimate": 7.210312492799999,
       "reachability": {
         "confidence": {
           "level": "high",
@@ -1007,11 +1007,11 @@
           "reason": "import found in non-test source"
         },
         "evidence": [
-          "src/flask/app.py:15",
-          "src/flask/app.py:16",
-          "src/flask/app.py:17",
-          "src/flask/app.py:18",
-          "src/flask/app.py:19",
+          "src/flask/ctx.py:9",
+          "src/flask/helpers.py:11",
+          "src/flask/helpers.py:12",
+          "src/flask/helpers.py:13",
+          "src/flask/helpers.py:23",
           "... and 104 more"
         ],
         "verdict": "imported"
@@ -1021,10 +1021,10 @@
         "cvss_base": 40.0,
         "cvss_source": "severity_label",
         "depth_multiplier": 1.0,
-        "epss_multiplier": 0.39946329599999997,
+        "epss_multiplier": 0.401718822,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 7.210312492799999,
+        "final": 7.251024737099998,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 1.0,
@@ -1066,7 +1066,7 @@
       "dep_name": "werkzeug",
       "dep_version": "2.3.3",
       "ecosystem": "PyPI",
-      "epss": 0.01065,
+      "epss": 0.01072,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -1076,8 +1076,8 @@
       },
       "finding_id": "sca:vuln:PyPI:werkzeug:2.3.3:GHSA-hrfv-mqp8-q5rw",
       "in_kev": false,
+      "mantishack_risk_estimate": 10.411201062539998,
       "purl": "pkg:pypi/werkzeug@2.3.3",
-      "mantishack_risk_estimate": 10.41028227376875,
       "reachability": {
         "confidence": {
           "level": "high",
@@ -1085,11 +1085,11 @@
           "reason": "import found in non-test source"
         },
         "evidence": [
-          "src/flask/app.py:15",
-          "src/flask/app.py:16",
-          "src/flask/app.py:17",
-          "src/flask/app.py:18",
-          "src/flask/app.py:19",
+          "src/flask/ctx.py:9",
+          "src/flask/helpers.py:11",
+          "src/flask/helpers.py:12",
+          "src/flask/helpers.py:13",
+          "src/flask/helpers.py:23",
           "... and 104 more"
         ],
         "verdict": "imported"
@@ -1099,10 +1099,10 @@
         "cvss_base": 57.00000000000001,
         "cvss_source": "numeric",
         "depth_multiplier": 1.0,
-        "epss_multiplier": 0.404734695,
+        "epss_multiplier": 0.40477041599999997,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 10.41028227376875,
+        "final": 10.411201062539998,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 1.0,
@@ -1143,7 +1143,7 @@
       "dep_name": "werkzeug",
       "dep_version": "2.3.3",
       "ecosystem": "PyPI",
-      "epss": 0.00964,
+      "epss": 0.01093,
       "exploit_evidence": {
         "edb_ids": [],
         "github_poc_urls": [],
@@ -1153,8 +1153,8 @@
       },
       "finding_id": "sca:vuln:PyPI:werkzeug:2.3.3:GHSA-q34m-jh98-gwm2",
       "in_kev": false,
+      "mantishack_risk_estimate": 13.702575564281249,
       "purl": "pkg:pypi/werkzeug@2.3.3",
-      "mantishack_risk_estimate": 13.680296663624999,
       "reachability": {
         "confidence": {
           "level": "high",
@@ -1162,11 +1162,11 @@
           "reason": "import found in non-test source"
         },
         "evidence": [
-          "src/flask/app.py:15",
-          "src/flask/app.py:16",
-          "src/flask/app.py:17",
-          "src/flask/app.py:18",
-          "src/flask/app.py:19",
+          "src/flask/ctx.py:9",
+          "src/flask/helpers.py:11",
+          "src/flask/helpers.py:12",
+          "src/flask/helpers.py:13",
+          "src/flask/helpers.py:23",
           "... and 104 more"
         ],
         "verdict": "imported"
@@ -1176,10 +1176,10 @@
         "cvss_base": 75.0,
         "cvss_source": "numeric",
         "depth_multiplier": 1.0,
-        "epss_multiplier": 0.404219292,
+        "epss_multiplier": 0.404877579,
         "exploit_evidence_multiplier": 1.0,
         "exposure_multiplier": 0.5,
-        "final": 13.680296663624999,
+        "final": 13.702575564281249,
         "kev_multiplier": 1.0,
         "parser_confidence": 0.95,
         "reachability_multiplier": 1.0,
