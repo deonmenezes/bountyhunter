@@ -29,6 +29,48 @@ fn set_of(items: &[&str]) -> HashSet<String> {
     items.iter().map(|s| s.to_string()).collect()
 }
 
+/// Python `str(x)` for a JSON scalar (used by [`as_set`]).
+fn py_str(v: &Value) -> String {
+    match v {
+        Value::Null => "None".to_string(),
+        Value::Bool(true) => "True".to_string(),
+        Value::Bool(false) => "False".to_string(),
+        Value::String(s) => s.clone(),
+        Value::Number(n) => n.to_string(),
+        other => other.to_string(),
+    }
+}
+
+/// Coerce a policy-config value into a set of trimmed non-empty strings
+/// (`_as_set`): a list (each `str(x)`), a single string, else empty.
+pub fn as_set(v: &Value) -> HashSet<String> {
+    match v {
+        Value::Array(a) => a
+            .iter()
+            .map(py_str)
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect(),
+        Value::String(s) => {
+            let t = s.trim();
+            if t.is_empty() {
+                HashSet::new()
+            } else {
+                [t.to_string()].into_iter().collect()
+            }
+        }
+        _ => HashSet::new(),
+    }
+}
+
+/// Coerce a policy-config value into an action (`_as_action`); unknown → `default`.
+pub fn as_action(v: &Value, default: &str) -> String {
+    match v.as_str() {
+        Some(s @ ("allow" | "warn" | "deny")) => s.to_string(),
+        _ => default.to_string(),
+    }
+}
+
 /// The no-config baseline policy (`DEFAULT_POLICY`).
 pub fn default_policy() -> LicensePolicy {
     LicensePolicy {
@@ -389,5 +431,19 @@ mod tests {
     fn evaluate_dedups() {
         let deps = [dep(Some("AGPL-3.0"), "npm"), dep(Some("AGPL-3.0"), "npm")];
         assert_eq!(evaluate(&deps, &default_policy()).len(), 1);
+    }
+
+    #[test]
+    fn config_coercion() {
+        let mut got: Vec<String> = as_set(&json!(["MIT", " Apache-2.0 ", "", null, 5])).into_iter().collect();
+        got.sort();
+        assert_eq!(got, vec!["5", "Apache-2.0", "MIT", "None"]);
+        assert_eq!(as_set(&json!(" MIT ")).into_iter().collect::<Vec<_>>(), vec!["MIT"]);
+        assert!(as_set(&json!("  ")).is_empty());
+        assert!(as_set(&json!(null)).is_empty());
+        assert!(as_set(&json!(42)).is_empty());
+        assert_eq!(as_action(&json!("deny"), "allow"), "deny");
+        assert_eq!(as_action(&json!("nope"), "warn"), "warn");
+        assert_eq!(as_action(&json!(null), "allow"), "allow");
     }
 }
