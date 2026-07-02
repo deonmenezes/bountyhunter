@@ -64,6 +64,15 @@ impl Confidence {
     }
 }
 
+/// A discovered manifest or lockfile to be parsed (`Manifest`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Manifest {
+    pub path: String,
+    pub ecosystem: String,
+    pub is_lockfile: bool,
+    pub workspace_root: Option<String>,
+}
+
 /// Reachability verdict for a dep (`Reachability`): a verdict string, a
 /// confidence, and `file:line` evidence refs.
 #[derive(Clone, Debug, PartialEq)]

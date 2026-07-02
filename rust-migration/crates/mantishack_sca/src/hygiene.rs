@@ -6,7 +6,67 @@
 
 use std::collections::HashMap;
 
-use crate::models::{Confidence, Dependency, HygieneFinding, PinStyle};
+use crate::models::{Confidence, Dependency, HygieneFinding, Manifest, PinStyle};
+
+/// Per-ecosystem expected sibling lockfiles (`_EXPECTED_LOCKFILES`); `&[]` = no
+/// expectation (Maven / Go without locking is normal).
+fn expected_lockfiles(ecosystem: &str) -> &'static [&'static str] {
+    match ecosystem {
+        "npm" => &["package-lock.json", "yarn.lock", "pnpm-lock.yaml", "shrinkwrap.json"],
+        "PyPI" => &["Pipfile.lock", "poetry.lock"],
+        "Cargo" => &["Cargo.lock"],
+        "Go" => &["go.sum"],
+        "RubyGems" => &["Gemfile.lock"],
+        "NuGet" => &["packages.lock.json"],
+        "Packagist" => &["composer.lock"],
+        _ => &[],
+    }
+}
+
+fn basename(path: &str) -> &str {
+    path.rsplit_once('/').map(|(_, n)| n).unwrap_or(path)
+}
+
+/// Classify a manifest by filename (`_manifest_role`): dev / test / optional /
+/// main.
+fn manifest_role(path: &str) -> &'static str {
+    let name = basename(path).to_lowercase();
+    if name.contains("dev") {
+        "dev"
+    } else if name.contains("test") {
+        "test"
+    } else if name.contains("optional") || name.contains("extras") || name.contains("all-") {
+        "optional"
+    } else if name.starts_with("requirements-") && name.ends_with(".txt") {
+        "optional"
+    } else {
+        "main"
+    }
+}
+
+fn placeholder_dep(m: &Manifest) -> Dependency {
+    Dependency {
+        ecosystem: m.ecosystem.clone(),
+        name: "<manifest>".to_string(),
+        version: None,
+        declared_in: m.path.clone(),
+        scope: "main".to_string(),
+        is_lockfile: m.is_lockfile,
+        pin_style: PinStyle::Unknown,
+        direct: true,
+        purl: String::new(),
+        parser_confidence: Confidence::new("low", "placeholder for hygiene finding host"),
+        declared_license: None,
+        commented_out: false,
+        source_kind: "manifest".to_string(),
+        source_extra: None,
+    }
+}
+
+/// Python `repr(list_of_str)`: `['a', 'b']`.
+fn py_list_repr(items: &[String]) -> String {
+    format!("[{}]", items.iter().map(|s| format!("'{s}'")).collect::<Vec<_>>().join(", "))
+}
 
 /// `Path.parent` for the declared-in path string (used only for workspace
 /// grouping): everything before the last `/`, or `.` when there is none.
@@ -21,6 +81,17 @@ fn versions_equal(ecosystem: &str, a: &str, b: &str) -> bool {
         return true;
     }
     matches!(mantishack_sca_versions::compare(ecosystem, a, b), Ok(0))
+}
+
+/// Run every hygiene check and return one finding list (`evaluate`).
+pub fn evaluate(manifests: &[Manifest], deps: &[Dependency]) -> Vec<HygieneFinding> {
+    let mut out = Vec::new();
+    out.extend(check_lockfile_missing(manifests, deps));
+    out.extend(check_lockfile_drift(deps));
+    out.extend(check_unpinned(deps));
+    out.extend(check_loose_pin(deps));
+    out.extend(check_cross_manifest_inconsistency(deps));
+    out
 }
 
 fn finding(kind: &str, dep: &Dependency, detail: String, severity: &str, confidence: Confidence) -> HygieneFinding {
@@ -137,9 +208,118 @@ pub fn check_lockfile_drift(deps: &[Dependency]) -> Vec<HygieneFinding> {
     out
 }
 
+/// Surface manifests whose ecosystem expects a sibling lockfile that's absent
+/// (`check_lockfile_missing`).
+pub fn check_lockfile_missing(manifests: &[Manifest], deps: &[Dependency]) -> Vec<HygieneFinding> {
+    let lockfile_dirs: std::collections::HashSet<(String, String)> = manifests
+        .iter()
+        .filter(|m| m.is_lockfile)
+        .map(|m| (m.ecosystem.clone(), parent_dir(&m.path).to_string()))
+        .collect();
+
+    let mut out = Vec::new();
+    for m in manifests {
+        if m.is_lockfile {
+            continue;
+        }
+        let expected = expected_lockfiles(&m.ecosystem);
+        if expected.is_empty() {
+            continue;
+        }
+        if lockfile_dirs.contains(&(m.ecosystem.clone(), parent_dir(&m.path).to_string())) {
+            continue;
+        }
+        let host = deps
+            .iter()
+            .find(|d| d.declared_in == m.path)
+            .cloned()
+            .unwrap_or_else(|| placeholder_dep(m));
+        out.push(finding(
+            "lockfile_missing",
+            &host,
+            format!(
+                "{} manifest at {} has no sibling lockfile; expected one of: {}",
+                m.ecosystem,
+                m.path,
+                expected.join(", ")
+            ),
+            "medium",
+            Confidence::new("high", "manifest exists but lockfile siblings absent"),
+        ));
+    }
+    out
+}
+
+/// Flag the same dep declared at different versions across different workspaces
+/// (`check_cross_manifest_inconsistency`).
+pub fn check_cross_manifest_inconsistency(deps: &[Dependency]) -> Vec<HygieneFinding> {
+    // (ecosystem, name, role, scope) -> row indices, insertion-ordered.
+    let mut order: Vec<(String, String, &'static str, String)> = Vec::new();
+    let mut by_key: HashMap<(String, String, &'static str, String), Vec<usize>> = HashMap::new();
+    for (i, d) in deps.iter().enumerate() {
+        if d.is_lockfile || d.version.is_none() {
+            continue;
+        }
+        let role = manifest_role(&d.declared_in);
+        let scope = if d.scope.is_empty() { "main".to_string() } else { d.scope.clone() };
+        let key = (d.ecosystem.clone(), d.name.clone(), role, scope);
+        by_key.entry(key.clone()).or_insert_with(|| {
+            order.push(key.clone());
+            Vec::new()
+        }).push(i);
+    }
+
+    let mut out = Vec::new();
+    for key in &order {
+        let rows = &by_key[key];
+        let mut unique: Vec<String> = Vec::new();
+        for &i in rows {
+            if let Some(v) = deps[i].version.as_deref().filter(|v| !v.is_empty()) {
+                if !unique.contains(&v.to_string()) {
+                    unique.push(v.to_string());
+                }
+            }
+        }
+        if unique.len() <= 1 {
+            continue;
+        }
+        let mut workspaces: Vec<String> = Vec::new();
+        for &i in rows {
+            let ws = parent_dir(&deps[i].declared_in).to_string();
+            if !workspaces.contains(&ws) {
+                workspaces.push(ws);
+            }
+        }
+        if workspaces.len() <= 1 {
+            continue;
+        }
+        unique.sort();
+        let (eco, name, role, _scope) = key;
+        let role_suffix = if *role != "main" { format!(" [{role} role]") } else { String::new() };
+        let host = &deps[rows[0]];
+        out.push(finding(
+            "cross_manifest_inconsistency",
+            host,
+            format!(
+                "{eco}:{name} declared at versions {} across {} workspaces{role_suffix}",
+                py_list_repr(&unique),
+                workspaces.len()
+            ),
+            "medium",
+            Confidence::new("medium", "multi-workspace divergence"),
+        ));
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::Manifest;
+
+    fn man(path: &str, eco: &str, is_lockfile: bool) -> Manifest {
+        Manifest { path: path.to_string(), ecosystem: eco.to_string(), is_lockfile, workspace_root: None }
+    }
 
     fn dep(name: &str, ps: PinStyle, version: Option<&str>, eco: &str, is_lockfile: bool) -> Dependency {
         Dependency {
@@ -230,5 +410,71 @@ mod tests {
             dep_at("e", PinStyle::Exact, Some("1.0.0"), false, "a/package.json"),
             dep_at("e", PinStyle::Exact, Some("2.0.0"), true, "b/package-lock.json"),
         ]).is_empty());
+    }
+
+    #[test]
+    fn manifest_roles() {
+        assert_eq!(manifest_role("requirements.txt"), "main");
+        assert_eq!(manifest_role("requirements-dev.txt"), "dev");
+        assert_eq!(manifest_role("dev-requirements.txt"), "dev");
+        assert_eq!(manifest_role("test_reqs.txt"), "test");
+        assert_eq!(manifest_role("requirements-optional.txt"), "optional");
+        assert_eq!(manifest_role("requirements-all.txt"), "optional");
+        assert_eq!(manifest_role("extras.txt"), "optional");
+        assert_eq!(manifest_role("requirements-ci.txt"), "optional");
+        assert_eq!(manifest_role("package.json"), "main");
+    }
+
+    #[test]
+    fn lockfile_missing() {
+        let out = check_lockfile_missing(&[man("pkg/package.json", "npm", false)],
+            &[dep_at("a", PinStyle::Exact, Some("1.0"), false, "pkg/package.json")]);
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].finding_id, "sca:hygiene:lockfile_missing:npm:a:pkg/package.json");
+        assert_eq!(out[0].detail, "npm manifest at pkg/package.json has no sibling lockfile; expected one of: package-lock.json, yarn.lock, pnpm-lock.yaml, shrinkwrap.json");
+        // Present lockfile sibling -> no finding.
+        assert!(check_lockfile_missing(&[man("pkg/package.json", "npm", false), man("pkg/package-lock.json", "npm", true)],
+            &[dep_at("a", PinStyle::Exact, Some("1.0"), false, "pkg/package.json")]).is_empty());
+        // Maven has no lockfile expectation.
+        assert!(check_lockfile_missing(&[man("pom.xml", "Maven", false)], &[]).is_empty());
+        // No parsed deps -> placeholder host "<manifest>".
+        let out = check_lockfile_missing(&[man("pkg/package.json", "npm", false)], &[]);
+        assert_eq!(out[0].finding_id, "sca:hygiene:lockfile_missing:npm:<manifest>:pkg/package.json");
+    }
+
+    #[test]
+    fn cross_manifest() {
+        let out = check_cross_manifest_inconsistency(&[
+            dep_at("lodash", PinStyle::Exact, Some("1.0"), false, "a/package.json"),
+            dep_at("lodash", PinStyle::Exact, Some("2.0"), false, "b/package.json"),
+        ]);
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].detail, "npm:lodash declared at versions ['1.0', '2.0'] across 2 workspaces");
+        assert_eq!(out[0].severity, "medium");
+        // Same workspace -> not flagged.
+        assert!(check_cross_manifest_inconsistency(&[
+            dep_at("lodash", PinStyle::Exact, Some("1.0"), false, "a/package.json"),
+            dep_at("lodash", PinStyle::Exact, Some("2.0"), false, "a/req2.json"),
+        ]).is_empty());
+        // Non-main role appended to the detail.
+        let mut d1 = dep("x", PinStyle::Exact, Some("1.0"), "PyPI", false);
+        d1.declared_in = "a/requirements-dev.txt".to_string();
+        let mut d2 = dep("x", PinStyle::Exact, Some("2.0"), "PyPI", false);
+        d2.declared_in = "b/requirements-dev.txt".to_string();
+        let out = check_cross_manifest_inconsistency(&[d1, d2]);
+        assert_eq!(out[0].detail, "PyPI:x declared at versions ['1.0', '2.0'] across 2 workspaces [dev role]");
+    }
+
+    #[test]
+    fn evaluate_concatenates() {
+        let manifests = [man("pkg/package.json", "npm", false)];
+        let deps = [
+            dep_at("wild", PinStyle::Wildcard, Some("*"), false, "pkg/package.json"),
+            dep_at("loose", PinStyle::Caret, Some("^1.0"), false, "pkg/package.json"),
+        ];
+        let out = evaluate(&manifests, &deps);
+        // lockfile_missing (1) + unpinned (1) + loose_pin (1) = 3.
+        let kinds: Vec<&str> = out.iter().map(|f| f.kind.as_str()).collect();
+        assert_eq!(kinds, vec!["lockfile_missing", "unpinned_dependency", "loose_pin"]);
     }
 }
