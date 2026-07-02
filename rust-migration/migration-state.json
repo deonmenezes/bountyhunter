@@ -2044,6 +2044,9 @@
     },
     "packages.exploit_feasibility.primitives": {
       "status": "ported (all of primitives.py into mantishack_exploit_feasibility::primitives: PrimitiveId/PrimitiveType/MitigationId enums, Primitive/ConfidenceScore/ExploitPath value classes with full logic, and the 32-entry insertion-ordered get_primitive_definitions registry (dumped from live Python) + get_primitive lookup; 5 tests from live-Python differential)"
+    },
+    "packages.exploit_feasibility.mitigations": {
+      "status": "in progress (glibc half ported into mantishack_exploit_feasibility::mitigations: MitigationImpact enum, GlibcMitigation, GlibcMitigations version-threshold __post_init__ (2.3/2.26/2.29/2.31/2.34x2/2.35/2.38 with format_n verified-vs-disabled branch), get_mitigations_for_vuln/blockers/primitive_requirements/complications, byte-exact summary + repr with str(float); 3 tests from live-Python differential; Kernel half (KernelMitigation/KernelMitigations) is a follow-up)"
     }
   }
 }
