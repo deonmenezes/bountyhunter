@@ -2050,6 +2050,9 @@
     },
     "packages.exploit_feasibility.targets": {
       "status": "ported (all of targets.py into mantishack_exploit_feasibility::targets: BinaryTarget (Display=__str__ hex), GadgetQuality (finalize=__post_init__ capability derivation + byte-exact summary), BinarySpecificAnalysis (get_viable/for_technique/best_target first-on-ties, byte-exact summary with -priority sort + slices), analyze_gadget_quality (RopGadgetInfo input model, gadget-address map, pivot detection over all_gadgets[:100]), assess_technique_viability (RELRO/NX/fini_array technique gating); 4 tests from live-Python differential)"
+    },
+    "packages.exploit_feasibility.constraints": {
+      "status": "in progress (BadByteImpact unit ported into mantishack_exploit_feasibility::constraints: BadByteImpact struct + byte-exact summary + to_dict, analyze_bad_byte_impact (little-endian byte decomposition, full_write/partial_overwrite/format_string technique branches with lowest-bad-position logic); 3 tests from live-Python differential; InputConstraintAnalysis + LibcFingerprintingPotential units are follow-ups)"
     }
   }
 }
