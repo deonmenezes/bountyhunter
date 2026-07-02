@@ -2008,6 +2008,9 @@
     },
     "core.reporting.formatting": {
       "status": "ported (all 4 pure fns into new crate mantishack_core_reporting::formatting: get_display_status (error/bool-coercion/final_status/ruling/status_map with str.title fallback), title_case_type (display-name map + snake->Title), format_elapsed (s/m/h), truncate_path (ASCII + wcwidth-absent char-count fallback); 3 tests from live-Python differential; full wide-char display width needs a wcwidth port; renderer/console/findings layers stay Python)"
+    },
+    "core.verified_outcome.types": {
+      "status": "ported (Oracle + OutcomeStatus enums + VerifiedOutcome to_dict/from_dict into new crate mantishack_core_verified_outcome; byte-exact enum ValueError messages, ordered to_dict, tolerant from_dict, Z->+00:00 timestamp normalization; 4 tests from live-Python differential; adapters/collect/render/retrieval layers + datetime.now default stay Python)"
     }
   }
 }

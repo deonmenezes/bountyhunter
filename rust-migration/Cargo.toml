@@ -4,6 +4,7 @@ members = [
     "crates/mantishack_cvss",
     "crates/mantishack_core_dataflow",
     "crates/mantishack_core_reporting",
+    "crates/mantishack_core_verified_outcome",
     "crates/mantishack_core_url_patterns",
     "crates/mantishack_core_schema_constants",
     "crates/mantishack_core_function_taxonomy",
