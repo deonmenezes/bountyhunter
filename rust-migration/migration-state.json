@@ -2023,6 +2023,9 @@
     },
     "core.verified_outcome.exemplars": {
       "status": "ported (render_verified_exemplars + _render_one + _safe into mantishack_core_verified_outcome::exemplars; byte-exact prompt block: header/intro, per-outcome '** label \u2014 where ** (match) / Confirmed by oracle -> status; evidence; repro' with neutralize_tag_forgery + escape_nonprintable defanging (cap 120), and the max_bytes trailing-entry trim loop; 2 tests from live-Python differential; exemplar_block_for_finding I/O wrapper stays Python)"
+    },
+    "packages.exploit_feasibility.vuln_types": {
+      "status": "ported (all of vuln_types.py into new crate mantishack_exploit_feasibility::vuln_types: ExploitabilityVerdict enum + human_readable/description (VERDICT_DISPLAY), verdict_to_human (alias map + str.title fallback), VulnerabilityType enum (20 variants) + is_memory_corruption/is_enabling/is_web/needs_heap/stack/format_string_analysis classifiers; 3 tests from live-Python differential)"
     }
   }
 }
