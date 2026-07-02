@@ -102,6 +102,35 @@ pub fn classify_called_or_dead(
     }
 }
 
+/// Pull affected-function names out of an OSV advisory's `ecosystem_specific` /
+/// `database_specific` blocks (`_extract_function_names`). Tries the
+/// `imports[].symbols` shape then the flat `affected_symbols` /
+/// `affected_functions` lists, in that order, WITHOUT deduplication.
+pub fn extract_osv_function_names(advisory: &Value) -> Vec<String> {
+    let es = advisory.get("ecosystem_specific").and_then(Value::as_object);
+    let ds = advisory.get("database_specific").and_then(Value::as_object);
+    let sources = [es, ds];
+
+    let mut out = Vec::new();
+    for source in sources.into_iter().flatten() {
+        if let Some(imports) = source.get("imports").and_then(Value::as_array) {
+            for imp in imports {
+                if let Some(syms) = imp.get("symbols").and_then(Value::as_array) {
+                    out.extend(syms.iter().filter_map(|s| s.as_str().map(str::to_string)));
+                }
+            }
+        }
+    }
+    for key in ["affected_symbols", "affected_functions"] {
+        for source in sources.into_iter().flatten() {
+            if let Some(v) = source.get(key).and_then(Value::as_array) {
+                out.extend(v.iter().filter_map(|s| s.as_str().map(str::to_string)));
+            }
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -166,5 +195,32 @@ mod tests {
         let many: Vec<String> = (0..8).map(|i| format!("a.py:{i}")).collect();
         let r = classify_called_or_dead(&inv(), &many, "reachable via X", "foo");
         assert_eq!(r.evidence.len(), 5);
+    }
+
+    #[test]
+    fn osv_function_name_extraction() {
+        assert_eq!(
+            extract_osv_function_names(&json!({"ecosystem_specific": {"imports": [{"symbols": ["foo", "bar"]}, {"symbols": ["baz"]}]}})),
+            vec!["foo", "bar", "baz"]
+        );
+        assert_eq!(
+            extract_osv_function_names(&json!({"database_specific": {"affected_symbols": ["a", "b"], "affected_functions": ["c"]}})),
+            vec!["a", "b", "c"]
+        );
+        assert_eq!(
+            extract_osv_function_names(&json!({"ecosystem_specific": {"imports": [{"symbols": ["x"]}]}, "database_specific": {"affected_functions": ["y"]}})),
+            vec!["x", "y"]
+        );
+        // Duplicates are NOT collapsed (mirrors the Python code, not its docstring).
+        assert_eq!(
+            extract_osv_function_names(&json!({"ecosystem_specific": {"affected_symbols": ["dup"]}, "database_specific": {"affected_symbols": ["dup"]}})),
+            vec!["dup", "dup"]
+        );
+        assert!(extract_osv_function_names(&json!({})).is_empty());
+        // Non-string entries skipped.
+        assert_eq!(
+            extract_osv_function_names(&json!({"ecosystem_specific": {"imports": [{"symbols": ["ok", 123, null]}], "affected_functions": ["z", 5]}})),
+            vec!["ok", "z"]
+        );
     }
 }
