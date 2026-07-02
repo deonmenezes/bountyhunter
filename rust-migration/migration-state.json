@@ -2056,6 +2056,9 @@
     },
     "packages.exploit_feasibility.graph": {
       "status": "ported (all of graph.py into mantishack_exploit_feasibility::graph: PrimitiveDependencyGraph full \u2014 build_graph, is_blocked, get_available_primitives, attack_tree_probability(+_atp), find_paths_to_goal(+_dfs_paths/_can_proceed_to_primitive/_build_exploit_path), get_shortest_path/get_most_reliable_path, get_primitive_info, what_if_blocked, summary \u2014 plus create_dependency_graph; deterministic outputs match live Python; list(set) mitigation lists + summary mit-join use deterministic first-occurrence/sorted order since Python's is hash-nondeterministic; 6 tests from differential)"
+    },
+    "packages.exploit_feasibility.finding_mapper": {
+      "status": "ported (all of finding_mapper.py into mantishack_exploit_feasibility::finding_mapper: _extract_finding_context, _build_notes, _make_path, _get_binary_specific/best_target/viable_targets, _has_heap_hardening (glibc>=2.32), the 7 _assess_* assessors (double_free/type_confusion/null_deref/buffer_overflow/format_string/use_after_free/generic) with protection-based verdict/blocker/path logic + byte-exact notes/target strings incl str(int) address, and map_findings_to_constraints dispatcher (vuln_type normalization, ruled_out skip); 3 tests from live-Python differential)"
     }
   }
 }
