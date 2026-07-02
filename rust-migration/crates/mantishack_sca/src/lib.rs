@@ -29,6 +29,7 @@ pub mod ecosystems;
 pub mod findings;
 pub mod hygiene;
 pub mod join;
+pub mod license;
 pub mod pnpm_lock;
 pub mod pom;
 pub mod poetry_lock;
