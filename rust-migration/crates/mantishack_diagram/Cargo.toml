@@ -1,0 +1,19 @@
+[package]
+name = "mantishack_diagram"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "mantishack_diagram"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python = ["dep:pyo3"]
+
+[dependencies]
+pyo3 = { workspace = true, optional = true }
+serde_json = { version = "1", features = ["preserve_order"] }
+regex = { workspace = true }

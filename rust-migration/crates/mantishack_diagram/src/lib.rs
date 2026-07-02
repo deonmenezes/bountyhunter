@@ -1,0 +1,8 @@
+//! Mermaid diagram rendering — Rust port of `packages/diagram/`. The shared
+//! sanitizer + the attack-tree index/label helpers port here; the full
+//! `generate` renderers + file I/O stay Python for now.
+
+pub mod attack_tree;
+pub mod sanitize;
+
+pub use sanitize::{detect_id_collisions, sanitize, sanitize_id, DEFAULT_MAX_LEN};

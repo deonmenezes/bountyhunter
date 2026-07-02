@@ -2065,6 +2065,12 @@
     },
     "packages.codeql.dataflow_validator": {
       "status": "in progress (pure surface ported into new crate mantishack_codeql::dataflow_validator: DataflowStep/DataflowPath/DataflowValidation models, BVProfile, SMT_INFEASIBLE_CONFIDENCE, is_overflow_rule (word-boundary regex \u2014 buffer/stack/heap-overflow + cwe-1901 correctly excluded), infer_bv_profile (LLM width-hint clamp to {8,16,32,64} with bool/float/out-of-range fallback + rule-id heuristic); 2 tests from live-Python differential; the DataflowValidator itself (LLM+Z3 SMT) stays Python)"
+    },
+    "packages.diagram.sanitize": {
+      "status": "ported (all of sanitize.py into new crate mantishack_diagram::sanitize: sanitize (Mermaid label escaping &amp;/'/&lt;/&gt;/()/whitespace + max_len truncation), sanitize_id ([^A-Za-z0-9_-]->_ with all-underscore->node fallback), detect_id_collisions (first-seen-ordered, distinct-originals>1); 2 tests from live-Python differential)"
+    },
+    "packages.diagram.attack_tree": {
+      "status": "in progress (pure helpers ported into mantishack_diagram::attack_tree: proximity_desc (range table), build_proximity_index (best score, int/str coercion), build_disproven_index/build_hypothesis_index (first-wins), node_label (goal/technique/proximity/ruled-out/status with sanitize), node_shape; 2 tests from live-Python differential; full generate renderer + subgraph grouping + file I/O are a follow-up)"
     }
   }
 }
