@@ -2086,6 +2086,9 @@
     },
     "packages.diagram.findings_summary": {
       "status": "ported (all of findings_summary.py into mantishack_diagram::findings_summary: generate_verdict_pie (VERDICT_ORDER colour assignment + remaining-by-count-desc), generate_type_pie (title_case_type counts, TYPE_COLOURS cycling), _pie_with_colours (byte-exact %%init themeVariables block + sanitized slice labels); reuses ported core_reporting.get_display_status/title_case_type + sanitize; 2 tests from live-Python differential)"
+    },
+    "packages.diagram.attack_paths": {
+      "status": "ported (all of attack_paths.py except generate_from_file fs-read: proximity_desc, generate_single (title + object/scalar step nodes with type/loc/tainted/desc parts + 80-char truncation, chain edges, blocker nodes with [/...\\] syntax + blocked edges) and generate (per-path markdown sections + empty fallback) into mantishack_diagram::attack_paths; 2 tests from live-Python differential incl byte-exact single-path render)"
     }
   }
 }

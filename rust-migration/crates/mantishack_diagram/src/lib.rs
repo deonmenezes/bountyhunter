@@ -2,6 +2,7 @@
 //! sanitizer + the attack-tree index/label helpers port here; the full
 //! `generate` renderers + file I/O stay Python for now.
 
+pub mod attack_paths;
 pub mod attack_tree;
 pub mod findings_summary;
 pub mod sanitize;
