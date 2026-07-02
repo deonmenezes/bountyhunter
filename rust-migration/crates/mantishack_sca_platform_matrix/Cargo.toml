@@ -1,0 +1,23 @@
+[package]
+name = "mantishack_sca_platform_matrix"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+# Distro/runner → libc lookup + project platform-matrix discovery — Rust port of
+# packages/sca/platform_matrix/. The pure lookup tables (glibc_db) and matrix
+# data structures port cleanly; the filesystem-walking discover_platform_matrix
+# stays call-site in Python (reads Dockerfiles/devcontainers/bake/GHA configs).
+
+[lib]
+name = "mantishack_sca_platform_matrix"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python = ["dep:pyo3"]
+
+[dependencies]
+pyo3 = { workspace = true, optional = true }
+regex = { workspace = true }
