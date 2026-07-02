@@ -9,6 +9,7 @@ use serde_json::Value;
 
 pub mod artefacts;
 pub mod exfil_destinations;
+pub mod gha_drift;
 pub mod gha_freshness;
 pub mod install_hooks;
 pub mod sentinel;
@@ -21,6 +22,7 @@ pub use artefacts::{
     shannon_entropy,
 };
 pub use exfil_destinations::{is_non_routable_ipv4, scan_content, ExfilMatch};
+pub use gha_drift::{classify_ref, scan_text as gha_drift_scan_text, GhaDriftMatch};
 pub use gha_freshness::{evaluate_dep as gha_freshness_evaluate, extract_major};
 pub use install_hooks::{scan_scripts, InstallHookFinding, InstallHookHit};
 

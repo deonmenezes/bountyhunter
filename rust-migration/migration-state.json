@@ -1795,7 +1795,7 @@
     "packages.sca.supply_chain": {
       "name": "packages.sca.supply_chain",
       "disposition": "rust-port",
-      "status": "in progress (typosquat, sentinel, install_hooks, slopsquat, typosquat_domain, exfil_destinations, artefacts, gha_freshness pure detectors ported + SupplyChainFinding struct; 25 tests from live-Python differential; get_latest_tag/HTTP + git-walking + python_imports(ast) orchestration stay Python)",
+      "status": "in progress (typosquat, sentinel, install_hooks, slopsquat, typosquat_domain, exfil_destinations, artefacts, gha_freshness, gha_drift pure detectors ported + SupplyChainFinding; 27 tests from live-Python differential; HTTP/git/ast/fs-walk orchestration stays Python)",
       "crate": "crates/mantishack_sca_supply_chain",
       "phase": 2,
       "notes": "",
