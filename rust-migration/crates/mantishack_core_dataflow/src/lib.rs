@@ -4,5 +4,8 @@
 //! and the pivot gate all port here; the CSV read + argparse CLI stay Python.
 
 pub mod corpus_metrics;
+pub mod label;
+pub mod py_json;
 
 pub use corpus_metrics::{check_pivot_gate, compute, render, Metrics, Row};
+pub use label::{GroundTruth, LifecyclePrecondition};

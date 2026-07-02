@@ -1999,6 +1999,12 @@
     },
     "core.dataflow.corpus_metrics": {
       "status": "in progress (Metrics + compute + precision/recall/f1 + render (byte-exact) + check_pivot_gate ported into new crate mantishack_core_dataflow::corpus_metrics; insertion-ordered FP-category counter with most_common; 4 tests from live-Python differential; CSV read + argparse CLI stay Python)"
+    },
+    "core.dataflow.label": {
+      "status": "ported (all of label.py into mantishack_core_dataflow::label: GroundTruth + LifecyclePrecondition with byte-exact __post_init__ validation errors (ISO-date, verdict/fp_category cross-checks, sorted-set list-repr messages), to_dict (ordered), from_dict (extra-field + schema-version guards), to_json/from_json; 4 tests from live-Python differential)"
+    },
+    "core.dataflow.py_json": {
+      "status": "ported (CPython json.dumps re-implementation: ensure_ascii \\uXXXX escaping incl surrogate pairs, compact (', ',': ') separators, indent=N pretty-print; reusable dumper backing label.to_json; 2 tests from live-Python differential)"
     }
   }
 }
