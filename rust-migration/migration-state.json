@@ -2011,6 +2011,9 @@
     },
     "core.verified_outcome.types": {
       "status": "ported (Oracle + OutcomeStatus enums + VerifiedOutcome to_dict/from_dict into new crate mantishack_core_verified_outcome; byte-exact enum ValueError messages, ordered to_dict, tolerant from_dict, Z->+00:00 timestamp normalization; 4 tests from live-Python differential; adapters/collect/render/retrieval layers + datetime.now default stay Python)"
+    },
+    "core.verified_outcome.collect": {
+      "status": "in progress (score_outcome + rank_outcomes_for_finding + ScoredOutcome ported into mantishack_core_verified_outcome::collect; finding-id 10 / cwe+file 7 / file 4 / cwe 2 scoring tiers, status filter, score-0 drop, reproducible-first + recency + evidence-hash tie-breaks; 3 tests from live-Python differential; collect_outcomes witness-store discovery stays Python; recency uses canonical-UTC ISO string ordering)"
     }
   }
 }

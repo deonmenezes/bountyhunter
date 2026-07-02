@@ -4,6 +4,8 @@
 //! `datetime.now()` default stays a Python concern); a trailing `Z` is
 //! normalised to `+00:00` as `datetime.fromisoformat`/`isoformat` would.
 
+pub mod collect;
 pub mod types;
 
+pub use collect::{rank_outcomes_for_finding, score_outcome, ScoredOutcome};
 pub use types::{Oracle, OutcomeStatus, VerifiedOutcome};
