@@ -13,6 +13,9 @@ use std::sync::OnceLock;
 use regex::Regex;
 use serde_json::{Map, Value};
 
+pub mod dataflow;
+pub use dataflow::extract_dataflow_path;
+
 /// `cwe[-_]?(\d+)` (case-insensitive) — the CWE-id extraction regex.
 fn cwe_tag_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();

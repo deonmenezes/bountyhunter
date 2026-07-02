@@ -659,7 +659,7 @@
     "core.sarif": {
       "name": "core.sarif",
       "disposition": "rust-port",
-      "status": "in progress (pure parser.py transforms ported: extract_cwe_from_rule, result_key, deduplicate_findings, get_tool_name, get_rules, sanitize_finding_for_display; 4 tests from live-Python differential; file-I/O loaders load_sarif/parse_sarif_findings/merge_sarif + escape_nonprintable-dependent extract_dataflow_path pending)",
+      "status": "ported (all pure parser.py transforms: extract_cwe_from_rule, result_key, deduplicate_findings, get_tool_name, get_rules, sanitize_finding_for_display, plus extract_dataflow_path/_path_from_locations with escape_nonprintable + faithful malformed-input->None abort; 12 tests from live-Python differential; file-I/O loaders load_sarif/parse_sarif_findings/merge_sarif/generate_scan_metrics/validate_sarif stay Python by design)",
       "crate": "crates/mantishack_core_sarif",
       "phase": 3,
       "notes": "",
@@ -697,7 +697,7 @@
     "core.security": {
       "name": "core.security",
       "disposition": "rust-glue",
-      "status": "ported",
+      "status": "ported | log_sanitisation.escape_nonprintable/has_nonprintable ported (Python str.isprintable() replicated via unicode-general-category; PyO3-exposed)",
       "crate": "rust-migration/crates/mantishack_core_security",
       "phase": 2,
       "notes": "PARTIAL: env_sanitisation+cc_trust+codeql_trust ported (41 tests, cycle-critical). Remaining: prompt_envelope(~1641 LOC), redaction, llm_family, envelope_probe, prompt_telemetry, rule_of_two.",

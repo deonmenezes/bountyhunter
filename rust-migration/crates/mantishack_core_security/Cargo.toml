@@ -18,6 +18,9 @@ pyo3 = { workspace = true, optional = true }
 regex = { workspace = true }
 serde_json = { version = "1", features = ["preserve_order"] }
 serde_yaml_ng = "0.10"
+# Unicode general-category lookup to replicate Python str.isprintable() exactly
+# in log_sanitisation (Cc/Cf/Cs/Co/Cn/Zl/Zp/Zs are non-printable, bar U+0020).
+unicode-general-category = "1"
 
 [dev-dependencies]
 tempfile = "3"

@@ -24,3 +24,5 @@ regex = { workspace = true }
 # preserve_order so get_rules / sanitised findings iterate in file order,
 # matching Python dict/json.loads ordering.
 serde_json = { version = "1", features = ["preserve_order"] }
+# escape_nonprintable for the dataflow-path message/snippet sanitisation.
+mantishack_core_security = { path = "../mantishack_core_security" }

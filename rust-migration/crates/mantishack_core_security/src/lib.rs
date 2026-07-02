@@ -16,6 +16,7 @@
 pub mod cc_trust;
 pub mod codeql_trust;
 pub mod env_sanitisation;
+pub mod log_sanitisation;
 pub mod pyval;
 
 // ───────────────────────── PyO3 bindings ───────────────────────────────────
@@ -102,10 +103,25 @@ mod python {
         super::codeql_trust::check_repo_codeql_trust(repo_path, trust_override)
     }
 
+    /// `escape_nonprintable(s, *, preserve_newlines=False) -> str`.
+    #[pyfunction]
+    #[pyo3(signature = (s, *, preserve_newlines=false))]
+    fn escape_nonprintable(s: &str, preserve_newlines: bool) -> String {
+        super::log_sanitisation::escape_nonprintable(s, preserve_newlines)
+    }
+
+    /// `has_nonprintable(s) -> bool`.
+    #[pyfunction]
+    fn has_nonprintable(s: &str) -> bool {
+        super::log_sanitisation::has_nonprintable(s)
+    }
+
     #[pymodule]
     fn mantishack_core_security(m: &Bound<'_, PyModule>) -> PyResult<()> {
         m.add_function(wrap_pyfunction!(strip_env_vars, m)?)?;
         m.add_function(wrap_pyfunction!(intersect_env_vars, m)?)?;
+        m.add_function(wrap_pyfunction!(escape_nonprintable, m)?)?;
+        m.add_function(wrap_pyfunction!(has_nonprintable, m)?)?;
         m.add_function(wrap_pyfunction!(cc_set_trust_override, m)?)?;
         m.add_function(wrap_pyfunction!(is_trust_overridden, m)?)?;
         m.add_function(wrap_pyfunction!(check_repo_claude_trust, m)?)?;
