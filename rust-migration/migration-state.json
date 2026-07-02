@@ -1996,6 +1996,9 @@
       "phase": -1,
       "notes": "",
       "parity": {}
+    },
+    "core.dataflow.corpus_metrics": {
+      "status": "in progress (Metrics + compute + precision/recall/f1 + render (byte-exact) + check_pivot_gate ported into new crate mantishack_core_dataflow::corpus_metrics; insertion-ordered FP-category counter with most_common; 4 tests from live-Python differential; CSV read + argparse CLI stay Python)"
     }
   }
 }
