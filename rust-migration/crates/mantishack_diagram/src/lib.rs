@@ -3,6 +3,7 @@
 //! `generate` renderers + file I/O stay Python for now.
 
 pub mod attack_tree;
+pub mod findings_summary;
 pub mod sanitize;
 
 pub use attack_tree::generate as generate_attack_tree;

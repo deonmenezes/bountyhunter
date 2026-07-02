@@ -17,3 +17,4 @@ python = ["dep:pyo3"]
 pyo3 = { workspace = true, optional = true }
 serde_json = { version = "1", features = ["preserve_order"] }
 regex = { workspace = true }
+mantishack_core_reporting = { path = "../mantishack_core_reporting" }
