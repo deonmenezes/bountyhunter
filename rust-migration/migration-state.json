@@ -2052,7 +2052,7 @@
       "status": "ported (all of targets.py into mantishack_exploit_feasibility::targets: BinaryTarget (Display=__str__ hex), GadgetQuality (finalize=__post_init__ capability derivation + byte-exact summary), BinarySpecificAnalysis (get_viable/for_technique/best_target first-on-ties, byte-exact summary with -priority sort + slices), analyze_gadget_quality (RopGadgetInfo input model, gadget-address map, pivot detection over all_gadgets[:100]), assess_technique_viability (RELRO/NX/fini_array technique gating); 4 tests from live-Python differential)"
     },
     "packages.exploit_feasibility.constraints": {
-      "status": "in progress (2 of 3 units ported into mantishack_exploit_feasibility::constraints: BadByteImpact + analyze_bad_byte_impact, and LibcFingerprintingPotential + assess_libc_fingerprinting (version-suffix stripping, GOOD_FINGERPRINT_SYMBOLS 30-set, sorted-unique symbols, feasibility tiers, plt-only 'system' note, byte-exact summary/to_dict incl >8 truncation); 4 tests from live-Python differential; InputConstraintAnalysis unit is the follow-up)"
+      "status": "ported (all of constraints.py into mantishack_exploit_feasibility::constraints: InputConstraintAnalysis + analyze_input_constraints (arch constraints, strcpy/fgets/scanf/read/unknown handler branches, Full-RELRO substring-dedup blockers, format_n append, repr+em-dash unknown note), BadByteImpact + analyze_bad_byte_impact, LibcFingerprintingPotential + assess_libc_fingerprinting; byte-exact summaries/to_dict; 5 tests from live-Python differential)"
     }
   }
 }
