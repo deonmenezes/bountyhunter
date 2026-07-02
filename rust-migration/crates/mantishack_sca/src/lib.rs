@@ -39,6 +39,7 @@ pub mod precommit;
 pub mod purl;
 pub mod risk;
 pub mod sbom;
+pub mod sbom_import;
 pub mod sbom_spdx;
 pub mod suppressions;
 pub mod test_paths;
