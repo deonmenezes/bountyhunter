@@ -2047,6 +2047,9 @@
     },
     "packages.exploit_feasibility.mitigations": {
       "status": "ported (all of mitigations.py into mantishack_exploit_feasibility::mitigations: glibc (MitigationImpact, GlibcMitigation, GlibcMitigations version-ladder + queries + byte-exact summary) AND kernel (KernelMitigation, KernelMitigations sysctl-driven build with ASLR/mmap/kptr/dmesg/ptrace/bpf/userns/modules/kexec/symlink/hardlink/suid/perf branches incl dict-desc + impact tiers, userns_clone default 1, byte-exact summary + no-mitigations fallback); 5 tests from live-Python differential)"
+    },
+    "packages.exploit_feasibility.targets": {
+      "status": "ported (all of targets.py into mantishack_exploit_feasibility::targets: BinaryTarget (Display=__str__ hex), GadgetQuality (finalize=__post_init__ capability derivation + byte-exact summary), BinarySpecificAnalysis (get_viable/for_technique/best_target first-on-ties, byte-exact summary with -priority sort + slices), analyze_gadget_quality (RopGadgetInfo input model, gadget-address map, pivot detection over all_gadgets[:100]), assess_technique_viability (RELRO/NX/fini_array technique gating); 4 tests from live-Python differential)"
     }
   }
 }
