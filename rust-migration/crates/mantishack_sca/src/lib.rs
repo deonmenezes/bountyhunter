@@ -30,6 +30,7 @@ pub mod pnpm_lock;
 pub mod pom;
 pub mod poetry_lock;
 pub mod precommit;
+pub mod transitive_drop;
 pub mod toml_util;
 pub mod uv_lock;
 pub mod vcpkg;

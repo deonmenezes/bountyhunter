@@ -1822,7 +1822,7 @@
     "packages.sca.transitive_drop": {
       "name": "packages.sca.transitive_drop",
       "disposition": "rust-port",
-      "status": "pending",
+      "status": "in progress (detector.py pure helpers ported into mantishack_sca::transitive_drop: canonical_name, max_severity, version_key/version_lt, latest_stable_version (npm/Packagist/releases shapes); 4 tests from live-Python differential; _dep_state_* registry HTTP + detect_droppable_transitives orchestration stay Python)",
       "crate": "",
       "phase": 3,
       "notes": "",
