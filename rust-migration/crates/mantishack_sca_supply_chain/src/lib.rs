@@ -11,6 +11,7 @@ pub mod artefacts;
 pub mod exfil_destinations;
 pub mod gha_drift;
 pub mod gha_freshness;
+pub mod gha_sunset;
 pub mod install_hooks;
 pub mod sentinel;
 pub mod slopsquat;
@@ -24,6 +25,7 @@ pub use artefacts::{
 pub use exfil_destinations::{is_non_routable_ipv4, scan_content, ExfilMatch};
 pub use gha_drift::{classify_ref, scan_text as gha_drift_scan_text, GhaDriftMatch};
 pub use gha_freshness::{evaluate_dep as gha_freshness_evaluate, extract_major};
+pub use gha_sunset::scan_dependencies as gha_sunset_scan;
 pub use install_hooks::{scan_scripts, InstallHookFinding, InstallHookHit};
 
 /// Supply-chain heuristic finding (`SupplyChainFinding`). `related_findings`,
