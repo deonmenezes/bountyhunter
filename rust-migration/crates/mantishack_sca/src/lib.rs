@@ -25,6 +25,7 @@ pub mod models;
 pub mod nuget;
 pub mod package_lock_json;
 pub mod pipfile_lock;
+pub mod ecosystems;
 pub mod findings;
 pub mod pnpm_lock;
 pub mod pom;
