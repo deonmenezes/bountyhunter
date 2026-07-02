@@ -2038,6 +2038,9 @@
     },
     "packages.exploit_feasibility.techniques": {
       "status": "ported (all of techniques.py into mantishack_exploit_feasibility::techniques: TechniqueRequirements + the 19-entry insertion-ordered technique registry (dumped from live Python) + get_technique/get_techniques_for_goal/get_viable_techniques/get_missing_primitives queries; 2 tests from live-Python differential)"
+    },
+    "packages.exploit_feasibility.constants": {
+      "status": "ported (pure surface into mantishack_exploit_feasibility::constants: BinaryInfo+pointer_size, pwntools_arch + canonicalize_readelf_machine (arch normalization incl s390-slash edge), all scalar constant groups (GlibcVersion/Timeout/TargetPriority/AddressSpace/GadgetSearch/Reliability/ConfidenceAdjustment/FormatWriteLimits/CacheSettings), and COMMON_FUNCTIONS(52)/INPUT_FUNCTIONS(65)/STRING_TERMINATING_FUNCTIONS sets dumped from live Python; 3 tests from differential; detect_binary_info (pwntools/readelf) stays Python)"
     }
   }
 }
