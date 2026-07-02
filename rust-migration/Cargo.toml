@@ -5,6 +5,7 @@ members = [
     "crates/mantishack_codeql",
     "crates/mantishack_diagram",
     "crates/mantishack_core_dataflow",
+    "crates/mantishack_core_dockerfile",
     "crates/mantishack_core_reporting",
     "crates/mantishack_core_verified_outcome",
     "crates/mantishack_exploit_feasibility",
