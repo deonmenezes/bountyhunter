@@ -2026,6 +2026,9 @@
     },
     "packages.exploit_feasibility.vuln_types": {
       "status": "ported (all of vuln_types.py into new crate mantishack_exploit_feasibility::vuln_types: ExploitabilityVerdict enum + human_readable/description (VERDICT_DISPLAY), verdict_to_human (alias map + str.title fallback), VulnerabilityType enum (20 variants) + is_memory_corruption/is_enabling/is_web/needs_heap/stack/format_string_analysis classifiers; 3 tests from live-Python differential)"
+    },
+    "packages.exploit_feasibility.models": {
+      "status": "ported (all of models.py into mantishack_exploit_feasibility::models: ExploitationPath + FeasibilityAssessment with tolerant from_dict (non-dict->default, non-list exploitation_paths->[], missing-key defaults) and ordered asdict-style to_dict; 2 tests from live-Python differential)"
     }
   }
 }
