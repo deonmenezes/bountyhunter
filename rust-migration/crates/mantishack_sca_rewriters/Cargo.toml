@@ -21,3 +21,7 @@ python = ["dep:pyo3"]
 pyo3 = { workspace = true, optional = true }
 regex = { workspace = true }
 serde_json = { version = "1", features = ["preserve_order"] }
+# fancy-regex adds lookaround + backreferences, which the `regex` crate omits.
+# Needed for the helm_chart (backref `\k<indent>`, lookahead `(?!-)`) and
+# gradle_version_catalog (section-boundary lookahead `(?!^\s*\[)`) rewriters.
+fancy-regex = "0.16"

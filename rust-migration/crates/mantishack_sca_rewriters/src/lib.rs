@@ -13,10 +13,14 @@ pub mod dockerfile_inline_install;
 pub mod csproj;
 pub mod directory_packages_props;
 pub mod gha_uses;
+pub mod gradle_version_catalog;
+pub mod helm_chart;
 pub mod yaml_image;
 
 pub use csproj::rewrite_csproj_text;
 pub use directory_packages_props::rewrite_directory_packages_props_text;
+pub use gradle_version_catalog::rewrite_libs_versions_toml_text;
+pub use helm_chart::rewrite_chart_yaml_text;
 pub use dockerfile_arg::rewrite_dockerfile_arg_text;
 pub use dockerfile_from::{rewrite_dockerfile_from_text, route_kind};
 pub use dockerfile_inline_install::rewrite_dockerfile_inline_install_text;
