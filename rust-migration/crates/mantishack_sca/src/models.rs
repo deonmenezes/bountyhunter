@@ -83,6 +83,21 @@ impl Reachability {
     }
 }
 
+/// A security-relevant integrity finding (`HygieneFinding`). `related_findings`,
+/// `suppressed`, `suppression_reason` carry the dataclass defaults.
+#[derive(Clone, Debug, PartialEq)]
+pub struct HygieneFinding {
+    pub finding_id: String,
+    pub kind: String,
+    pub dependency: Dependency,
+    pub detail: String,
+    pub severity: String,
+    pub confidence: Confidence,
+    pub related_findings: Vec<String>,
+    pub suppressed: bool,
+    pub suppression_reason: Option<String>,
+}
+
 /// A single dep observed in a manifest or lockfile (`Dependency`). Only the
 /// fields the parsers populate are modelled; defaults match the dataclass.
 #[derive(Clone, Debug, PartialEq)]
