@@ -16,3 +16,4 @@ python = ["dep:pyo3"]
 [dependencies]
 pyo3 = { workspace = true, optional = true }
 serde_json = { version = "1", features = ["preserve_order"] }
+mantishack_core_security = { path = "../mantishack_core_security" }

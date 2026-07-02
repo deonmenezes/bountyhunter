@@ -2014,6 +2014,9 @@
     },
     "core.verified_outcome.collect": {
       "status": "in progress (score_outcome + rank_outcomes_for_finding + ScoredOutcome ported into mantishack_core_verified_outcome::collect; finding-id 10 / cwe+file 7 / file 4 / cwe 2 scoring tiers, status filter, score-0 drop, reproducible-first + recency + evidence-hash tie-breaks; 3 tests from live-Python differential; collect_outcomes witness-store discovery stays Python; recency uses canonical-UTC ISO string ordering)"
+    },
+    "core.verified_outcome.render": {
+      "status": "ported (render_outcome_summary + _safe into mantishack_core_verified_outcome::render; byte-exact grouped oracle x status table (Oracle/OutcomeStatus definition-order iteration, {:<8} padding), Confirmed list with escape_nonprintable defanging + 200-char ellipsis cap, rstrip+newline; reuses ported core_security.escape_nonprintable; 2 tests from live-Python differential)"
     }
   }
 }
