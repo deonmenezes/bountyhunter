@@ -243,8 +243,8 @@
     "core.git": {
       "name": "core.git",
       "disposition": "rust-port",
-      "status": "pending",
-      "crate": "",
+      "status": "ported (pure logic of validate.py + _proxy_hosts.py + clone.py into mantishack_core_git: validate_repo_url allowlist w/ ..-forbidding lookahead via fancy-regex, proxy_hosts_for_git override-JSON->default resolution, caller/ls-remote SHA shape checks, writable-path guard, safe-git -c overrides, clone/init/remote/fetch/ls-remote argv builders, ls_remote URL validator + urlsplit-faithful parser + ls-remote output parser; 46 cargo golden tests mirroring core/git/tests. clone_repository/fetch_commit/ls_remote subprocess spawning via core.sandbox.run_untrusted, credential-redacted logging, get_git_env, and GIT_CLONE_TIMEOUT stay Python by design. Non-ASCII IDN punycode canonicalisation approximated (ASCII hosts identical; untested by oracle, proxy re-checks at runtime))",
+      "crate": "rust-migration/crates/mantishack_core_git",
       "phase": 3,
       "notes": "",
       "parity": {}

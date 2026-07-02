@@ -1,0 +1,32 @@
+[package]
+name = "mantishack_core_git"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+# Faithful Rust port of `core/git/`. The pure decision/validation/parsing/
+# arg-building logic ports here; the git subprocess spawning (via
+# `core.sandbox.run_untrusted`), credential-redacted logging, env building
+# (`MantishackConfig.get_git_env`), and the bounded timeout stay call-site in
+# Python — this crate carries the security-load-bearing pure logic those
+# wrappers gate on.
+
+[lib]
+name = "mantishack_core_git"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python = ["dep:pyo3"]
+
+[dependencies]
+pyo3 = { workspace = true, optional = true }
+serde_json = { version = "1", features = ["preserve_order"] }
+# fancy-regex adds lookaround, which the `regex` crate omits. The repo-URL
+# allowlist needs the negative lookahead `\.(?!\.)` that forbids `..` runs in
+# owner/repo segments (same reason mantishack_sca_rewriters pulls it in).
+fancy-regex = "0.16"
+
+[dev-dependencies]
+tempfile = "3"
