@@ -659,8 +659,8 @@
     "core.sarif": {
       "name": "core.sarif",
       "disposition": "rust-port",
-      "status": "pending",
-      "crate": "",
+      "status": "in progress (pure parser.py transforms ported: extract_cwe_from_rule, result_key, deduplicate_findings, get_tool_name, get_rules, sanitize_finding_for_display; 4 tests from live-Python differential; file-I/O loaders load_sarif/parse_sarif_findings/merge_sarif + escape_nonprintable-dependent extract_dataflow_path pending)",
+      "crate": "crates/mantishack_core_sarif",
       "phase": 3,
       "notes": "",
       "parity": {}
