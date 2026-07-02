@@ -1,45 +1,10 @@
 [workspace]
 resolver = "2"
-members = [
-    "crates/mantishack_cvss",
-    "crates/mantishack_autonomous",
-    "crates/mantishack_codeql",
-    "crates/mantishack_diagram",
-    "crates/mantishack_core_dataflow",
-    "crates/mantishack_core_dockerfile",
-    "crates/mantishack_core_reporting",
-    "crates/mantishack_core_verified_outcome",
-    "crates/mantishack_exploit_feasibility",
-    "crates/mantishack_llm_analysis",
-    "crates/mantishack_exploitability_validation",
-    "crates/mantishack_core_url_patterns",
-    "crates/mantishack_core_schema_constants",
-    "crates/mantishack_core_function_taxonomy",
-    "crates/mantishack_sca_versions",
-    "crates/mantishack_core_json",
-    "crates/mantishack_core_tuning",
-    "crates/mantishack_semgrep",
-    "crates/mantishack_core_witness",
-    "crates/mantishack_core_security",
-    "crates/mantishack_core_config",
-    "crates/mantishack_smt_solver",
-    "crates/mantishack_core_hash",
-    "crates/mantishack_core_cve",
-    "crates/mantishack_nvd",
-    "crates/mantishack_osv",
-    "crates/mantishack_sca",
-    "crates/mantishack_core_inventory",
-    "crates/mantishack_core_ast",
-    "crates/mantishack_coccinelle",
-    "crates/mantishack_static_codeql",
-    "crates/mantishack_ts",
-    "crates/mantishack_sca_platform_matrix",
-    "crates/mantishack_sca_wheel_compat",
-    "crates/mantishack_sca_rewriters",
-    "crates/mantishack_core_sarif",
-    "crates/mantishack_sca_supply_chain",
-    "crates/mantishack_sca_reachability",
-]
+# Glob membership: every crate under crates/ is a member automatically. This lets
+# parallel port tasks add a new crate without editing this file (which would make
+# their commits collide on the shared members list). Verified equivalent to the
+# prior explicit 38-member list at conversion time.
+members = ["crates/*"]
 
 # Shared profile: optimise the static-analysis hot paths that motivated the
 # migration (call graph / reachability). Faithful ports first; perf is free.
