@@ -20,7 +20,9 @@ fn qualifier_order(q: &str) -> Option<i32> {
 enum Token {
     Int(i64),
     Str(String),
-    Sep(char),
+    // The separator char is tracked while tokenising but only its presence
+    // matters downstream (the parser matches `Sep(_)`).
+    Sep(#[allow(dead_code)] char),
 }
 
 fn tokenise(version: &str) -> Vec<Token> {
