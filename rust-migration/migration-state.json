@@ -282,8 +282,8 @@
     "core.http": {
       "name": "core.http",
       "disposition": "rust-port",
-      "status": "pending",
-      "crate": "",
+      "status": "ported (pure logic of core/http/{__init__,urllib_backend,egress_backend}.py -> mantishack_core_http; 34 cargo golden tests. Ported: URL validation (faithful urllib.parse.urlsplit field extraction: scheme/host/userinfo gates), _HostCircuitBreaker state machine, _parse_retry_after (delta-seconds + HTTP-date, [1,1800] clamp), proxy-403 message classification, retry arithmetic (_BACKOFF_SECONDS + compile-time DEFAULT_RETRIES drift guard, is_transient/compute_max_attempts), gzip magic sniff, header collapse, Response requests-compat shim (json/status_code/content/text/iter_content/close), default_client backend selection, egress https-only scheme + proxy-URL format. STAYS PYTHON by design: all network I/O (urllib3 PoolManager/ProxyManager, _fetch/_fetch_once/_stream retry loop + sleeps + streaming + live gzip decode), core.sandbox.proxy egress wiring, and _safe_url_for_log/secret redaction in log+error lines (depends on core.security.redaction, not yet ported). PyO3 mantishack_core_http exposes constants, HttpError/SizeLimitExceeded/NotModified, Response, _HostCircuitBreaker + the pure fns.)",
+      "crate": "rust-migration/crates/mantishack_core_http",
       "phase": 3,
       "notes": "",
       "parity": {}

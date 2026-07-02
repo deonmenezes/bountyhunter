@@ -1,0 +1,21 @@
+[package]
+name = "mantishack_core_http"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "mantishack_core_http"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python = ["dep:pyo3"]
+
+[dependencies]
+pyo3 = { workspace = true, optional = true }
+regex = { workspace = true }
+# Response.json() parses the buffered body — same semantics as the Python
+# Response.json() (utf-8 decode then json.loads).
+serde_json = "1"
