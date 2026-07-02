@@ -2089,6 +2089,9 @@
     },
     "packages.diagram.attack_paths": {
       "status": "ported (all of attack_paths.py except generate_from_file fs-read: proximity_desc, generate_single (title + object/scalar step nodes with type/loc/tainted/desc parts + 80-char truncation, chain edges, blocker nodes with [/...\\] syntax + blocked edges) and generate (per-path markdown sections + empty fallback) into mantishack_diagram::attack_paths; 2 tests from live-Python differential incl byte-exact single-path render)"
+    },
+    "packages.diagram.hypotheses": {
+      "status": "ported (all of hypotheses.py except generate_from_file fs-read: _prediction_label/_hyp_label (70-char truncation, finding arrow), generate with stateful HN/PN node counter, by-finding subgraph grouping, confirmed/disproven/testing hypothesis shapes + prediction node shapes, prediction edges, and byte-exact classDef/class trailer incl the get('id','') vs f'H{counter}' style-lookup subtlety; 1 test from live-Python differential incl byte-exact tree)"
     }
   }
 }

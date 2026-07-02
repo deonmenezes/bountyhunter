@@ -5,6 +5,7 @@
 pub mod attack_paths;
 pub mod attack_tree;
 pub mod findings_summary;
+pub mod hypotheses;
 pub mod sanitize;
 
 pub use attack_tree::generate as generate_attack_tree;
