@@ -2077,6 +2077,9 @@
     },
     "packages.exploitability_validation.models": {
       "status": "in progress (helpers + leaf models ported into new crate mantishack_exploitability_validation::models: EXPLOITABLE_FINAL_STATUSES + is_exploitable_final_status, coerce_int (None/bool/unparseable->default, float/float-str truncate toward zero), clean_dict (recursive None/'' strip keeping false/0/[]/{}), Proof/PoC/SanityCheck from_dict (str/dict/falsy handling); 3 tests from live-Python differential; datetime-bearing Finding/Ruling/Feasibility/container models are a follow-up)"
+    },
+    "packages.llm_analysis.intent_match": {
+      "status": "in progress (pure heuristics + verdict logic ported into new crate mantishack_llm_analysis::intent_match: file_overlap/function_overlap/compile_error_anchor, the 7 CWE-shape regex detectors (buffer-overflow/command-injection/sql/xss/path-traversal/null-deref/integer-overflow) + cwe_shape CWE->detector dispatch (None-abstain), count_signals, initial_verdict (matches/off_target/uncertain thresholds + byte-exact reasoning strings); 3 tests from live-Python differential; the LLM describe/judge tiebreak + IntentMatchVerdict dataclass stay Python)"
     }
   }
 }
