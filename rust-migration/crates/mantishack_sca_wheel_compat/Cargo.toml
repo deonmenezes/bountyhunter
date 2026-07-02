@@ -1,0 +1,23 @@
+[package]
+name = "mantishack_sca_wheel_compat"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+# Wheel platform-tag parsing + project platform-matrix compatibility check —
+# Rust port of packages/sca/wheel_compat/. Pure compute over wheel filenames +
+# a ProjectPlatformMatrix; the PyPI wheel-list fetch stays call-site in Python.
+
+[lib]
+name = "mantishack_sca_wheel_compat"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python = ["dep:pyo3"]
+
+[dependencies]
+pyo3 = { workspace = true, optional = true }
+regex = { workspace = true }
+mantishack_sca_platform_matrix = { path = "../mantishack_sca_platform_matrix" }
