@@ -167,9 +167,110 @@ pub fn compute_risk_estimate(inputs: &RiskInputs, calibration_status: &str) -> (
     (final_score, Value::Object(components))
 }
 
+/// The tunable multiplier constants the refitter grid-searches over
+/// (`TUNABLE_CONSTANTS`), in order.
+pub const TUNABLE_CONSTANTS: &[(&str, f64)] = &[
+    ("_KEV_FLOOR", KEV_FLOOR),
+    ("_KEV_MULTIPLIER", KEV_MULTIPLIER),
+    ("_EXPLOIT_EVIDENCE_FLOOR", EXPLOIT_EVIDENCE_FLOOR),
+    ("_EXPLOIT_EVIDENCE_MULTIPLIER", EXPLOIT_EVIDENCE_MULTIPLIER),
+    ("_SSVC_ACTIVE_FLOOR", SSVC_ACTIVE_FLOOR),
+    ("_SSVC_ACTIVE_MULTIPLIER", SSVC_ACTIVE_MULTIPLIER),
+    ("_SSVC_POC_FLOOR", SSVC_POC_FLOOR),
+    ("_SSVC_POC_MULTIPLIER", SSVC_POC_MULTIPLIER),
+    ("_SSVC_AUTOMATABLE_BONUS", SSVC_AUTOMATABLE_BONUS),
+    ("_EPSS_FLOOR_MULTIPLIER", EPSS_FLOOR_MULTIPLIER),
+    ("_EPSS_RANGE_MULTIPLIER", EPSS_RANGE_MULTIPLIER),
+    ("_REACH_NOT_REACHABLE_MAX_REDUCTION", REACH_NOT_REACHABLE_MAX_REDUCTION),
+    ("_REACH_NOT_EVALUATED_MULTIPLIER", REACH_NOT_EVALUATED_MULTIPLIER),
+    ("_EXPO_FLOOR_MULTIPLIER", EXPO_FLOOR_MULTIPLIER),
+    ("_EXPO_RANGE_MULTIPLIER", EXPO_RANGE_MULTIPLIER),
+    ("_DEPTH_DECAY_BASE", DEPTH_DECAY_BASE),
+];
+
+/// Per-constant absolute bounds (`CONSTANT_BOUNDS`); `None` for unknown names.
+fn constant_bounds(name: &str) -> Option<(f64, f64)> {
+    let b = match name {
+        "_KEV_FLOOR" | "_EXPLOIT_EVIDENCE_FLOOR" | "_SSVC_ACTIVE_FLOOR" | "_SSVC_POC_FLOOR" => (0.0, 100.0),
+        "_KEV_MULTIPLIER" | "_EXPLOIT_EVIDENCE_MULTIPLIER" | "_SSVC_ACTIVE_MULTIPLIER" | "_SSVC_POC_MULTIPLIER" => (1.0, 3.0),
+        "_SSVC_AUTOMATABLE_BONUS" => (1.0, 1.5),
+        "_EPSS_FLOOR_MULTIPLIER" | "_EPSS_RANGE_MULTIPLIER" | "_REACH_NOT_REACHABLE_MAX_REDUCTION"
+        | "_REACH_NOT_EVALUATED_MULTIPLIER" | "_EXPO_FLOOR_MULTIPLIER" | "_EXPO_RANGE_MULTIPLIER"
+        | "_DEPTH_DECAY_BASE" => (0.0, 1.0),
+        _ => return None,
+    };
+    Some(b)
+}
+
+/// Current values of all tunable constants (`current_constants`).
+pub fn current_constants() -> Map<String, Value> {
+    TUNABLE_CONSTANTS.iter().map(|(k, v)| ((*k).to_string(), Value::from(*v))).collect()
+}
+
+/// Python `str(float)` / `repr(float)`: shortest round-trip, with a `.0` on
+/// integer-valued floats (Rust `{}` drops it).
+fn py_float_repr(f: f64) -> String {
+    let s = format!("{f}");
+    if s.contains(['.', 'e', 'E']) || !s.chars().any(|c| c.is_ascii_digit()) {
+        s
+    } else {
+        format!("{s}.0")
+    }
+}
+
+fn override_or(values: &Map<String, Value>, name: &str, default: f64) -> f64 {
+    values.get(name).and_then(Value::as_f64).unwrap_or(default)
+}
+
+fn ee_strictly_below_kev(values: &Map<String, Value>) -> bool {
+    let ee_mult = override_or(values, "_EXPLOIT_EVIDENCE_MULTIPLIER", EXPLOIT_EVIDENCE_MULTIPLIER);
+    let kev_mult = override_or(values, "_KEV_MULTIPLIER", KEV_MULTIPLIER);
+    let ee_floor = override_or(values, "_EXPLOIT_EVIDENCE_FLOOR", EXPLOIT_EVIDENCE_FLOOR);
+    let kev_floor = override_or(values, "_KEV_FLOOR", KEV_FLOOR);
+    ee_mult < kev_mult && ee_floor <= kev_floor
+}
+
+fn ssvc_poc_strictly_below_active(values: &Map<String, Value>) -> bool {
+    let poc_mult = override_or(values, "_SSVC_POC_MULTIPLIER", SSVC_POC_MULTIPLIER);
+    let active_mult = override_or(values, "_SSVC_ACTIVE_MULTIPLIER", SSVC_ACTIVE_MULTIPLIER);
+    let poc_floor = override_or(values, "_SSVC_POC_FLOOR", SSVC_POC_FLOOR);
+    let active_floor = override_or(values, "_SSVC_ACTIVE_FLOOR", SSVC_ACTIVE_FLOOR);
+    poc_mult < active_mult && poc_floor <= active_floor
+}
+
+/// Check absolute bounds + cross-constraints on a candidate override set
+/// (`is_admissible`). `(true, None)` when admissible, else `(false, reason)`
+/// naming the first failed rule.
+pub fn is_admissible(values: &Map<String, Value>) -> (bool, Option<String>) {
+    for (name, val) in values {
+        if let Some((lo, hi)) = constant_bounds(name) {
+            let v = val.as_f64().unwrap_or(f64::NAN);
+            if !(lo <= v && v <= hi) {
+                return (
+                    false,
+                    Some(format!(
+                        "{name}={} outside bounds [{}, {}]",
+                        py_float_repr(v),
+                        py_float_repr(lo),
+                        py_float_repr(hi)
+                    )),
+                );
+            }
+        }
+    }
+    if !ee_strictly_below_kev(values) {
+        return (false, Some("cross-constraint violated: exploit_evidence_strictly_below_kev".into()));
+    }
+    if !ssvc_poc_strictly_below_active(values) {
+        return (false, Some("cross-constraint violated: ssvc_poc_strictly_below_active".into()));
+    }
+    (true, None)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     fn base_inputs() -> RiskInputs<'static> {
         RiskInputs {
@@ -229,5 +330,34 @@ mod tests {
         // ssvc active inserts its tier key before the automatable multiplier.
         let (_, comp) = compute_risk_estimate(&RiskInputs { ssvc_exploitation: Some("active"), ..base_inputs() }, "unknown");
         assert!(comp.as_object().unwrap().contains_key("ssvc_active_multiplier"));
+    }
+
+    fn adm(v: Value) -> (bool, Option<String>) {
+        is_admissible(v.as_object().unwrap())
+    }
+
+    #[test]
+    fn admissibility() {
+        assert_eq!(adm(json!({})), (true, None));
+        assert_eq!(adm(json!({"_KEV_MULTIPLIER": 2.0})), (true, None));
+        assert_eq!(adm(json!({"_KEV_MULTIPLIER": 5.0})),
+            (false, Some("_KEV_MULTIPLIER=5.0 outside bounds [1.0, 3.0]".into())));
+        assert_eq!(adm(json!({"_KEV_FLOOR": 150.0})),
+            (false, Some("_KEV_FLOOR=150.0 outside bounds [0.0, 100.0]".into())));
+        // Cross-constraints.
+        assert_eq!(adm(json!({"_EXPLOIT_EVIDENCE_MULTIPLIER": 2.0, "_KEV_MULTIPLIER": 1.5})),
+            (false, Some("cross-constraint violated: exploit_evidence_strictly_below_kev".into())));
+        assert_eq!(adm(json!({"_SSVC_POC_MULTIPLIER": 2.0, "_SSVC_ACTIVE_MULTIPLIER": 1.5})),
+            (false, Some("cross-constraint violated: ssvc_poc_strictly_below_active".into())));
+        // Unknown keys are skipped for bounds; defaults satisfy cross-constraints.
+        assert_eq!(adm(json!({"_FOO": 99.0})), (true, None));
+    }
+
+    #[test]
+    fn constants() {
+        let c = current_constants();
+        assert_eq!(c.len(), 16);
+        assert_eq!(c["_KEV_FLOOR"], Value::from(96.8));
+        assert_eq!(c["_DEPTH_DECAY_BASE"], Value::from(0.7));
     }
 }
