@@ -1,0 +1,23 @@
+[package]
+name = "mantishack_sca_supply_chain"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+# Supply-chain heuristics — Rust port of packages/sca/supply_chain/. The pure
+# detectors (typosquat Damerau-Levenshtein, …) port here; the registry/HTTP and
+# git-walking detectors stay call-site in Python.
+
+[lib]
+name = "mantishack_sca_supply_chain"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python = ["dep:pyo3"]
+
+[dependencies]
+pyo3 = { workspace = true, optional = true }
+serde_json = { version = "1", features = ["preserve_order"] }
+mantishack_sca = { path = "../mantishack_sca" }
