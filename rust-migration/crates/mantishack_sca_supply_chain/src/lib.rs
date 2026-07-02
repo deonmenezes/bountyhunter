@@ -4,8 +4,10 @@
 //! lists) ports here as a pure module. The registry-metadata / HTTP and
 //! git-walking detectors land as their consumers do.
 
+pub mod install_hooks;
 pub mod sentinel;
 pub mod typosquat;
 
+pub use install_hooks::{scan_scripts, InstallHookFinding, InstallHookHit};
 pub use sentinel::{scan_deps as scan_deps_sentinel, SentinelHit};
 pub use typosquat::{check_one, damerau_levenshtein, scan_deps, TyposquatFinding};
