@@ -2017,6 +2017,9 @@
     },
     "core.verified_outcome.render": {
       "status": "ported (render_outcome_summary + _safe into mantishack_core_verified_outcome::render; byte-exact grouped oracle x status table (Oracle/OutcomeStatus definition-order iteration, {:<8} padding), Confirmed list with escape_nonprintable defanging + 200-char ellipsis cap, rstrip+newline; reuses ported core_security.escape_nonprintable; 2 tests from live-Python differential)"
+    },
+    "core.security.prompt_envelope": {
+      "status": "in progress (neutralize_tag_forgery ported into mantishack_core_security::prompt_envelope; envelope-tag forgery escaping (XML &lt;, bracket &#91;/&#93;, BEGIN_/END_ ZWSP insertion, IGNORECASE) + markdown-heading backslash-prefix; leftmost-first alternation matches Python re; 2 tests from live-Python differential; rest of prompt_envelope.py (bundle building, nonce, autofetch) stays Python)"
     }
   }
 }

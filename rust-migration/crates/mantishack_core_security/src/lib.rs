@@ -17,6 +17,7 @@ pub mod cc_trust;
 pub mod codeql_trust;
 pub mod env_sanitisation;
 pub mod log_sanitisation;
+pub mod prompt_envelope;
 pub mod pyval;
 
 // ───────────────────────── PyO3 bindings ───────────────────────────────────
