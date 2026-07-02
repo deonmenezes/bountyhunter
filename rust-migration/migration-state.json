@@ -930,8 +930,8 @@
     "engine.semgrep.tools": {
       "name": "engine.semgrep.tools",
       "disposition": "rust-glue",
-      "status": "pending",
-      "crate": "",
+      "status": "ported (sarif_merge.py merge_sarif_files: load each input via safety-guarded load_sarif [100 MiB cap], group runs by tool name, dedup results by result_key [reused from mantishack_core_sarif, latest-wins], union tool.driver.rules by id, merge originalUriBaseIds [later-wins] + append invocations, write via mantishack_core_json::save_json; 15 cargo golden tests. merge_sarif/load_sarif reimplemented here since core.sarif keeps them Python-side by design; __main__ CLI argv parsing stays Python)",
+      "crate": "rust-migration/crates/mantishack_engine_semgrep_tools",
       "phase": 4,
       "notes": "",
       "parity": {}
