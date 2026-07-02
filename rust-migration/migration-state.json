@@ -1777,7 +1777,7 @@
     "packages.sca.rewriters": {
       "name": "packages.sca.rewriters",
       "disposition": "rust-port",
-      "status": "in progress (RewriteEdit/RewriteResult shared types + dockerfile_arg content rewriter, 1 of ~8 rewriters; atomic file read/write wrapper stays Python by design)",
+      "status": "in progress (RewriteEdit/RewriteResult + dockerfile_arg + dockerfile_from content rewriters incl kind-routing, 2 of ~8; atomic file read/write wrapper stays Python)",
       "crate": "crates/mantishack_sca_rewriters",
       "phase": 3,
       "notes": "",
