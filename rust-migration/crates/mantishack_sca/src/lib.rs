@@ -41,6 +41,7 @@ pub mod sbom;
 pub mod sbom_spdx;
 pub mod suppressions;
 pub mod thresholds;
+pub mod whatif;
 pub mod transitive_drop;
 pub mod toml_util;
 pub mod uv_lock;
