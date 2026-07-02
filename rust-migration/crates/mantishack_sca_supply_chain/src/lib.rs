@@ -6,8 +6,10 @@
 
 pub mod install_hooks;
 pub mod sentinel;
+pub mod slopsquat;
 pub mod typosquat;
 
 pub use install_hooks::{scan_scripts, InstallHookFinding, InstallHookHit};
 pub use sentinel::{scan_deps as scan_deps_sentinel, SentinelHit};
+pub use slopsquat::{check_dep, scan_deps as scan_deps_slopsquat, SlopsquatFinding};
 pub use typosquat::{check_one, damerau_levenshtein, scan_deps, TyposquatFinding};

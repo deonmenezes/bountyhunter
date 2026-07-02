@@ -37,10 +37,16 @@ const POPULAR_DATA: &[(&str, &str)] = &[
     ("RubyGems", include_str!("../../../../packages/sca/data/popular/RubyGems.json")),
 ];
 
-struct Popular {
-    list: Vec<String>,
-    set: HashSet<String>,
+pub(crate) struct Popular {
+    pub(crate) list: Vec<String>,
+    pub(crate) set: HashSet<String>,
     by_len: HashMap<usize, Vec<String>>,
+}
+
+/// The cached popular-name index for an ecosystem, or `None` if unknown
+/// (shared with the slopsquat detector).
+pub(crate) fn popular_for(eco: &str) -> Option<&'static Popular> {
+    popular_cache().get(eco)
 }
 
 fn popular_cache() -> &'static HashMap<String, Popular> {
