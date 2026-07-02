@@ -1860,8 +1860,8 @@
     "packages.sca.wheel_compat": {
       "name": "packages.sca.wheel_compat",
       "disposition": "rust-port",
-      "status": "pending",
-      "crate": "",
+      "status": "ported (wheel_tags PEP425 decoder + compat.py pure engine: WheelMatrix/build_wheel_matrix/best_match/verdict_for_pair/check_compat/is_stable_version/version_key, all verdict reasons byte-exact; 26 tests from live-Python differential; scan.py evaluate_platform_compat orchestration + PyPI fetch + find_compatible_version cache stay Python by design, needs HygieneFinding model)",
+      "crate": "crates/mantishack_sca_wheel_compat",
       "phase": 3,
       "notes": "",
       "parity": {}
