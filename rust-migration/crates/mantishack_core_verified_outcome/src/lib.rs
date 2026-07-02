@@ -5,9 +5,11 @@
 //! normalised to `+00:00` as `datetime.fromisoformat`/`isoformat` would.
 
 pub mod collect;
+pub mod exemplars;
 pub mod render;
 pub mod types;
 
 pub use collect::{rank_outcomes_for_finding, score_outcome, ScoredOutcome};
+pub use exemplars::render_verified_exemplars;
 pub use render::render_outcome_summary;
 pub use types::{Oracle, OutcomeStatus, VerifiedOutcome};

@@ -2020,6 +2020,9 @@
     },
     "core.security.prompt_envelope": {
       "status": "in progress (neutralize_tag_forgery ported into mantishack_core_security::prompt_envelope; envelope-tag forgery escaping (XML &lt;, bracket &#91;/&#93;, BEGIN_/END_ ZWSP insertion, IGNORECASE) + markdown-heading backslash-prefix; leftmost-first alternation matches Python re; 2 tests from live-Python differential; rest of prompt_envelope.py (bundle building, nonce, autofetch) stays Python)"
+    },
+    "core.verified_outcome.exemplars": {
+      "status": "ported (render_verified_exemplars + _render_one + _safe into mantishack_core_verified_outcome::exemplars; byte-exact prompt block: header/intro, per-outcome '** label \u2014 where ** (match) / Confirmed by oracle -> status; evidence; repro' with neutralize_tag_forgery + escape_nonprintable defanging (cap 120), and the max_bytes trailing-entry trim loop; 2 tests from live-Python differential; exemplar_block_for_finding I/O wrapper stays Python)"
     }
   }
 }
