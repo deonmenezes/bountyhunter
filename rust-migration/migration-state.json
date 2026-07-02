@@ -2035,6 +2035,9 @@
     },
     "packages.exploit_feasibility.schema": {
       "status": "in progress (validate_context hand-coded validator ported into mantishack_exploit_feasibility::schema; libc/binary/rop/payload/write_targets/verdict checks with Python isinstance(int) accepting bool, null-skip, byte-exact error messages + ordering; 3 tests from live-Python differential; validate_context_file (fs) + static CONTEXT_SCHEMA/get_schema stay Python)"
+    },
+    "packages.exploit_feasibility.techniques": {
+      "status": "ported (all of techniques.py into mantishack_exploit_feasibility::techniques: TechniqueRequirements + the 19-entry insertion-ordered technique registry (dumped from live Python) + get_technique/get_techniques_for_goal/get_viable_techniques/get_missing_primitives queries; 2 tests from live-Python differential)"
     }
   }
 }
