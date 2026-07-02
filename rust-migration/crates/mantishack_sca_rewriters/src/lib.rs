@@ -9,9 +9,11 @@ use serde_json::Value;
 
 pub mod dockerfile_arg;
 pub mod dockerfile_from;
+pub mod dockerfile_inline_install;
 
 pub use dockerfile_arg::rewrite_dockerfile_arg_text;
 pub use dockerfile_from::{rewrite_dockerfile_from_text, route_kind};
+pub use dockerfile_inline_install::rewrite_dockerfile_inline_install_text;
 
 /// A single proposed edit to a manifest file (`RewriteEdit`). `locator`
 /// identifies WHAT to edit (semantics are rewriter-specific); `extra` is a
