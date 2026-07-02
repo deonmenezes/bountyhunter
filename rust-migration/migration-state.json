@@ -2059,6 +2059,9 @@
     },
     "packages.exploit_feasibility.finding_mapper": {
       "status": "ported (all of finding_mapper.py into mantishack_exploit_feasibility::finding_mapper: _extract_finding_context, _build_notes, _make_path, _get_binary_specific/best_target/viable_targets, _has_heap_hardening (glibc>=2.32), the 7 _assess_* assessors (double_free/type_confusion/null_deref/buffer_overflow/format_string/use_after_free/generic) with protection-based verdict/blocker/path logic + byte-exact notes/target strings incl str(int) address, and map_findings_to_constraints dispatcher (vuln_type normalization, ruled_out skip); 3 tests from live-Python differential)"
+    },
+    "packages.exploit_feasibility.api": {
+      "status": "in progress (pure helpers ported into mantishack_exploit_feasibility::api: get_vuln_type_for_rule (SARIF rule-id -> vuln_type substring dispatch incl strcpy-not-heap guard, ordered format-string tiers) and get_primitive_requirements (primitive detail dict or {error, available} over ported registry); 2 tests from live-Python differential; analyze_binary + technique/constraint/summary orchestration + context persistence stay Python (binary-analysis I/O))"
     }
   }
 }
