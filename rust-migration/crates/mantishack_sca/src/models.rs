@@ -64,6 +64,20 @@ impl Confidence {
     }
 }
 
+/// A per-dep license-policy finding (`LicenseFinding`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct LicenseFinding {
+    pub finding_id: String,
+    pub kind: String,
+    pub dependency: Dependency,
+    pub spdx: Option<String>,
+    pub detail: String,
+    pub severity: String,
+    pub confidence: Confidence,
+    pub suppressed: bool,
+    pub suppression_reason: Option<String>,
+}
+
 /// A discovered manifest or lockfile to be parsed (`Manifest`).
 #[derive(Clone, Debug, PartialEq)]
 pub struct Manifest {
