@@ -1795,7 +1795,7 @@
     "packages.sca.supply_chain": {
       "name": "packages.sca.supply_chain",
       "disposition": "rust-port",
-      "status": "in progress (typosquat + sentinel + install_hooks + slopsquat detectors ported; shared popular-list cache; 11 tests from live-Python differential; registry_metadata/HTTP + git-walking + Manifest-host resolution detectors pending)",
+      "status": "in progress (typosquat + sentinel + install_hooks + slopsquat + typosquat_domain detectors ported; 15 tests from live-Python differential; registry_metadata/HTTP + git-walking + python_imports(ast) + fs-walk orchestration detectors pending)",
       "crate": "crates/mantishack_sca_supply_chain",
       "phase": 2,
       "notes": "",
