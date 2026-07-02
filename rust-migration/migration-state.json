@@ -2043,7 +2043,7 @@
       "status": "ported (pure surface into mantishack_exploit_feasibility::constants: BinaryInfo+pointer_size, pwntools_arch + canonicalize_readelf_machine (arch normalization incl s390-slash edge), all scalar constant groups (GlibcVersion/Timeout/TargetPriority/AddressSpace/GadgetSearch/Reliability/ConfidenceAdjustment/FormatWriteLimits/CacheSettings), and COMMON_FUNCTIONS(52)/INPUT_FUNCTIONS(65)/STRING_TERMINATING_FUNCTIONS sets dumped from live Python; 3 tests from differential; detect_binary_info (pwntools/readelf) stays Python)"
     },
     "packages.exploit_feasibility.primitives": {
-      "status": "in progress (enums PrimitiveId/PrimitiveType/MitigationId + value classes Primitive (is_achievable/get_missing_requirements), ConfidenceScore (from_reliability with adjustment map + str.title reasoning, byte-exact summary), ExploitPath (compute_confidence, byte-exact summary incl p_success vs reliability) ported into mantishack_exploit_feasibility::primitives; 4 tests from live-Python differential; big get_primitive_definitions registry deferred)"
+      "status": "ported (all of primitives.py into mantishack_exploit_feasibility::primitives: PrimitiveId/PrimitiveType/MitigationId enums, Primitive/ConfidenceScore/ExploitPath value classes with full logic, and the 32-entry insertion-ordered get_primitive_definitions registry (dumped from live Python) + get_primitive lookup; 5 tests from live-Python differential)"
     }
   }
 }
