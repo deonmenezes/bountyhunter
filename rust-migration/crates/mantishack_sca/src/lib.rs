@@ -36,4 +36,4 @@ pub mod vcpkg;
 pub mod yarn_lock;
 
 pub use findings::severity_rank;
-pub use models::{Confidence, Dependency, PinStyle};
+pub use models::{Confidence, Dependency, PinStyle, Reachability};

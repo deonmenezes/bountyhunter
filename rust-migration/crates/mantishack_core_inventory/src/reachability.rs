@@ -63,6 +63,128 @@ impl InternalFunction {
     }
 }
 
+/// Python truthiness for a JSON value (for the `x or []` fallbacks).
+fn is_truthy(v: &Value) -> bool {
+    match v {
+        Value::Null => false,
+        Value::Bool(b) => *b,
+        Value::Number(n) => n.as_f64().map(|f| f != 0.0).unwrap_or(true),
+        Value::String(s) => !s.is_empty(),
+        Value::Array(a) => !a.is_empty(),
+        Value::Object(o) => !o.is_empty(),
+    }
+}
+
+/// Linear scan of the inventory's files for a path match (`_find_file_record`).
+fn find_file_record<'a>(inventory: &'a Value, path: &str) -> Option<&'a Value> {
+    inventory.get("files")?.as_array()?.iter().find(|fr| {
+        fr.get("path").and_then(Value::as_str) == Some(path)
+    })
+}
+
+/// Return the project-internal function whose body contains `line` in
+/// `file_path`, or `None` if the line is at module scope (`enclosing_function`).
+/// Innermost (largest `line_start` ≤ `line`) match wins.
+pub fn enclosing_function(inventory: &Value, file_path: &str, line: i64) -> Option<InternalFunction> {
+    let file_record = find_file_record(inventory, file_path)?;
+    // `items = fr.get("items") or []; if not isinstance(items, list): return None`
+    let items: &[Value] = match file_record.get("items") {
+        Some(Value::Array(a)) => a.as_slice(),
+        Some(v) if is_truthy(v) => return None, // truthy non-list
+        _ => &[],                               // null / absent / falsy -> empty
+    };
+
+    let mut best: Option<(i64, String)> = None; // (line_start, name)
+    for item in items {
+        let Some(obj) = item.as_object() else { continue };
+        // kind must be absent, null, or "function".
+        match obj.get("kind") {
+            None | Some(Value::Null) => {}
+            Some(Value::String(s)) if s == "function" => {}
+            _ => continue,
+        }
+        let Some(line_start) = obj.get("line_start").and_then(Value::as_i64) else { continue };
+        if line_start <= 0 || line_start > line {
+            continue;
+        }
+        // Missing/negative line_end -> open-ended range.
+        if let Some(line_end) = obj.get("line_end").and_then(Value::as_i64) {
+            if line_end >= 0 && line_end < line {
+                continue;
+            }
+        }
+        if best.as_ref().map_or(true, |(bls, _)| line_start > *bls) {
+            let name = obj.get("name").and_then(Value::as_str).unwrap_or("").to_string();
+            best = Some((line_start, name));
+        }
+    }
+
+    let (line_start, name) = best?;
+    if name.is_empty() {
+        return None;
+    }
+    Some(InternalFunction::new(file_path, name, line_start))
+}
+
+/// Split a `"path:line"` evidence string into `(path, line)`
+/// (`parse_evidence_entry`); `(None, 0)` for malformed inputs. Splits on the
+/// LAST colon so Windows drive paths / IPv6 fragments survive.
+pub fn parse_evidence_entry(entry: &str) -> (Option<String>, i64) {
+    let Some((path, line_str)) = entry.rsplit_once(':') else { return (None, 0) };
+    if path.is_empty() || line_str.is_empty() {
+        return (None, 0);
+    }
+    match line_str.trim().parse::<i64>() {
+        Ok(line) => (Some(path.to_string()), line),
+        Err(_) => (None, 0),
+    }
+}
+
+#[cfg(test)]
+mod enclosing_and_evidence_tests {
+    use super::*;
+    use serde_json::json;
+
+    fn inv() -> Value {
+        json!({"files": [{"path": "a.py", "items": [
+            {"kind": "function", "name": "outer", "line_start": 1, "line_end": 20},
+            {"kind": "function", "name": "inner", "line_start": 5, "line_end": 10},
+            {"kind": "function", "name": "noend", "line_start": 25},
+            {"kind": "class", "name": "C", "line_start": 30, "line_end": 40},
+        ]}]})
+    }
+
+    fn ef(line: i64) -> Option<(String, i64)> {
+        enclosing_function(&inv(), "a.py", line).map(|f| (f.name, f.line))
+    }
+
+    #[test]
+    fn enclosing_innermost_and_open_ended() {
+        assert_eq!(ef(7), Some(("inner".into(), 5))); // innermost def wins
+        assert_eq!(ef(15), Some(("outer".into(), 1)));
+        assert_eq!(ef(3), Some(("outer".into(), 1)));
+        // Open-ended def (no line_end) captures everything at/after its start,
+        // including a range a `class` (excluded) would otherwise cover.
+        assert_eq!(ef(25), Some(("noend".into(), 25)));
+        assert_eq!(ef(35), Some(("noend".into(), 25)));
+        assert_eq!(ef(50), Some(("noend".into(), 25)));
+        // No matching file.
+        assert_eq!(enclosing_function(&inv(), "b.py", 1), None);
+    }
+
+    #[test]
+    fn parse_evidence() {
+        assert_eq!(parse_evidence_entry("a.py:10"), (Some("a.py".into()), 10));
+        assert_eq!(parse_evidence_entry("C:\\x:42"), (Some("C:\\x".into()), 42)); // last colon
+        assert_eq!(parse_evidence_entry("nocolon"), (None, 0));
+        assert_eq!(parse_evidence_entry(":10"), (None, 0)); // empty path
+        assert_eq!(parse_evidence_entry("a.py:"), (None, 0)); // empty line
+        assert_eq!(parse_evidence_entry("a.py:abc"), (None, 0)); // non-numeric
+        assert_eq!(parse_evidence_entry("a.py:0"), (Some("a.py".into()), 0));
+        assert_eq!(parse_evidence_entry("a.py: 5 "), (Some("a.py".into()), 5)); // int() strips ws
+    }
+}
+
 /// A dep-defined function referenced by qualified name. Mirrors `ExternalFunction`.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ExternalFunction {

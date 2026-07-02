@@ -64,6 +64,25 @@ impl Confidence {
     }
 }
 
+/// Reachability verdict for a dep (`Reachability`): a verdict string, a
+/// confidence, and `file:line` evidence refs.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Reachability {
+    pub verdict: String,
+    pub confidence: Confidence,
+    pub evidence: Vec<String>,
+}
+
+impl Reachability {
+    pub fn to_json(&self) -> Value {
+        json!({
+            "verdict": self.verdict,
+            "confidence": self.confidence.to_json(),
+            "evidence": self.evidence,
+        })
+    }
+}
+
 /// A single dep observed in a manifest or lockfile (`Dependency`). Only the
 /// fields the parsers populate are modelled; defaults match the dataclass.
 #[derive(Clone, Debug, PartialEq)]

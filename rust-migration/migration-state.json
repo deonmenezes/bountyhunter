@@ -1723,8 +1723,8 @@
     "packages.sca.reachability": {
       "name": "packages.sca.reachability",
       "disposition": "rust-port",
-      "status": "pending",
-      "crate": "",
+      "status": "in progress (_host_reachability ported: looks_internal, is_host_dead, all_call_sites_in_dead_code, classify_called_or_dead \u2014 drives the ported core_inventory call-graph; added enclosing_function + parse_evidence_entry to core_inventory and the Reachability model to mantishack_sca; 5 tests from live-Python differential; per-ecosystem function_called walkers + fs orchestration pending)",
+      "crate": "crates/mantishack_sca_reachability",
       "phase": 3,
       "notes": "",
       "parity": {}

@@ -1,0 +1,25 @@
+[package]
+name = "mantishack_sca_reachability"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+# Host-reachability dead-code classification — Rust port of the pure functions in
+# packages/sca/reachability/_host_reachability.py. Drives the ported call-graph
+# API in mantishack_core_inventory (callers_of / reverse_closure /
+# enclosing_function). The per-ecosystem function_called walkers stay Python.
+
+[lib]
+name = "mantishack_sca_reachability"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python = ["dep:pyo3"]
+
+[dependencies]
+pyo3 = { workspace = true, optional = true }
+serde_json = { version = "1", features = ["preserve_order"] }
+mantishack_sca = { path = "../mantishack_sca" }
+mantishack_core_inventory = { path = "../mantishack_core_inventory" }
