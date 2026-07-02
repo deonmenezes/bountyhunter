@@ -24,6 +24,7 @@ members = [
     "crates/mantishack_ts",
     "crates/mantishack_sca_platform_matrix",
     "crates/mantishack_sca_wheel_compat",
+    "crates/mantishack_sca_rewriters",
 ]
 
 # Shared profile: optimise the static-analysis hot paths that motivated the

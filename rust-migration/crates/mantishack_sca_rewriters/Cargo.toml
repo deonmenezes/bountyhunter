@@ -1,0 +1,23 @@
+[package]
+name = "mantishack_sca_rewriters"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+# Manifest version-pin rewriters — Rust port of packages/sca/rewriters/. Each
+# rewriter's pure content→(content, results) transform ports here; the atomic
+# file read/write wrapper stays call-site in Python.
+
+[lib]
+name = "mantishack_sca_rewriters"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python = ["dep:pyo3"]
+
+[dependencies]
+pyo3 = { workspace = true, optional = true }
+regex = { workspace = true }
+serde_json = { version = "1", features = ["preserve_order"] }
