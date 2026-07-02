@@ -1580,7 +1580,7 @@
     "packages.sca": {
       "name": "packages.sca",
       "disposition": "rust-port",
-      "status": "in progress (models + 24 of 32 parser surfaces incl gradle_dsl inline forms; catalog-accessor(fs)/pom_inheritance(fs)/requirements+pyproject(packaging lib)/precommit + helpers pending)",
+      "status": "in progress (models + 25 of 32 parser surfaces incl precommit YAML->deps; catalog-accessor(fs)/pom_inheritance(fs)/requirements+pyproject(packaging lib)/package_json(pnpm-catalog fs) + _safe_read/_pnpm_catalog helpers pending)",
       "crate": "",
       "phase": -1,
       "notes": "",

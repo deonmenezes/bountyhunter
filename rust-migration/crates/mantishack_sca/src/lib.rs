@@ -28,6 +28,7 @@ pub mod pipfile_lock;
 pub mod pnpm_lock;
 pub mod pom;
 pub mod poetry_lock;
+pub mod precommit;
 pub mod toml_util;
 pub mod uv_lock;
 pub mod vcpkg;
