@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/mantishack_cvss",
+    "crates/mantishack_autonomous",
     "crates/mantishack_codeql",
     "crates/mantishack_diagram",
     "crates/mantishack_core_dataflow",

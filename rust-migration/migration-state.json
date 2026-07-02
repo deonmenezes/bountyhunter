@@ -2080,6 +2080,9 @@
     },
     "packages.llm_analysis.intent_match": {
       "status": "in progress (pure heuristics + verdict logic ported into new crate mantishack_llm_analysis::intent_match: file_overlap/function_overlap/compile_error_anchor, the 7 CWE-shape regex detectors (buffer-overflow/command-injection/sql/xss/path-traversal/null-deref/integer-overflow) + cwe_shape CWE->detector dispatch (None-abstain), count_signals, initial_verdict (matches/off_target/uncertain thresholds + byte-exact reasoning strings); 3 tests from live-Python differential; the LLM describe/judge tiebreak + IntentMatchVerdict dataclass stay Python)"
+    },
+    "packages.autonomous.goal_planner": {
+      "status": "in progress (GoalType + Goal + create_goal_from_user_input keyword classifier ported into new crate mantishack_autonomous::goal_planner: vuln-type/code-area/exploit/coverage/default gates with exact target extraction + strategy_hints (incl the uaf-alone-falls-through subtlety); 2 tests from live-Python differential; the stateful/time-based GoalPlanner methods (set_goal/adapt_fuzzing_strategy/prioritize_crashes/update_progress) stay Python)"
     }
   }
 }
