@@ -2062,6 +2062,9 @@
     },
     "packages.exploit_feasibility.api": {
       "status": "in progress (pure helpers ported into mantishack_exploit_feasibility::api: get_vuln_type_for_rule (SARIF rule-id -> vuln_type substring dispatch incl strcpy-not-heap guard, ordered format-string tiers) and get_primitive_requirements (primitive detail dict or {error, available} over ported registry); 2 tests from live-Python differential; analyze_binary + technique/constraint/summary orchestration + context persistence stay Python (binary-analysis I/O))"
+    },
+    "packages.codeql.dataflow_validator": {
+      "status": "in progress (pure surface ported into new crate mantishack_codeql::dataflow_validator: DataflowStep/DataflowPath/DataflowValidation models, BVProfile, SMT_INFEASIBLE_CONFIDENCE, is_overflow_rule (word-boundary regex \u2014 buffer/stack/heap-overflow + cwe-1901 correctly excluded), infer_bv_profile (LLM width-hint clamp to {8,16,32,64} with bool/float/out-of-range fallback + rule-id heuristic); 2 tests from live-Python differential; the DataflowValidator itself (LLM+Z3 SMT) stays Python)"
     }
   }
 }
