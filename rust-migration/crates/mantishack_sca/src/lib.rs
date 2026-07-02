@@ -40,6 +40,7 @@ pub mod risk;
 pub mod sbom;
 pub mod sbom_spdx;
 pub mod suppressions;
+pub mod test_paths;
 pub mod thresholds;
 pub mod whatif;
 pub mod transitive_drop;
