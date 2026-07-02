@@ -4,6 +4,7 @@
 
 pub mod attack_paths;
 pub mod attack_tree;
+pub mod context_map;
 pub mod findings_summary;
 pub mod hypotheses;
 pub mod sanitize;

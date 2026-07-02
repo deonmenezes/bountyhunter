@@ -2092,6 +2092,9 @@
     },
     "packages.diagram.hypotheses": {
       "status": "ported (all of hypotheses.py except generate_from_file fs-read: _prediction_label/_hyp_label (70-char truncation, finding arrow), generate with stateful HN/PN node counter, by-finding subgraph grouping, confirmed/disproven/testing hypothesis shapes + prediction node shapes, prediction edges, and byte-exact classDef/class trailer incl the get('id','') vs f'H{counter}' style-lookup subtlety; 1 test from live-Python differential incl byte-exact tree)"
+    },
+    "packages.diagram.context_map": {
+      "status": "in progress (generate ported into mantishack_diagram::context_map: entry-point/trust-boundary/sink nodes, sources/sinks fallback construction, EP->TB covers + TB->SINK reaches_from routing + direct fallback, unchecked dashed edges, byte-exact classDef/class trailer incl empty-loc trailing-\\n and TB double-sanitize; 2 tests from live-Python differential; generate_from_file + generate_forward_reachable_blocks are follow-ups)"
     }
   }
 }
