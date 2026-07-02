@@ -8,7 +8,7 @@
 use regex::Regex;
 use serde_json::Value;
 
-use crate::{py_repr, RewriteEdit, RewriteResult};
+use crate::{docker_image_forms, py_repr, RewriteEdit, RewriteResult};
 
 /// Classify which rewriter an edit routes to (`from` / `arg` / `inline_install`)
 /// — the pure discriminator from `rewrite_dockerfile_from`. Prefers
@@ -45,22 +45,7 @@ pub fn rewrite_dockerfile_from_text(text: &str, edits: &[RewriteEdit]) -> (Strin
 fn apply_one_from(text: &str, edit: &RewriteEdit) -> (String, RewriteResult) {
     // Build the image-ref forms to match: the canonical locator plus Docker's
     // short forms when the registry is docker.io/library.
-    let locator = &edit.locator;
-    let mut forms: Vec<String> = vec![locator.clone()];
-    let (registry, rest) = match locator.split_once('/') {
-        Some((r, rest)) => (r, rest),
-        None => (locator.as_str(), ""),
-    };
-    if registry == "docker.io" && !rest.is_empty() {
-        match rest.split_once('/') {
-            Some((namespace, image)) if namespace == "library" && !image.is_empty() => {
-                forms.push(image.to_string());
-                forms.push(format!("library/{image}"));
-                forms.push(format!("docker.io/{image}"));
-            }
-            _ => forms.push(rest.to_string()),
-        }
-    }
+    let forms = docker_image_forms(&edit.locator);
     let image_alternates = forms.iter().map(|f| regex::escape(f)).collect::<Vec<_>>().join("|");
     let pattern = Regex::new(&format!(
         r"(?m)^(\s*FROM\s+(?:--platform=\S+\s+)?(?:{image_alternates}):)(\S+?)(\s|$|@|#)"

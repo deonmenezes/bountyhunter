@@ -10,12 +10,18 @@ use serde_json::Value;
 pub mod dockerfile_arg;
 pub mod dockerfile_from;
 pub mod dockerfile_inline_install;
+pub mod csproj;
+pub mod directory_packages_props;
 pub mod gha_uses;
+pub mod yaml_image;
 
+pub use csproj::rewrite_csproj_text;
+pub use directory_packages_props::rewrite_directory_packages_props_text;
 pub use dockerfile_arg::rewrite_dockerfile_arg_text;
 pub use dockerfile_from::{rewrite_dockerfile_from_text, route_kind};
 pub use dockerfile_inline_install::rewrite_dockerfile_inline_install_text;
 pub use gha_uses::rewrite_gha_uses_text;
+pub use yaml_image::rewrite_yaml_image_text;
 
 /// A single proposed edit to a manifest file (`RewriteEdit`). `locator`
 /// identifies WHAT to edit (semantics are rewriter-specific); `extra` is a
@@ -51,6 +57,61 @@ impl RewriteResult {
     pub fn new(edit: RewriteEdit, applied: bool, reason: &str) -> Self {
         Self { edit, applied, reason: reason.to_string() }
     }
+}
+
+/// Build the image-ref forms to match for a `{registry}/{repository}` locator:
+/// the canonical locator plus Docker's short forms when the registry is
+/// `docker.io/library`. Shared by the `dockerfile_from` and `yaml_image`
+/// rewriters (mirrors the identical `forms` construction in each).
+pub(crate) fn docker_image_forms(locator: &str) -> Vec<String> {
+    let mut forms = vec![locator.to_string()];
+    let (registry, rest) = match locator.split_once('/') {
+        Some((r, rest)) => (r, rest),
+        None => (locator, ""),
+    };
+    if registry == "docker.io" && !rest.is_empty() {
+        match rest.split_once('/') {
+            Some((namespace, image)) if namespace == "library" && !image.is_empty() => {
+                forms.push(image.to_string());
+                forms.push(format!("library/{image}"));
+                forms.push(format!("docker.io/{image}"));
+            }
+            _ => forms.push(rest.to_string()),
+        }
+    }
+    forms
+}
+
+/// Shared body of the MSBuild XML rewriters (`csproj` +
+/// `directory_packages_props`): try each pattern in order, and on the first
+/// whose `version` named group matches, splice the new value (or report
+/// `value_mismatch`). `applied` results carry an empty reason, matching Python.
+/// `mismatch_label` is `version` (csproj) or `Version` (props).
+pub(crate) fn apply_named_version_edit(
+    text: &str,
+    edit: &RewriteEdit,
+    patterns: &[regex::Regex],
+    mismatch_label: &str,
+) -> (String, RewriteResult) {
+    for pat in patterns {
+        let Some(caps) = pat.captures(text) else { continue };
+        let vg = caps.name("version").unwrap();
+        let current = vg.as_str();
+        if current != edit.old_value {
+            let reason = format!(
+                "value_mismatch: file has {mismatch_label}={}, edit expected {}",
+                py_repr(current),
+                py_repr(&edit.old_value),
+            );
+            return (text.to_string(), RewriteResult::new(edit.clone(), false, &reason));
+        }
+        let mut new_text = String::with_capacity(text.len());
+        new_text.push_str(&text[..vg.start()]);
+        new_text.push_str(&edit.new_value);
+        new_text.push_str(&text[vg.end()..]);
+        return (new_text, RewriteResult::new(edit.clone(), true, ""));
+    }
+    (text.to_string(), RewriteResult::new(edit.clone(), false, "not_found"))
 }
 
 /// CPython `repr()` for a `str` over the printable/common-escape range — used to

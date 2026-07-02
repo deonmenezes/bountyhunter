@@ -1777,7 +1777,7 @@
     "packages.sca.rewriters": {
       "name": "packages.sca.rewriters",
       "disposition": "rust-port",
-      "status": "in progress (dockerfile_arg/from/inline_install + gha_uses content rewriters incl SHA-pinned-with-comment, 4 of ~8; helm_chart/yaml_image/csproj/directory_packages_props/gradle_version_catalog pending; atomic file r/w stays Python)",
+      "status": "in progress (7 of 8 rewriters: dockerfile_arg/from/inline_install, gha_uses, yaml_image, csproj, directory_packages_props content cores; shared docker_image_forms + apply_named_version_edit helpers; helm_chart + gradle_version_catalog pending (need fancy-regex for backref/lookaround); atomic file r/w stays Python)",
       "crate": "crates/mantishack_sca_rewriters",
       "phase": 3,
       "notes": "",
