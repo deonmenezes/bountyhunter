@@ -21,3 +21,5 @@ python = ["dep:pyo3"]
 [dependencies]
 pyo3 = { workspace = true, optional = true }
 regex = { workspace = true }
+# docker-bake.json parsing; preserve_order to iterate targets in file order.
+serde_json = { version = "1", features = ["preserve_order"] }

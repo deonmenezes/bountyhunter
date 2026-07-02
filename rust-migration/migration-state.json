@@ -1705,7 +1705,7 @@
     "packages.sca.platform_matrix": {
       "name": "packages.sca.platform_matrix",
       "disposition": "rust-port",
-      "status": "in progress (glibc_db pure lookup tables ported: LibcVersion/lookup_distro_libc/lookup_runner_libc/known_distros, 25-distro DB; matrix.py data structures + pure helpers pending, fs discover_platform_matrix stays Python)",
+      "status": "ported (glibc_db + matrix.py data structures/canonicalisation/content-walkers: PlatformPair, ProjectPlatformMatrix, canonical_arch, from_image_to_distro, extract_platforms_from_text, parse_macos_runner_version, is_dockerfile, walk_dockerfile/bake_hcl/bake_json/gha_workflow content walkers, add_runner; 18 tests from live-Python differential; fs discover_platform_matrix rglob orchestration stays Python by design)",
       "crate": "crates/mantishack_sca_platform_matrix",
       "phase": 3,
       "notes": "",
