@@ -32,6 +32,7 @@ pub mod hygiene;
 pub mod join;
 pub mod license;
 pub mod pnpm_lock;
+pub mod pipeline_phases;
 pub mod pom;
 pub mod poetry_lock;
 pub mod precommit;
