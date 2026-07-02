@@ -2029,6 +2029,9 @@
     },
     "packages.exploit_feasibility.models": {
       "status": "ported (all of models.py into mantishack_exploit_feasibility::models: ExploitationPath + FeasibilityAssessment with tolerant from_dict (non-dict->default, non-list exploitation_paths->[], missing-key defaults) and ordered asdict-style to_dict; 2 tests from live-Python differential)"
+    },
+    "packages.exploit_feasibility.errors": {
+      "status": "ported (ErrorSeverity/ErrorCategory enums, AnalysisError (Display=__str__), AnalysisErrorCollector with all add_* builders, has_errors/warnings/critical, get_by_severity/category/component, get_summary (enum-order non-zero), byte-exact format_report (severity-desc groups) into mantishack_exploit_feasibility::errors; stderr 100-char cap; 3 tests from live-Python differential; module-global singleton get/reset_error_collector stays Python)"
     }
   }
 }
