@@ -48,8 +48,8 @@
     "core.ast": {
       "name": "core.ast",
       "disposition": "rust-port",
-      "status": "pending",
-      "crate": "",
+      "status": "ported (view.py composition layer: view() + FunctionView/Return model + to_json, layered over inventory extract_functions/extract_call_graph_*; returns via rustpython (Python) + tree-sitter (C/C++/JS/Java/Go), C/C++ inline-asm regex; 16 cargo golden tests mirroring core/ast/tests/test_view.py. C++ out-of-line method discovery is blocked upstream by an inventory ts_extract::get_name gap (no qualified_identifier/destructor_name case) — the cpp call graph works but function discovery returns empty, pinned as a canary test; fixing it means touching inventory, which is out of this port's scope. Python return value_text uses the expression source slice (identical to ast.unparse for canonical code; not asserted by the oracle). verify.py pytest stage env-blocked — no pytest for py3.14)",
+      "crate": "rust-migration/crates/mantishack_core_ast",
       "phase": 3,
       "notes": "",
       "parity": {}

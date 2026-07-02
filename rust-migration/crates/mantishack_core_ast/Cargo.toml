@@ -1,0 +1,32 @@
+[package]
+name = "mantishack_core_ast"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+# Per-function AST views — Rust port of `core.ast`. A composition layer over the
+# already-ported inventory substrate (`mantishack_core_inventory`): function
+# discovery + call graph come from inventory; returns + inline-asm are extracted
+# here (tree-sitter via `mantishack_ts` for C/C++/JS/Java/Go, rustpython for
+# Python). See src/lib.rs for the module-for-module mapping to the Python package.
+
+[lib]
+name = "mantishack_core_ast"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python = ["dep:pyo3"]
+
+[dependencies]
+mantishack_core_inventory = { path = "../mantishack_core_inventory" }
+mantishack_ts = { path = "../mantishack_ts" }
+pyo3 = { workspace = true, optional = true }
+regex = { workspace = true }
+rustpython-parser = "0.4"
+serde_json = { version = "1", features = ["preserve_order"] }
+tree-sitter = "0.25"
+
+[dev-dependencies]
+tempfile = "3"
