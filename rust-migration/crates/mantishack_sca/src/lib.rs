@@ -35,6 +35,7 @@ pub mod poetry_lock;
 pub mod precommit;
 pub mod purl;
 pub mod risk;
+pub mod sbom;
 pub mod suppressions;
 pub mod thresholds;
 pub mod transitive_drop;
