@@ -22,6 +22,8 @@ python = ["dep:pyo3"]
 pyo3 = { workspace = true, optional = true }
 # CVSS severity-label -> representative score fallback for the risk formula.
 mantishack_cvss = { path = "../mantishack_cvss" }
+# Per-ecosystem version comparison for lockfile-drift equality checks.
+mantishack_sca_versions = { path = "../mantishack_sca_versions" }
 # preserve_order so parsed JSON objects iterate in file order, matching Python
 # json.loads (the manifest parsers emit deps in declaration order).
 serde = "1"
