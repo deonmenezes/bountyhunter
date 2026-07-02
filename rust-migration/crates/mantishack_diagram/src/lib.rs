@@ -5,4 +5,5 @@
 pub mod attack_tree;
 pub mod sanitize;
 
+pub use attack_tree::generate as generate_attack_tree;
 pub use sanitize::{detect_id_collisions, sanitize, sanitize_id, DEFAULT_MAX_LEN};
