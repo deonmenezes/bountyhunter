@@ -7,9 +7,35 @@
 
 use std::collections::HashMap;
 
-use serde_json::Value;
+use serde_json::{json, Value};
 
-use crate::models::Dependency;
+use crate::models::{Confidence, Dependency, Reachability};
+
+/// `{level, numeric, reason}` for a confidence (`_confidence_summary`). Note the
+/// key order differs from `Confidence::to_json` (`{level, reason, numeric}`).
+pub fn confidence_summary(c: &Confidence) -> Value {
+    json!({"level": c.level, "numeric": c.numeric, "reason": c.reason})
+}
+
+/// `{verdict, confidence, evidence}` for a reachability (`_reachability_summary`).
+pub fn reachability_summary(r: &Reachability) -> Value {
+    json!({
+        "verdict": r.verdict,
+        "confidence": confidence_summary(&r.confidence),
+        "evidence": r.evidence,
+    })
+}
+
+/// `{score, vector, severity}` from an advisory's `severity` block, or `None`
+/// (`_cvss_summary`). The advisory is an OSV `Value` with a `severity` object.
+pub fn cvss_summary(advisory: &Value) -> Option<Value> {
+    let sev = advisory.get("severity").filter(|v| v.is_object())?;
+    Some(json!({
+        "score": sev.get("score").cloned().unwrap_or(Value::Null),
+        "vector": sev.get("vector").cloned().unwrap_or(Value::Null),
+        "severity": sev.get("severity").cloned().unwrap_or(Value::Null),
+    }))
+}
 
 /// Rank for a severity string (`_SEVERITY_RANK`). `info`/`none` = 0.
 fn severity_rank_lookup(sev: &str) -> Option<i32> {
@@ -211,5 +237,23 @@ mod tests {
         ];
         let ids: Vec<String> = dedup_alias_advisories(&ads).iter().map(|a| a["osv_id"].as_str().unwrap().to_string()).collect();
         assert_eq!(ids, vec!["GHSA-aa".to_string(), "OSV-solo".to_string()]);
+    }
+
+    #[test]
+    fn summary_serializers() {
+        let c = Confidence::new("high", "x");
+        // Key order is level, numeric, reason (distinct from Confidence::to_json).
+        assert_eq!(confidence_summary(&c), json!({"level": "high", "numeric": 0.95, "reason": "x"}));
+
+        let r = Reachability { verdict: "imported".into(), confidence: Confidence::new("high", "x"), evidence: vec!["a:1".into()] };
+        assert_eq!(reachability_summary(&r), json!({
+            "verdict": "imported",
+            "confidence": {"level": "high", "numeric": 0.95, "reason": "x"},
+            "evidence": ["a:1"],
+        }));
+
+        assert_eq!(cvss_summary(&json!({"severity": {"score": 7.5, "vector": "AV:N", "severity": "high"}})),
+            Some(json!({"score": 7.5, "vector": "AV:N", "severity": "high"})));
+        assert_eq!(cvss_summary(&json!({})), None); // no severity
     }
 }
