@@ -2032,6 +2032,9 @@
     },
     "packages.exploit_feasibility.errors": {
       "status": "ported (ErrorSeverity/ErrorCategory enums, AnalysisError (Display=__str__), AnalysisErrorCollector with all add_* builders, has_errors/warnings/critical, get_by_severity/category/component, get_summary (enum-order non-zero), byte-exact format_report (severity-desc groups) into mantishack_exploit_feasibility::errors; stderr 100-char cap; 3 tests from live-Python differential; module-global singleton get/reset_error_collector stays Python)"
+    },
+    "packages.exploit_feasibility.schema": {
+      "status": "in progress (validate_context hand-coded validator ported into mantishack_exploit_feasibility::schema; libc/binary/rop/payload/write_targets/verdict checks with Python isinstance(int) accepting bool, null-skip, byte-exact error messages + ordering; 3 tests from live-Python differential; validate_context_file (fs) + static CONTEXT_SCHEMA/get_schema stay Python)"
     }
   }
 }
