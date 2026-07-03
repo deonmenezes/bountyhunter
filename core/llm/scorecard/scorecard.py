@@ -44,7 +44,10 @@ itself — no separate lock file to manage.
 
 from __future__ import annotations
 
-import fcntl
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
 import math
 import random
 import time
@@ -680,16 +683,24 @@ class ModelScorecard:
             lock_path = path.with_suffix(path.suffix + ".lock")
             self.lock_fh = open(lock_path, "a+", encoding="utf-8")
             try:
-                fcntl.flock(
-                    self.lock_fh.fileno(),
-                    fcntl.LOCK_EX if self.write else fcntl.LOCK_SH,
-                )
-            except OSError as e:
+                if fcntl is not None:
+                    fcntl.flock(
+                        self.lock_fh.fileno(),
+                        fcntl.LOCK_EX if self.write else fcntl.LOCK_SH,
+                    )
+                else:
+                    import msvcrt
+                    msvcrt.locking(
+                        self.lock_fh.fileno(),
+                        msvcrt.LK_LOCK if self.write else msvcrt.LK_RLCK,
+                        1
+                    )
+            except (ImportError, OSError) as e:
                 # NFS / unusual filesystems may not support flock.
                 # Log once and proceed lock-free; correctness in that
                 # environment depends on operator running serially.
                 logger.warning(
-                    f"scorecard: flock not available on "
+                    f"scorecard: locking not available on "
                     f"{lock_path} — concurrent updates may race "
                     f"(error: {e})"
                 )
@@ -754,8 +765,12 @@ class ModelScorecard:
             finally:
                 if self.lock_fh is not None:
                     try:
-                        fcntl.flock(self.lock_fh.fileno(), fcntl.LOCK_UN)
-                    except OSError as e:
+                        if fcntl is not None:
+                            fcntl.flock(self.lock_fh.fileno(), fcntl.LOCK_UN)
+                        else:
+                            import msvcrt
+                            msvcrt.locking(self.lock_fh.fileno(), msvcrt.LK_UNLCK, 1)
+                    except (ImportError, OSError) as e:
                         # Unlock failures are non-fatal — the fd close
                         # below releases any kernel-held advisory lock
                         # via close-on-fd-release semantics. Pre-fix
@@ -765,7 +780,7 @@ class ModelScorecard:
                         # DEBUG so they surface under ``--verbose``
                         # without flooding normal runs.
                         logger.debug(
-                            "scorecard: flock unlock failed on %s: %s",
+                            "scorecard: unlock failed on %s: %s",
                             self.scorecard.path, e,
                         )
                     self.lock_fh.close()

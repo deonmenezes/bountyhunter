@@ -44,6 +44,16 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Reconfigure stdout/stderr to UTF-8 on Windows to avoid UnicodeEncodeError in standard console encoding.
+if sys.platform.startswith("win"):
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding='utf-8')
+            sys.stderr.reconfigure(encoding='utf-8')
+        except Exception:
+            pass
+
+
 # mantishack.py -> repo root.
 # Belt + braces against subprocess invocation under a sandboxed env
 # that strips PYTHONPATH; today's "script-dir on sys.path[0]" default

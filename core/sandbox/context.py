@@ -209,7 +209,7 @@ def _persist_proxy_events(
         _log_fd = os.open(
             _log_path,
             os.O_WRONLY | os.O_APPEND | os.O_CREAT
-            | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK,
+            | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NONBLOCK", 0),
             0o600,
         )
     except OSError as _log_err:
@@ -231,9 +231,12 @@ def _persist_proxy_events(
         # Clear O_NONBLOCK for the actual append: only needed to
         # stop a FIFO-open hang at the os.open() above; on a
         # regular file it's harmless but pointless.
-        import fcntl as _fcntl
-        _flags = _fcntl.fcntl(_log_fd, _fcntl.F_GETFL)
-        _fcntl.fcntl(_log_fd, _fcntl.F_SETFL, _flags & ~os.O_NONBLOCK)
+        try:
+            import fcntl as _fcntl
+            _flags = _fcntl.fcntl(_log_fd, _fcntl.F_GETFL)
+            _fcntl.fcntl(_log_fd, _fcntl.F_SETFL, _flags & ~getattr(os, "O_NONBLOCK", 0))
+        except ImportError:
+            pass
         import json as _json
         with os.fdopen(_log_fd, "a", encoding="utf-8") as _f:
             for e in events:

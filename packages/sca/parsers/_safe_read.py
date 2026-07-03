@@ -106,7 +106,7 @@ def read_bounded(
             # ``O_NOFOLLOW`` raises ELOOP if the final component
             # is a symlink — defends against the TOCTOU window
             # between the ``lstat`` above and this open.
-            fd = os.open(str(path), os.O_RDONLY | os.O_NOFOLLOW)
+            fd = os.open(str(path), os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
             with os.fdopen(fd, "rb", closefd=True) as fh:
                 raw = fh.read(max_bytes + 1)
         else:

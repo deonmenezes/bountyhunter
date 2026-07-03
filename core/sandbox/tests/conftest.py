@@ -7,6 +7,26 @@ snapshot them before every test and restore afterwards as a safety net
 """
 
 import pytest
+import sys
+
+# Mock resource module on non-POSIX platforms like Windows so tests can be collected/run safely.
+try:
+    import resource
+except ImportError:
+    class MockResource:
+        RLIMIT_AS = 1
+        RLIMIT_FSIZE = 2
+        RLIMIT_CPU = 3
+        RLIMIT_CORE = 4
+        RUSAGE_CHILDREN = 1
+        def getrusage(self, who):
+            class MockRUsage:
+                ru_maxrss = 0
+            return MockRUsage()
+        def setrlimit(self, limit, value):
+            pass
+    sys.modules['resource'] = MockResource()
+
 
 
 @pytest.fixture(autouse=True)

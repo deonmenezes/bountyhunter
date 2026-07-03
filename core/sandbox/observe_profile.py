@@ -313,7 +313,7 @@ def _iter_records(path: Path) -> Iterable[dict]:
     """
     import os as _os
     try:
-        fd = _os.open(str(path), _os.O_RDONLY | _os.O_NOFOLLOW)
+        fd = _os.open(str(path), _os.O_RDONLY | getattr(_os, "O_NOFOLLOW", 0))
     except OSError:
         # Includes ELOOP (symlink rejected) and ENOENT (no log
         # because audit didn't engage). Both → empty profile.

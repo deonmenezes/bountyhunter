@@ -212,7 +212,7 @@ def record_denial(cmd_display: str, returncode: int,
         # symlink target. Mode 0o600 keeps the JSONL operator-only.
         fd = os.open(
             str(path),
-            os.O_WRONLY | os.O_APPEND | os.O_CREAT | os.O_NOFOLLOW,
+            os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0),
             0o600,
         )
         with os.fdopen(fd, "a", encoding="utf-8") as f:

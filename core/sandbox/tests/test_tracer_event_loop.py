@@ -383,7 +383,12 @@ class TestSignalPassthrough:
     SIGTERM, SIGINT, SIGUSR1)."""
 
     @pytest.mark.parametrize("sig", [
-        signal.SIGTERM, signal.SIGINT, signal.SIGUSR1, signal.SIGHUP,
+        s for s in (
+            getattr(signal, "SIGTERM", None),
+            getattr(signal, "SIGINT", None),
+            getattr(signal, "SIGUSR1", None),
+            getattr(signal, "SIGHUP", None),
+        ) if s is not None
     ])
     def test_signal_passthrough(self, arch_info, fake_helpers, sig):
         traced = {1000}
