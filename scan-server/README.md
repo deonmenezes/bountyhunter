@@ -43,6 +43,7 @@ Local-only (no tunnel): `node server.js`, then open `client.html`.
 | `RUN_TIMEOUT_MS` | `600000` | kill a scan after 10 min |
 | `USE_DOCKER` | unset | `USE_DOCKER=1` → run scans in the container |
 | `HARNESS_DIR` | `~/Projects/mantishack` | where `mantishack.py` lives |
+| `CORS_ORIGIN` | `https://mantishack.com` | `Access-Control-Allow-Origin` value |
 
 Private / loopback / cloud-metadata IPs are **always** blocked (anti-SSRF),
 even with `ALLOWED_HOSTS=*`.

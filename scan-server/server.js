@@ -39,6 +39,10 @@ const MAX_QUEUE = parseInt(process.env.MAX_QUEUE || "5", 10);
 const RUN_TIMEOUT_MS = parseInt(process.env.RUN_TIMEOUT_MS || String(10 * 60 * 1000), 10);
 const RATE_PER_MIN = parseInt(process.env.RATE_PER_MIN || "6", 10);
 const OUT_ROOT = process.env.OUT_ROOT || path.join(os.tmpdir(), "mantis-scans");
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "https://mantishack.com";
+const UNSAFE_ENV_KEYS = new Set([
+  "SCAN_TOKEN", "TERMINAL", "EDITOR", "VISUAL", "BROWSER", "PAGER",
+]);
 
 fs.mkdirSync(OUT_ROOT, { recursive: true });
 
@@ -53,7 +57,7 @@ function send(res, code, body) {
   const data = Buffer.from(JSON.stringify(body));
   res.writeHead(code, {
     "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": CORS_ORIGIN,
     "Access-Control-Allow-Headers": "Content-Type, X-Scan-Token",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Content-Length": data.length,
@@ -62,9 +66,17 @@ function send(res, code, body) {
 }
 
 function clientIp(req) {
-  const xff = req.headers["x-forwarded-for"];
-  if (typeof xff === "string" && xff.length) return xff.split(",")[0].trim();
-  return req.socket.remoteAddress || "unknown";
+  // Only trust X-Forwarded-For from loopback (i.e. from a local reverse
+  // proxy such as cloudflared).  Direct external connections must use
+  // the socket address so clients cannot spoof their IP to bypass the
+  // rate limiter.
+  const peer = req.socket.remoteAddress || "";
+  const isLoopback = peer === "127.0.0.1" || peer === "::1" || peer === "::ffff:127.0.0.1";
+  if (isLoopback) {
+    const xff = req.headers["x-forwarded-for"];
+    if (typeof xff === "string" && xff.length) return xff.split(",")[0].trim();
+  }
+  return peer || "unknown";
 }
 
 function rateOk(ip) {
@@ -140,7 +152,13 @@ function startJob(job) {
   job.command = `${cmd} ${args.join(" ")}`;
   let tail = "";
   let settled = false;
-  const child = spawn(cmd, args, { cwd, env: process.env });
+  // Filter environment: strip SCAN_TOKEN and shell-evaluating keys
+  // (mirrors the framework's get_safe_env() policy).
+  const childEnv = {};
+  for (const [k, v] of Object.entries(process.env)) {
+    if (!UNSAFE_ENV_KEYS.has(k)) childEnv[k] = v;
+  }
+  const child = spawn(cmd, args, { cwd, env: childEnv });
   job.pid = child.pid;
 
   const onData = (d) => { tail = (tail + d.toString()).slice(-8000); job.logTail = tail; };
@@ -198,14 +216,14 @@ const server = http.createServer((req, res) => {
   if (req.method === "GET" && url.pathname === "/api/health") {
     return send(res, 200, {
       ok: true, running, queued: queue.length, maxConcurrent: MAX_CONCURRENT,
-      open: OPEN, allowAnyHost: ALLOW_ANY_HOST, allowedHosts: ALLOWED_HOSTS,
-      mode: USE_DOCKER ? "docker" : "subprocess",
     });
   }
 
-  // GET /api/scan/:id
+  // GET /api/scan/:id — require token so log output isn't world-readable.
   const statusMatch = url.pathname.match(/^\/api\/scan\/([A-Za-z0-9_-]+)$/);
   if (req.method === "GET" && statusMatch) {
+    const token = req.headers["x-scan-token"] || url.searchParams.get("token") || "";
+    if (!OPEN && token !== SCAN_TOKEN) return send(res, 401, { error: "missing/invalid token" });
     const job = jobs.get(statusMatch[1]);
     if (!job) return send(res, 404, { error: "no such job" });
     return send(res, 200, publicJob(job));
@@ -257,6 +275,10 @@ server.listen(PORT, "127.0.0.1", () => {
   console.log(`  harness dir   : ${HARNESS_DIR}`);
   console.log(`  allowed hosts : ${ALLOW_ANY_HOST ? "* (ANY — open relay!)" : ALLOWED_HOSTS.join(", ")}`);
   console.log(`  auth          : ${OPEN ? "OPEN (no token!)" : `token required`}`);
-  if (!OPEN) console.log(`  SCAN_TOKEN    : ${SCAN_TOKEN}`);
+  if (!OPEN) {
+    const redacted = SCAN_TOKEN.slice(0, 4) + "…" + SCAN_TOKEN.slice(-4);
+    console.log(`  SCAN_TOKEN    : ${redacted}  (full value in SCAN_TOKEN env var or pass --show-token)`);
+    if (process.argv.includes("--show-token")) console.log(`  SCAN_TOKEN    : ${SCAN_TOKEN}`);
+  }
   console.log(`  limits        : ${MAX_CONCURRENT} concurrent · queue ${MAX_QUEUE} · ${RATE_PER_MIN}/min/ip · ${Math.round(RUN_TIMEOUT_MS/60000)}m timeout\n`);
 });
