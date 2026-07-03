@@ -18,6 +18,7 @@ import time
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+from core.display import log_phase_header, print_phase_header
 from core.logging import get_logger
 
 logger = get_logger()
@@ -310,9 +311,7 @@ class AFLRunner:
 
     def show_recompile_guide(self) -> None:
         """Show guide for recompiling binary with AFL instrumentation and sanitizers."""
-        print("\n" + "=" * 70)
-        print("RECOMPILATION GUIDE FOR OPTIMAL AFL FUZZING")
-        print("=" * 70)
+        print_phase_header("RECOMPILATION GUIDE FOR OPTIMAL AFL FUZZING")
         print("To get the best results from AFL, recompile your binary with:")
         print("1. AFL instrumentation (for coverage-guided fuzzing)")
         print("2. Sanitizers (for detecting more bugs)")
@@ -335,7 +334,6 @@ class AFLRunner:
         print("  # Then instrument with afl-rustc")
         print()
         print("After recompilation, run fuzzing again for better coverage and bug detection.")
-        print("=" * 70)
 
     def run_fuzzing(
         self,
@@ -356,9 +354,7 @@ class AFLRunner:
         Returns:
             Tuple of (num_crashes, crashes_dir)
         """
-        logger.info("=" * 70)
-        logger.info("STARTING AFL++ FUZZING CAMPAIGN")
-        logger.info("=" * 70)
+        log_phase_header("STARTING AFL++ FUZZING CAMPAIGN", logger=logger)
         logger.info(f"Duration: {duration}s ({duration/60:.1f} minutes)")
         logger.info(f"Parallel jobs: {parallel_jobs}")
         logger.info(f"Timeout: {timeout_ms}ms")
@@ -621,16 +617,13 @@ class AFLRunner:
             stability = final_stats.get('stability', 'N/A')
             bitmap_cvg = final_stats.get('bitmap_cvg', 'N/A')
             
-            logger.info("=" * 70)
-            logger.info("FINAL FUZZING STATISTICS")
-            logger.info("=" * 70)
+            log_phase_header("FINAL FUZZING STATISTICS", logger=logger)
             logger.info(f"Total executions: {total_execs}")
             logger.info(f"Executions per second: {execs_per_sec}")
             logger.info(f"Paths found: {paths_found}")
             logger.info(f"Stability: {stability}%")
             logger.info(f"Bitmap coverage: {bitmap_cvg}%")
             logger.info(f"Unique crashes: {total_crashes}")
-            logger.info("=" * 70)
 
             if self.telemetry:
                 max_crash_execs = self._max_crash_execs(crashes_dir)
@@ -645,13 +638,10 @@ class AFLRunner:
                     coverage_percent=self._parse_afl_percent(final_stats.get("bitmap_cvg")),
                 )
                 self.telemetry.stats.crashes = total_crashes
-        logger.info("=" * 70)
-        logger.info("FUZZING CAMPAIGN COMPLETE")
-        logger.info("=" * 70)
+        log_phase_header("FUZZING CAMPAIGN COMPLETE", logger=logger)
         logger.info(f"Duration: {elapsed:.1f}s")
         logger.info(f"Unique crashes: {total_crashes}")
         logger.info(f"Crashes dir: {crashes_dir}")
-        logger.info("=" * 70)
 
         # Run coverage analysis if requested
         coverage_stats = {}

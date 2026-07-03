@@ -12,22 +12,14 @@ rather than leaving verified status scattered across per-producer fields.
 import sys
 from pathlib import Path
 
-# ─── trust-marker check (do not import; inline by design) ───
-import os
-if not (os.environ.get("CLAUDECODE")
-        or os.environ.get("_MANTISHACK_TRUSTED")):
-    sys.stderr.write(
-        f"{sys.argv[0]}: internal dispatch script.\n"
-        "  Run via 'bin/mantishack' instead.\n"
-        "  Tests / power users: set _MANTISHACK_TRUSTED=1 to bypass.\n"
-    )
-    sys.exit(2)
-# ─── end trust-marker check ─────────────────────────────────
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+# ─── trust-marker check (CLAUDECODE / _MANTISHACK_TRUSTED via trust_guard) ───
+from core.security.trust_guard import require_trusted_caller
+require_trusted_caller()
 
 import argparse
 import json
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 
 def main(argv=None) -> int:

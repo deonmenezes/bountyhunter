@@ -163,6 +163,7 @@ FILTERS: dict[str, list[str]] = {
         "packages/autonomous/**",
         "packages/binary_analysis/**",
         "core/config/**",
+        "core/display.py",
         "core/hash/**",
         "core/json/**",
         "core/logging/**",
