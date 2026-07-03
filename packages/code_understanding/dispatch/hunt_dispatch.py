@@ -362,7 +362,9 @@ def _build_hunt_strategy_block(pattern: str) -> str:
                 + ve_block
                 + "\n</untrusted_verified_outcomes>"
             )
+    except ImportError:
+        logger.debug("verified_outcome module not available, skipping exemplar block")
     except Exception:
-        pass
+        logger.debug("exemplar_block_for_finding failed in hunt dispatch", exc_info=True)
 
     return block

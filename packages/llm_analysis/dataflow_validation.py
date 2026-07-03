@@ -682,7 +682,8 @@ def _build_strategy_block(
         from core.llm.cwe_strategies import (
             pick_strategies, render_strategies,
         )
-    except Exception:
+    except ImportError:
+        logger.debug("cwe_strategies module not available, skipping strategy block")
         return ""
 
     candidate_cwes = [cwe] if cwe else []
@@ -703,6 +704,7 @@ def _build_strategy_block(
             return ""
         rendered = render_strategies(picked)
     except Exception:
+        logger.debug("strategy block render failed for dataflow validation", exc_info=True)
         return ""
     return (
         "## Bug-class lenses for this validation\n"
@@ -800,8 +802,10 @@ def _build_hypothesis(finding: Dict, analysis: Dict, repo_path: Path):
         )
         if ve_block:
             untrusted_inner.append(ve_block)
+    except ImportError:
+        logger.debug("verified_outcome module not available, skipping exemplar block")
     except Exception:
-        pass
+        logger.debug("exemplar_block_for_finding failed", exc_info=True)
 
     parts = list(trusted_parts)
     if untrusted_inner:

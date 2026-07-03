@@ -12,12 +12,15 @@ Fetches CVE records from the NVD REST API.  Supports:
 from __future__ import annotations
 
 import functools
+import logging
 import os
 import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 from typing import Any
 
 from core.http import HttpError
@@ -151,6 +154,7 @@ class NvdClient:
                 return None
             try:
                 return resp.json()
-            except Exception:
+            except (ValueError, TypeError) as exc:
+                logger.debug("NVD response JSON decode failed: %s", exc)
                 return None
         return None

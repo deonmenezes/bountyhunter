@@ -7,9 +7,12 @@ Safe detection and configuration helper for CodeQL within MANTISHACK.
 from __future__ import annotations
 from dataclasses import dataclass, asdict
 from typing import Optional, Literal, Dict, Any
+import logging
 import os
 import shutil
 import subprocess
+
+logger = logging.getLogger(__name__)
 
 CodeQLMode = Literal["disabled", "detect", "require"]
 
@@ -58,7 +61,8 @@ def _run_codeql_version(cli_path: str, timeout_seconds: int = 10) -> Optional[st
             check=False,
             env=env,
         )
-    except Exception:
+    except (OSError, subprocess.SubprocessError) as exc:
+        logger.debug("CodeQL version probe failed: %s", exc)
         return None
 
     output = (completed.stdout or "").strip()

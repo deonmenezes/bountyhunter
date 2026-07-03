@@ -20,6 +20,7 @@ inconclusive AND a refined rule is suggested, re-run the adapter with the
 refined rule, up to N iterations. Currently `iterations` is fixed at 1.
 """
 
+import logging
 from typing import Any, Dict, List, Optional, Protocol
 
 from .adapters.base import ToolAdapter, ToolEvidence
@@ -27,6 +28,8 @@ from .hypothesis import Hypothesis
 from .provenance import hash_hypothesis
 from .result import Evidence, ValidationResult, Verdict
 from .verdict import verdict_from
+
+logger = logging.getLogger(__name__)
 
 
 _SYSTEM_PROMPT = """\
@@ -347,6 +350,7 @@ def _ask_llm_to_select_tool(
             task_type=task_type,
         )
     except Exception:
+        logger.warning("LLM tool-selection call failed", exc_info=True)
         return None
     return _extract_data(response)
 
@@ -381,6 +385,7 @@ def _evaluate(
                 task_type=task_type,
             )
         except Exception:
+            logger.warning("LLM evaluation call failed (no-match path)", exc_info=True)
             return "refuted", f"Tool ran cleanly with no matches: {evidence.summary}"
         data = _extract_data(response) or {}
         claim = data.get("verdict", "refuted")
@@ -398,6 +403,7 @@ def _evaluate(
             task_type=task_type,
         )
     except Exception:
+        logger.warning("LLM evaluation call failed (matches-present path)", exc_info=True)
         return "inconclusive", f"LLM evaluation failed; matches present: {evidence.summary}"
 
     data = _extract_data(response) or {}

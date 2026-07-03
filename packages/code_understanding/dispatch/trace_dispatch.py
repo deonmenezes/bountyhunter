@@ -330,7 +330,9 @@ def _build_strategy_block(traces: List[Dict[str, Any]]) -> str:
                 + ve_block
                 + "\n</untrusted_verified_outcomes>"
             )
+    except ImportError:
+        logger.debug("verified_outcome module not available, skipping exemplar block")
     except Exception:
-        pass
+        logger.debug("exemplar_block_for_finding failed in trace dispatch", exc_info=True)
 
     return block

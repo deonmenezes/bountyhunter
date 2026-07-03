@@ -13,10 +13,13 @@ performance dominates) construct adapters with sandbox=False. The SMT
 adapter is sandbox-free because it never spawns a subprocess.
 """
 
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -169,9 +172,10 @@ def make_sandbox_runner(
 
     try:
         from core.sandbox import run as sandbox_run  # type: ignore
-    except Exception:
+    except ImportError:
         # Sandbox unavailable on this platform / install. Fall back to
         # subprocess.run; the safe env from the adapter still applies.
+        logger.debug("sandbox module not available, falling back to subprocess.run")
         return subprocess.run
 
     def _runner(cmd, **kwargs):

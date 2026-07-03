@@ -63,7 +63,7 @@ def _z3_available() -> bool:
     try:
         from core.smt_solver import z3_available  # type: ignore
         return z3_available()
-    except Exception:
+    except ImportError:
         return False
 
 
