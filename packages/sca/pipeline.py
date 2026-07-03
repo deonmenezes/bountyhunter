@@ -594,7 +594,7 @@ def run_sca(
                     "evaluation will rely on existing declared_license",
                     exc_info=True,
                 )
-        license_findings = evaluate_license(joined, policy)
+        license_findings = evaluate_license(joined, policy, offline=options.offline)
         progress.done(f"{len(license_findings)} findings")
 
     # 3. Canonical dep set: lockfile-preferred, deduped per (eco, name, ver).

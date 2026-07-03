@@ -216,6 +216,8 @@ _SPDX_SUPPORTED_ECOSYSTEMS: Set[str] = {
 def evaluate(
     deps: List[Dependency],
     policy: LicensePolicy,
+    *,
+    offline: bool = False,
 ) -> List[LicenseFinding]:
     """Classify each dep's declared_license against the policy.
 
@@ -226,6 +228,18 @@ def evaluate(
     Ecosystems lacking package-level SPDX metadata (GitHub Actions,
     Debian, OCI, Inline) are skipped entirely — see
     :data:`_SPDX_SUPPORTED_ECOSYSTEMS` for the allowlist.
+
+    ``offline``: when ``True``, deps whose ``declared_license`` is
+    ``None`` produce *no* finding (not even ``license_unknown``).
+    Rationale: in offline mode :func:`enrich_licenses` is skipped,
+    so every dep that would have been enriched via registry metadata
+    retains ``None``. Emitting 8 k ``license_unknown`` findings for
+    a 10k-dep monorepo where the operator explicitly chose offline
+    mode is misleading — the license may be perfectly known via
+    registry; we simply didn't ask.  A warm online run surfaces the
+    real unknowns.  Consequently, ``--offline`` scans with a cold
+    cache produce *no* license findings (the safe, low-noise choice)
+    rather than flooding the report with unactionable noise.
     """
     seen: Set[str] = set()
     out: List[LicenseFinding] = []
@@ -236,7 +250,7 @@ def evaluate(
         if key in seen:
             continue
         seen.add(key)
-        finding = _evaluate_one(d, policy)
+        finding = _evaluate_one(d, policy, offline=offline)
         if finding is not None:
             out.append(finding)
     return out
@@ -245,9 +259,15 @@ def evaluate(
 def _evaluate_one(
     dep: Dependency,
     policy: LicensePolicy,
+    *,
+    offline: bool = False,
 ) -> Optional[LicenseFinding]:
     spdx = dep.declared_license
     if spdx is None or not spdx.strip():
+        if offline:
+            # Enrichment didn't run; skip rather than emit misleading
+            # license_unknown noise. See evaluate() docstring.
+            return None
         return _unknown_finding(dep, policy)
 
     spdx = spdx.strip()

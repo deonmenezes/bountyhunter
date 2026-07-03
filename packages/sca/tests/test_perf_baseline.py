@@ -41,8 +41,15 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 
 # Regression threshold. Adjust upward only when a substantive +
 # documented perf trade was made (e.g. enabling a new checker).
-# Catch egregious regressions (10x), not normal variance.
-RUNTIME_BUDGET_S = 120.0    # 2 minutes — generous for CI
+# Catch egregious regressions, not normal variance.
+#
+# Baseline conditions: --offline with a cache rooted in tmp_path
+# (local storage, never NFS). The cache is always cold because each
+# test run gets a fresh tmp_path, so 22k+ stat() calls happen every
+# run. Routing to local storage keeps those calls at ~0.01ms each
+# (≈220ms total) rather than the 5-50ms NFS RTT that caused the
+# 199s regression when the default ~/.mantishack/cache/sca was used.
+RUNTIME_BUDGET_S = 120.0    # 2 minutes — generous for local-cache cold run
 RSS_BUDGET_MB = 1024        # 1 GiB peak — generous
 
 # Synthetic-fixture targets. Round numbers that make sample-rate
@@ -180,9 +187,18 @@ def _peak_rss_mb() -> float:
 def _run_scan(target: Path, out: Path) -> Tuple[float, float, str]:
     """Run the scan, returning (wallclock_s, peak_child_rss_mb,
     stderr)."""
+    # Route the disk cache to a subdirectory of ``out`` (which lives
+    # inside pytest's ``tmp_path`` → fast local storage on every CI
+    # provider). Without this, the cache defaults to
+    # ``~/.mantishack/cache/sca`` which may sit on a network-backed
+    # home directory.  The 22,022 stat() calls a 10k-dep cold-cache
+    # scan makes cost ≈0.01 ms each on local tmpfs vs ≈5-50 ms on
+    # NFS — the difference alone accounted for the 199 s regression
+    # (22 k × 10 ms = 220 s) that tripped the 120 s gate.
     cmd = [
         sys.executable, "-m", "packages.sca.cli",
         str(target), "--offline", "--out", str(out),
+        "--cache-root", str(out / ".sca-cache"),
     ]
     start = time.perf_counter()
     proc = subprocess.run(
