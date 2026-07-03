@@ -1,0 +1,31 @@
+[package]
+name = "mantishack_checker_synthesis"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+# KNighter-style checker synthesis — Rust port of the PURE surface of
+# `packages/checker_synthesis`: engine selection (languages), dataclasses +
+# JSON serialisation (models), prompt-string construction + schemas (prompts),
+# and the deterministic validation / slug / rule-id / triage-rate helpers from
+# synthesise. The LLM-call-bound and external-subprocess orchestration
+# (synthesise_and_run / synthesise_with_refinement, the semgrep/coccinelle
+# runner adapters, and the atomic _write_rule filesystem write) stays Python by
+# design — it drives a real LLM and spawns the scanner binaries, neither of
+# which is deterministic in-crate.
+
+[lib]
+name = "mantishack_checker_synthesis"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python = ["dep:pyo3"]
+
+[dependencies]
+# preserve_order so to_dict / schema objects iterate in the same key order as
+# the Python dicts they mirror.
+serde_json = { version = "1", features = ["preserve_order"] }
+regex = { workspace = true }
+pyo3 = { workspace = true, optional = true }

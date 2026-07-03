@@ -984,8 +984,8 @@
     "packages.checker_synthesis": {
       "name": "packages.checker_synthesis",
       "disposition": "rust-glue",
-      "status": "pending",
-      "crate": "",
+      "status": "ported (pure surface into mantishack_checker_synthesis: languages.detect_engine/supported_engines with faithful pathlib-suffix semantics; models SeedBug/SynthesisedRule/Match/MatchTriage/CheckerSynthesisResult + byte-exact ordered to_dict via serde_json preserve_order; prompts truncate_snippet/build_synthesis_prompt/build_triage_prompt + SYNTHESIS/TRIAGE system+schemas incl en-dash/em-dash and implicit-concat lines; synthesise pure helpers validate_seed_path/validate_rule_body/slugify/make_rule_id/rule_extension/is_seed_match/fp_rate + constants; 26 tests from live-Python differential; PyO3 exposes the primitive pure functions+constants. REMAINING: PyO3 model-class bindings (SeedBug etc. as pyclasses + to_dict as PyDict) and build_*_prompt pyO3 wiring; the LLM/subprocess orchestration (LLMCallable, _propose_rule/_positive_control/_triage, semgrep/coccinelle runner adapters, atomic _write_rule, synthesise_and_run/synthesise_with_refinement) stays Python by design)",
+      "crate": "rust-migration/crates/mantishack_checker_synthesis",
       "phase": 4,
       "notes": "",
       "parity": {}
