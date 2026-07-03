@@ -14,7 +14,7 @@ import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-COMMAND_FILE = REPO_ROOT / ".claude" / "commands" / "annotate.md"
+COMMAND_FILE = REPO_ROOT / ".claude" / "commands" / "mantis-annotate.md"
 CLI = REPO_ROOT / "libexec" / "mantishack-annotate"
 CLAUDE_MD = REPO_ROOT / "CLAUDE.md"
 
@@ -64,10 +64,10 @@ class TestSubcommandsCovered:
     @pytest.mark.parametrize("sub", SUBCOMMANDS)
     def test_subcommand_documented(self, sub):
         text = _command_text()
-        # Look for /annotate <sub> in usage block, or `<sub> ` (with
-        # trailing space or args) in the subcommands table.
+        # Look for /mantis-annotate <sub> in usage block, or `<sub> `
+        # (with trailing space or args) in the subcommands table.
         assert (
-            f"/annotate {sub}" in text
+            f"/mantis-annotate {sub}" in text
             or f"`{sub} " in text
             or f"`{sub}`" in text
         ), f"subcommand '{sub}' not documented in command file"
@@ -88,8 +88,8 @@ class TestClaudeMdEntry:
         """Operators reading CLAUDE.md should see /annotate in the
         commands list."""
         text = CLAUDE_MD.read_text(encoding="utf-8")
-        assert "/annotate" in text, (
-            "CLAUDE.md COMMANDS section does not mention /annotate"
+        assert "/mantis-annotate" in text, (
+            "CLAUDE.md COMMANDS section does not mention /mantis-annotate"
         )
 
 

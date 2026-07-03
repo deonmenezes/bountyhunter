@@ -311,8 +311,7 @@ class TestE2EBundledStrategies:
         assert len(out.encode("utf-8")) < 32_000
 
     def test_three_strategies_under_default_budget(self):
-        """All bundled strategies, picked at max=3, fit under the
-        default 16KB budget."""
+        """Three bundled strategies fit under the default budget."""
         all_strats = load_all()
         out = render_strategies(all_strats[:3])
         assert "truncated" not in out

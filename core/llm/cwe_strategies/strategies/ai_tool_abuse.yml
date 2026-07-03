@@ -108,7 +108,6 @@ signals:
   cwes:
     - CWE-1427
     - CWE-77
-    - CWE-78
     - CWE-94
     - CWE-200
     - CWE-522

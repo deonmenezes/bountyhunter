@@ -47,7 +47,6 @@ signals:
     - webhook
     - download
     - url
-    - request
     - preview
     - import
     - callback

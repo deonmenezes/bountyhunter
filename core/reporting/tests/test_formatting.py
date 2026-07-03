@@ -74,6 +74,70 @@ class TestGetDisplayStatus(unittest.TestCase):
             {"is_true_positive": True, "is_exploitable": False, "ruling": "test_code"}
         ), "Confirmed")
 
+    def test_string_true_coerced_to_exploitable(self):
+        self.assertEqual(get_display_status(
+            {"is_true_positive": "true", "is_exploitable": "true"}
+        ), "Exploitable")
+
+    def test_string_false_coerced_to_false_positive(self):
+        self.assertEqual(get_display_status(
+            {"is_true_positive": "false"}
+        ), "False Positive")
+
+    def test_string_yes_coerced_to_true(self):
+        self.assertEqual(get_display_status(
+            {"is_true_positive": "yes", "is_exploitable": "no"}
+        ), "Confirmed")
+
+    def test_string_zero_coerced_to_false(self):
+        self.assertEqual(get_display_status(
+            {"is_true_positive": "0"}
+        ), "False Positive")
+
+    def test_string_one_coerced_to_true(self):
+        self.assertEqual(get_display_status(
+            {"is_true_positive": "1", "is_exploitable": "1"}
+        ), "Exploitable")
+
+    def test_unknown_string_value_falls_through(self):
+        result = get_display_status(
+            {"is_true_positive": "maybe", "is_exploitable": "maybe"}
+        )
+        self.assertNotEqual(result, "Exploitable")
+
+    def test_ruling_as_string_not_dict(self):
+        self.assertEqual(get_display_status({"ruling": "exploitable"}), "Exploitable")
+
+    def test_ruling_as_empty_string(self):
+        self.assertEqual(get_display_status({"ruling": ""}), "Unknown")
+
+    def test_error_without_error_type(self):
+        self.assertEqual(get_display_status({"error": "something"}), "Error (unknown)")
+
+    def test_poc_success_status(self):
+        self.assertEqual(get_display_status({"status": "poc_success"}), "Exploitable")
+
+    def test_not_disproven_status(self):
+        self.assertEqual(get_display_status({"status": "not_disproven"}), "Unconfirmed")
+
+    def test_disproven_status(self):
+        self.assertEqual(get_display_status({"status": "disproven"}), "Ruled Out")
+
+    def test_test_code_status(self):
+        self.assertEqual(get_display_status({"status": "test_code"}), "Ruled Out")
+
+    def test_dead_code_status(self):
+        self.assertEqual(get_display_status({"status": "dead_code"}), "Ruled Out")
+
+    def test_mitigated_status(self):
+        self.assertEqual(get_display_status({"status": "mitigated"}), "Ruled Out")
+
+    def test_unreachable_status(self):
+        self.assertEqual(get_display_status({"status": "unreachable"}), "Ruled Out")
+
+    def test_unknown_status_title_cased(self):
+        self.assertEqual(get_display_status({"status": "needs_review"}), "Needs Review")
+
 
 class TestTitleCaseType(unittest.TestCase):
 
@@ -108,6 +172,25 @@ class TestTruncatePath(unittest.TestCase):
         self.assertTrue(result.startswith("..."))
         self.assertEqual(len(result), 40)
 
+    def test_exact_max_len_not_truncated(self):
+        path = "a" * 40
+        self.assertEqual(truncate_path(path, max_len=40), path)
+
+    def test_custom_max_len(self):
+        result = truncate_path("/a/very/long/path/here.py", max_len=20)
+        self.assertTrue(result.startswith("..."))
+        self.assertEqual(len(result), 20)
+
+    def test_non_ascii_path_short_enough(self):
+        path = "/src/\u4e2d\u6587.py"
+        result = truncate_path(path, max_len=40)
+        self.assertEqual(result, path)
+
+    def test_non_ascii_path_truncated(self):
+        path = "/long/path/" + "\u4e2d" * 30 + "/file.py"
+        result = truncate_path(path, max_len=20)
+        self.assertTrue(result.startswith("..."))
+
 
 class TestFormatElapsed(unittest.TestCase):
 
@@ -119,6 +202,15 @@ class TestFormatElapsed(unittest.TestCase):
 
     def test_hours(self):
         self.assertEqual(format_elapsed(3725), "1h 2m")
+
+    def test_zero_seconds(self):
+        self.assertEqual(format_elapsed(0), "0s")
+
+    def test_exactly_60_seconds(self):
+        self.assertEqual(format_elapsed(60), "1m 0s")
+
+    def test_exactly_3600_seconds(self):
+        self.assertEqual(format_elapsed(3600), "1h 0m")
 
 
 if __name__ == "__main__":
