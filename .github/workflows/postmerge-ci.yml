@@ -2,9 +2,16 @@ name: postmerge-ci
 
 # This is the single entrypoint for main-only CI that is intentionally outside
 # the merge-blocking suite. It keeps the broader postmerge signal in one run.
+#
+# Both children (rust-ci-full.yml, v8-canary.yml) are Bazel-based and need a
+# custom self-hosted runner group, a paid macos-15-xlarge runner, and a
+# BuildBuddy remote-cache API key -- none of which exist on this fork, so
+# they'd fail/hang on every push. Disabled auto-trigger here (workflow_dispatch
+# only) rather than deleting the file, in case that infrastructure gets set up
+# later. blocking-ci.yml's Cargo-based `rust-ci` job already covers
+# build/test/lint on standard runners for every push to main.
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   # Keep reusable workflow calls alphabetized. Each child retains its own

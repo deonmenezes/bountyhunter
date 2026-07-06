@@ -170,60 +170,14 @@ jobs:
         if: always() && !cancelled()
         uses: ./.github/actions/check-clean-worktree
 
-  argument_comment_lint_prebuilt:
-    name: Argument comment lint - ${{ matrix.name }}
-    runs-on: ${{ matrix.runs_on || matrix.runner }}
-    timeout-minutes: ${{ matrix.timeout_minutes }}
-    needs: changed
-    environment:
-      name: bazel
-      deployment: false
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Linux
-            runner: ubuntu-24.04
-            timeout_minutes: 30
-          - name: macOS
-            runner: macos-15-xlarge
-            timeout_minutes: 30
-          - name: Windows
-            runner: windows-x64
-            timeout_minutes: 30
-            runs_on:
-              group: ${{ github.event.repository.name }}-runners
-              labels: ${{ github.event.repository.name }}-windows-x64
-    steps:
-      - name: Check whether argument comment lint should run
-        id: argument_comment_lint_gate
-        shell: bash
-        env:
-          ARGUMENT_COMMENT_LINT: ${{ needs.changed.outputs.argument_comment_lint }}
-          WORKFLOWS: ${{ needs.changed.outputs.workflows }}
-        run: |
-          if [[ "$ARGUMENT_COMMENT_LINT" == "true" || "$WORKFLOWS" == "true" ]]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "No argument-comment-lint relevant changes."
-          echo "run=false" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        if: ${{ steps.argument_comment_lint_gate.outputs.run == 'true' }}
-        with:
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-          persist-credentials: false
-      - name: Run argument comment lint on codex-rs via Bazel
-        if: ${{ steps.argument_comment_lint_gate.outputs.run == 'true' }}
-        uses: ./.github/actions/run-argument-comment-lint
-        with:
-          target: ${{ runner.os }}
-          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
-
-      - name: Check for a clean worktree
-        if: always() && !cancelled() && steps.argument_comment_lint_gate.outputs.run == 'true'
-        uses: ./.github/actions/check-clean-worktree
+  # `argument_comment_lint_prebuilt` is intentionally removed on this fork: it
+  # ran the argument-comment-lint tool against codex-rs via Bazel, which
+  # needs a BuildBuddy remote-cache API key, a custom self-hosted runner
+  # group, and a paid macos-15-xlarge runner -- none of which exist here.
+  # `argument_comment_lint_package` above still covers the lint tool's own
+  # correctness via plain `cargo test` on a standard runner; running the lint
+  # itself against the full codebase (`just argument-comment-lint`) still
+  # works locally, just not wired into this fork's CI.
 
   # --- Gatherer job that you mark as the ONLY required status -----------------
   results:
@@ -234,7 +188,6 @@ jobs:
         general,
         cargo_shear,
         argument_comment_lint_package,
-        argument_comment_lint_prebuilt,
       ]
     if: always()
     runs-on: ubuntu-24.04

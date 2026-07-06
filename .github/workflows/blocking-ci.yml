@@ -10,10 +10,12 @@ on:
 jobs:
   # Keep reusable workflow calls alphabetized. The `required` job below is the
   # version-controlled list that the main-branch ruleset should require.
-  bazel:
-    name: Bazel
-    uses: ./.github/workflows/bazel.yml
-    secrets: inherit
+  #
+  # `bazel` (bazel.yml) is intentionally not called on this fork: it needs a
+  # custom self-hosted runner group ("<repo>-runners"), a paid macos-15-xlarge
+  # runner, and a BuildBuddy remote-cache API key, none of which exist here.
+  # The Cargo-based `rust-ci` job below already covers build/test/lint on
+  # standard runners.
 
   blob-size-policy:
     name: Blob size policy
@@ -51,7 +53,6 @@ jobs:
     # required check can appear successful instead of reporting the failure.
     if: ${{ always() }}
     needs:
-      - bazel
       - blob-size-policy
       - cargo-deny
       - codespell

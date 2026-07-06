@@ -5,9 +5,7 @@ on:
 
 jobs:
   python-sdk:
-    runs-on:
-      group: ${{ github.event.repository.name }}-runners
-      labels: ${{ github.event.repository.name }}-linux-x64
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Checkout repository
@@ -44,13 +42,13 @@ jobs:
         uses: ./.github/actions/check-clean-worktree
 
   sdks:
-    runs-on:
-      group: ${{ github.event.repository.name }}-runners
-      labels: ${{ github.event.repository.name }}-linux-x64
-    timeout-minutes: 10
-    environment:
-      name: bazel
-      deployment: false
+    # Upstream builds the `codex` binary via Bazel + a BuildBuddy remote
+    # cache on a custom self-hosted runner group. None of that exists on
+    # this fork, so this job builds it with plain `cargo build --release`
+    # on a standard runner instead -- slower (no remote cache), but it
+    # doesn't need any infrastructure beyond what GitHub already provides.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -76,68 +74,37 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Set up Bazel CI
-        id: setup_bazel
-        uses: ./.github/actions/setup-bazel-ci
-        with:
-          target: x86_64-unknown-linux-gnu
+      - uses: dtolnay/rust-toolchain@e081816240890017053eacbb1bdf337761dc5582 # 1.95.0
 
-      - name: Build codex with Bazel
-        env:
-          BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY }}
+      # A cold release build of this workspace takes well over an hour with
+      # no cache at all; without OpenAI's BuildBuddy remote cache, a plain
+      # actions/cache of ~/.cargo and target/release is the next best thing.
+      - name: Cache Cargo registry and build output
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            codex-rs/target/release
+          key: sdk-cargo-release-${{ runner.os }}-${{ hashFiles('codex-rs/Cargo.lock') }}
+          restore-keys: |
+            sdk-cargo-release-${{ runner.os }}-
+
+      - name: Build codex with Cargo
+        shell: bash
+        working-directory: codex-rs
+        run: cargo build --release -p codex-cli
+
+      - name: Stage codex binary
         shell: bash
         run: |
           set -euo pipefail
-          # Use the shared CI wrapper so fork PRs fall back cleanly when
-          # BuildBuddy credentials are unavailable. This workflow needs the
-          # built `codex` binary on disk afterwards, so ask the wrapper to
-          # override CI's default remote_download_minimal behavior.
-          ./.github/scripts/run-bazel-ci.sh \
-            --remote-download-toplevel \
-            -- \
-            build \
-            --build_metadata=COMMIT_SHA=${GITHUB_SHA} \
-            --build_metadata=TAG_job=sdk \
-            -- \
-            //codex-rs/cli:codex
-
-          # Resolve the exact output file using the same wrapper/config path as
-          # the build instead of guessing which Bazel convenience symlink is
-          # available on the runner.
-          cquery_output="$(
-            ./.github/scripts/run-bazel-ci.sh \
-              -- \
-              cquery \
-              --output=files \
-              -- \
-              //codex-rs/cli:codex \
-              | grep -E '^(/|bazel-out/)' \
-              | tail -n 1
-          )"
-          if [[ "${cquery_output}" = /* ]]; then
-            codex_bazel_output_path="${cquery_output}"
-          else
-            codex_bazel_output_path="${GITHUB_WORKSPACE}/${cquery_output}"
-          fi
-          if [[ -z "${codex_bazel_output_path}" ]]; then
-            echo "Bazel did not report an output path for //codex-rs/cli:codex." >&2
-            exit 1
-          fi
-          if [[ ! -e "${codex_bazel_output_path}" ]]; then
-            echo "Unable to locate the Bazel-built codex binary at ${codex_bazel_output_path}." >&2
-            exit 1
-          fi
-
-          # Stage the binary into the workspace and point the SDK tests at that
-          # stable path. The tests spawn `codex` directly many times, so using a
-          # normal executable path is more reliable than invoking Bazel for each
-          # test process.
           install_dir="${GITHUB_WORKSPACE}/.tmp/sdk-ci"
           mkdir -p "${install_dir}"
-          install -m 755 "${codex_bazel_output_path}" "${install_dir}/codex"
+          install -m 755 "${GITHUB_WORKSPACE}/codex-rs/target/release/codex" "${install_dir}/codex"
           echo "CODEX_EXEC_PATH=${install_dir}/codex" >> "$GITHUB_ENV"
 
-      - name: Warm up Bazel-built codex
+      - name: Warm up codex
         shell: bash
         run: |
           set -euo pipefail
@@ -154,15 +121,6 @@ jobs:
 
       - name: Test SDK packages
         run: pnpm -r --filter ./sdk/typescript run test
-
-      - name: Save bazel repository cache
-        if: always() && !cancelled() && steps.setup_bazel.outputs.cache-hit != 'true'
-        continue-on-error: true
-        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
-        with:
-          path: |
-            ~/.cache/bazel-repo-cache
-          key: bazel-cache-x86_64-unknown-linux-gnu-${{ hashFiles('MODULE.bazel', 'codex-rs/Cargo.lock', 'codex-rs/Cargo.toml') }}
 
       - name: Check for a clean worktree
         if: always() && !cancelled()
