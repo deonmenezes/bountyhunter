@@ -4,6 +4,7 @@
   "description": "Mantis AI is an authorized vulnerability-discovery agent (Codex CLI, rebranded) that runs locally on your computer.",
   "license": "Apache-2.0",
   "bin": {
+    "mantishack": "bin/codex.js",
     "mantis": "bin/codex.js",
     "codex": "bin/codex.js"
   },

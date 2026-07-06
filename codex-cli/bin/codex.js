@@ -100,7 +100,7 @@ function findCodexExecutable() {
       ? "bun install -g mantishack@latest"
       : "npm install -g mantishack@latest";
   throw new Error(
-    `Missing optional dependency ${platformPackage}. Reinstall Mantis: ${updateCommand}`,
+    `Missing optional dependency ${platformPackage}. Reinstall Mantishack: ${updateCommand}`,
   );
 }
 
