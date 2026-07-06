@@ -1,0 +1,173 @@
+# Simplified multi-platform npm release for the "mantishack" package.
+#
+# This is a from-scratch, GitHub-hosted-runner-only pipeline. It does NOT
+# reuse rust-release.yml, which depends on OpenAI-owned infrastructure
+# (self-hosted Linux runners, Azure Key Vault macOS code-signing, npm OIDC
+# trusted publishing scoped to @openai) that isn't available to this fork.
+#
+# Scope (v1): macOS arm64, macOS x64, Linux x64 (glibc, not musl). Windows
+# and Linux arm64 are not yet built -- see codex-cli/bin/codex.js's
+# PLATFORM_PACKAGE_BY_TARGET for the full target list this launcher already
+# expects; add a matrix entry + platform npm package here when ready.
+#
+# macOS binaries are NOT code-signed/notarized in this workflow (that needs
+# an Apple Developer certificate this fork doesn't have) -- expect a
+# Gatekeeper warning on first run until that's set up separately.
+#
+# Requires a repo secret NPM_TOKEN (an npm automation/publish token for the
+# `mantishack` package) -- set once via:
+#   gh secret set NPM_TOKEN --repo <owner>/<repo>
+
+name: mantis-npm-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "npm version to publish (e.g. 0.0.10)"
+        required: true
+      npm_tag:
+        description: "npm dist-tag"
+        required: false
+        default: "latest"
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build - ${{ matrix.npm_platform }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: codex-rs
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-14
+            target: aarch64-apple-darwin
+            npm_platform: darwin-arm64
+            os: darwin
+            cpu: arm64
+          - runner: macos-13
+            target: x86_64-apple-darwin
+            npm_platform: darwin-x64
+            os: darwin
+            cpu: x64
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            npm_platform: linux-x64
+            os: linux
+            cpu: x64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build codex release binary
+        run: cargo build --release --target "${{ matrix.target }}" -p codex-cli
+
+      - name: Stage platform npm package
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+          NPM_PLATFORM: ${{ matrix.npm_platform }}
+          TARGET: ${{ matrix.target }}
+          PKG_OS: ${{ matrix.os }}
+          PKG_CPU: ${{ matrix.cpu }}
+        run: |
+          set -euo pipefail
+          platform_version="${VERSION}-${NPM_PLATFORM}"
+          stage="${RUNNER_TEMP}/mantishack-${NPM_PLATFORM}"
+          mkdir -p "${stage}/vendor/${TARGET}/bin"
+          cp "target/${TARGET}/release/codex" "${stage}/vendor/${TARGET}/bin/codex"
+          chmod +x "${stage}/vendor/${TARGET}/bin/codex"
+
+          jq -n \
+            --arg name "mantishack-${NPM_PLATFORM}" \
+            --arg version "${platform_version}" \
+            --arg os "${PKG_OS}" \
+            --arg cpu "${PKG_CPU}" \
+            '{name: $name, version: $version, license: "Apache-2.0", os: [$os], cpu: [$cpu], files: ["vendor"]}' \
+            > "${stage}/package.json"
+
+          mkdir -p "${GITHUB_WORKSPACE}/dist"
+          (cd "${stage}" && npm pack --pack-destination "${GITHUB_WORKSPACE}/dist")
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-${{ matrix.npm_platform }}
+          path: dist/*.tgz
+          retention-days: 7
+
+  publish:
+    name: publish-npm
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Stage root package
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          stage="${RUNNER_TEMP}/mantishack-root"
+          mkdir -p "${stage}/bin"
+          cp codex-cli/bin/codex.js "${stage}/bin/codex.js"
+
+          jq \
+            --arg version "${VERSION}" \
+            --arg darwin_arm64 "${VERSION}-darwin-arm64" \
+            --arg darwin_x64 "${VERSION}-darwin-x64" \
+            --arg linux_x64 "${VERSION}-linux-x64" \
+            '.version = $version
+             | .optionalDependencies = {
+                 "mantishack-darwin-arm64": $darwin_arm64,
+                 "mantishack-darwin-x64": $darwin_x64,
+                 "mantishack-linux-x64": $linux_x64
+               }' \
+            codex-cli/package.json > "${stage}/package.json"
+
+          mkdir -p dist
+          (cd "${stage}" && npm pack --pack-destination "${GITHUB_WORKSPACE}/dist")
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ inputs.version }}
+          NPM_TAG: ${{ inputs.npm_tag }}
+        run: |
+          set -euo pipefail
+          # Publish every platform package before the root package, since the
+          # root's optionalDependencies must already exist in the registry.
+          for tarball in dist/mantishack-darwin-arm64-*.tgz \
+                         dist/mantishack-darwin-x64-*.tgz \
+                         dist/mantishack-linux-x64-*.tgz; do
+            echo "+ npm publish ${tarball} --tag ${NPM_TAG}"
+            npm publish "${tarball}" --tag "${NPM_TAG}"
+          done
+
+          root_tarball="dist/mantishack-${VERSION}.tgz"
+          echo "+ npm publish ${root_tarball} --tag ${NPM_TAG}"
+          npm publish "${root_tarball}" --tag "${NPM_TAG}"
