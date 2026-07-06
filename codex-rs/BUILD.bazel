@@ -1,0 +1,17 @@
+exports_files([
+    "clippy.toml",
+])
+
+filegroup(
+    name = "workspace-files",
+    srcs = glob(
+        [
+            "*",
+            ".cargo/**",
+        ],
+        exclude = [
+            "BUILD.bazel",
+        ],
+    ),
+    visibility = ["//visibility:public"],
+)

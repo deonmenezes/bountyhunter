@@ -1,0 +1,97 @@
+# Mantis AI capability catalog -- P0 MCP servers (Mantis-AI-PRD.md section 6 + Appendix A).
+#
+# Per the PRD: "scanners -> config.toml [mcp_servers.<name>] (command/args/env)".
+# This is the project-scoped config layer (see codex-rs/config/src/loader/README.md,
+# "Project config (.codex/config.toml)"), so it only applies when working in this repo.
+#
+# `args` below are relative paths under `.codex/mcp-servers/`. They are resolved
+# against the MCP server's working directory, which falls back to the Codex
+# session's cwd when `cwd` is unset here (see
+# codex-rs/rmcp-client/src/stdio_server_launcher.rs). Run Codex from this
+# repo's root so these resolve correctly, or add an explicit absolute `cwd`
+# in a local, untracked config override.
+
+[mcp_servers.mantis_semgrep]
+command = "node"
+args = [".codex/mcp-servers/semgrep/server.js"]
+startup_timeout_sec = 10
+tool_timeout_sec = 300
+default_tools_approval_mode = "auto"
+
+[mcp_servers.mantis_osv_scanner]
+command = "node"
+args = [".codex/mcp-servers/osv-scanner/server.js"]
+startup_timeout_sec = 10
+tool_timeout_sec = 300
+default_tools_approval_mode = "auto"
+
+[mcp_servers.mantis_trufflehog]
+command = "node"
+args = [".codex/mcp-servers/trufflehog/server.js"]
+startup_timeout_sec = 10
+tool_timeout_sec = 300
+default_tools_approval_mode = "auto"
+
+[mcp_servers.mantis_codeql]
+command = "node"
+args = [".codex/mcp-servers/codeql/server.js"]
+startup_timeout_sec = 10
+tool_timeout_sec = 900
+default_tools_approval_mode = "auto"
+
+[mcp_servers.mantis_program_analysis]
+command = "node"
+args = [".codex/mcp-servers/program-analysis/server.js"]
+startup_timeout_sec = 10
+tool_timeout_sec = 120
+default_tools_approval_mode = "auto"
+
+# Injection/hallucination tripwire (PRD section 6, FR-6.7). Always on: a
+# well-behaved agent never calls these tools, so there is no legitimate
+# workflow to slow down by leaving approval on auto.
+[mcp_servers.mantis_canary]
+command = "node"
+args = [".codex/mcp-servers/canary/server.js"]
+startup_timeout_sec = 10
+default_tools_approval_mode = "auto"
+
+# Findings spine (PRD section 9, FR-9.*, FR-11.3). Tool-owned finding state:
+# ids, schema, lifecycle transitions, and append-only audit trail live here, so
+# agents never hand-edit findings. Enforces "no proof -> no confirm" and
+# "reject cites a roadblock". Zero external deps (pure Node).
+[mcp_servers.mantis_findings]
+command = "node"
+args = [".codex/mcp-servers/findings/server.js"]
+startup_timeout_sec = 10
+tool_timeout_sec = 30
+default_tools_approval_mode = "auto"
+
+# HTTP-audit + request-refs (PRD section 6 proxy/traffic, section 9 evidence).
+# Turns a captured HTTP exchange into a bounded, redacted evidence pack with a
+# stable request-ref hash -- so findings cite reproducible HTTP evidence without
+# storing raw secrets/cookies/bodies. Pure Node; makes no network calls itself.
+[mcp_servers.mantis_http_audit]
+command = "node"
+args = [".codex/mcp-servers/http-audit/server.js"]
+startup_timeout_sec = 10
+tool_timeout_sec = 30
+default_tools_approval_mode = "auto"
+
+# Python SAST (PRD section 6 SAST/code). Complements semgrep for Python.
+# Reports available:false until `bandit` is installed rather than fabricating.
+[mcp_servers.mantis_bandit]
+command = "node"
+args = [".codex/mcp-servers/bandit/server.js"]
+startup_timeout_sec = 10
+tool_timeout_sec = 300
+default_tools_approval_mode = "auto"
+
+# Composition analysis: deps + secrets + IaC misconfig (PRD section 6 SCA/deps
+# + container). Complements osv-scanner and trufflehog with container/IaC
+# coverage. Reports available:false until `trivy` is installed.
+[mcp_servers.mantis_trivy]
+command = "node"
+args = [".codex/mcp-servers/trivy/server.js"]
+startup_timeout_sec = 10
+tool_timeout_sec = 300
+default_tools_approval_mode = "auto"

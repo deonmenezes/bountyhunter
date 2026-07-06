@@ -1,8 +1,0 @@
-name: upgrade-positive
-mode_exercised: upgrade
-shape: |
-  Coord-style fixture. Asserts ``mantishack-sca upgrade`` (a.k.a.
-  whatif) returns exit 0 (net-positive trade) for a real-world
-  good-upgrade pair: lodash 4.17.4 → 4.17.21. The prototype-
-  pollution CVEs in 4.17.4 are cleared in 4.17.21 with no new
-  introductions.

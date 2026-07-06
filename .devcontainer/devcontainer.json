@@ -1,41 +1,31 @@
 {
-  "name": "MANTISHACK Security Research Framework",
+  "name": "Codex",
   "build": {
     "dockerfile": "Dockerfile",
-    "context": ".."
+    "context": "..",
+    "platform": "linux/arm64"
   },
-  "runArgs": ["--privileged"],
+
+  /* Force VS Code to run the container as arm64 in
+     case your host is x86 (or vice-versa). */
+  "runArgs": ["--platform=linux/arm64"],
+
   "features": {
-    "ghcr.io/devcontainers/features/git:1": {},
-    "ghcr.io/devcontainers/features/github-cli:1": {}
+    "ghcr.io/facebook/devcontainers/features/dotslash:latest": {}
   },
+
+  "containerEnv": {
+    "RUST_BACKTRACE": "1",
+    "CARGO_TARGET_DIR": "${containerWorkspaceFolder}/codex-rs/target-arm64"
+  },
+
+  "remoteUser": "ubuntu",
   "customizations": {
     "vscode": {
-      "extensions": [
-        "ms-python.python",
-        "ms-python.vscode-pylance",
-        "charliermarsh.ruff",
-        "GitHub.copilot",
-        "ms-vscode.cpptools",
-        "GitHub.vscode-codeql"
-      ],
       "settings": {
-        "python.defaultInterpreterPath": "/usr/bin/python3",
-        "python.terminal.activateEnvironment": true,
-        "editor.formatOnSave": true
-      }
+        "terminal.integrated.defaultProfile.linux": "bash"
+      },
+      "extensions": ["rust-lang.rust-analyzer", "tamasfe.even-better-toml"]
     }
-  },
-  "containerEnv": {
-    "GIT_TERMINAL_PROMPT": "0",
-    "PYTHONUNBUFFERED": "1",
-    "PYTHONDONTWRITEBYTECODE": "1"
-  },
-  "mounts": [
-    "source=${localWorkspaceFolder}/.env,target=/workspaces/mantishack/.env,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.claude,target=/root/.claude,type=bind,consistency=cached"
-  ],
-  "postCreateCommand": "pip install -r .devcontainer/requirements-all-optional.txt && pip install -r requirements-dev.txt",
-  "postStartCommand": "sudo sh -c 'echo 1 > /proc/sys/kernel/perf_event_paranoid 2>/dev/null || true'",
-  "remoteUser": "vscode"
+  }
 }

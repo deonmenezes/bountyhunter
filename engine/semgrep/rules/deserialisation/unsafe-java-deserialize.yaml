@@ -1,9 +1,0 @@
-rules:
-  - id: mantishack.deserialisation.java.objectinputstream
-    message: Unsafe Java deserialization (ObjectInputStream); prefer safer deserializers and validation.
-    languages: [java, kotlin]
-    severity: HIGH
-    pattern: new ObjectInputStream($STREAM)
-    metadata:
-      cwe: ["CWE-502"]
-      asvs: ["V5.9"]

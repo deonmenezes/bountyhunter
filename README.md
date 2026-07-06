@@ -15,242 +15,122 @@
 
 ## What is Mantishack?
 
-Mantishack is an autonomous security research framework built on top of Claude Code (but not tied to it — you can plug in your own analysis layer too). It chains together static analysis, binary analysis, LLM-powered vulnerability validation, exploit generation, and patch writing into a single workflow you can run against a codebase or binary.
+Mantishack is Mantis AI: an autonomous vulnerability-discovery agent built on top of [OpenAI's Codex CLI](https://github.com/openai/codex) (Rust, Apache-2.0), rebranded and wired end-to-end as an offensive-AppSec harness. It runs a staged detect-then-validate pipeline over a codebase — recon, detect, reachability, attacker-simulation validation, chaining, gated exploitation, fixing, and reporting — with every finding owned by a tool, not tracked in prose.
 
-It is not polished software. It is held together with enthusiasm and duct tape, and it works well enough that we can't stop using it — usable in the field, rough in the corners.
+The core bet is the same one this project has always made: **detection is commodity, validation precision is the product.** What survives attacker-simulation is real; everything else gets rejected with a cited roadblock.
+
+It is not polished software. It is a working harness with real gaps (see "Project history" and `MANTIS.md` for what's wired vs. what still needs external binaries or a running target), usable in the field, rough in the corners.
 
 ---
 
 ## Quick start
 
-### Option 1: Install manually
+### Build from source
 
 ```bash
 # Clone the repo
 git clone https://github.com/deonmenezes/mantishack.git
 cd mantishack
 
-# Install Python dependencies
-pip install -r requirements.txt
+# Build the CLI (Rust toolchain required, see codex-rs/rust-toolchain.toml)
+cd codex-rs
+cargo build --release -p codex-cli
 
-# Install Claude Code (required)
-npm install -g @anthropic-ai/claude-code
-
-# Install Semgrep (required for scanning)
-pip install semgrep
-
-# Open Mantishack
-claude
+# Run it from the repo root so the project-scoped .codex/config.toml resolves
+cd ..
+./codex-rs/target/release/codex
 ```
 
-### Option 2: Devcontainer (recommended)
+### Install the capability-catalog binaries
 
-Everything pre-installed. Open in VS Code with **Dev Containers: Open Folder in Container**, or build manually:
+The MCP tool servers under `.codex/mcp-servers/` are pure Node.js and need no install of their own, but the scanners they wrap degrade to `available: false` until you install the underlying binaries:
 
 ```bash
-docker build -f .devcontainer/Dockerfile -t mantishack:latest .
-docker run --privileged -it mantishack:latest
+pip install semgrep bandit
+brew install trufflehog trivy z3 ast-grep    # or your platform's equivalent
+go install github.com/google/osv-scanner/v2/cmd/osv-scanner@latest
+# CodeQL CLI: https://github.com/github/codeql-cli-binaries
 ```
 
-The `--privileged` flag is required for the `rr` deterministic debugger. The image is large (around 6 GB). It starts from the Microsoft Python 3.12 devcontainer and adds static analysis, fuzzing, and browser automation tooling.
-
-Once inside, just say "hi" to get started, or jump straight to a command.
+Nothing is fabricated when a binary is missing — each server reports plainly that the tool isn't installed rather than inventing findings.
 
 ---
 
-## What Mantishack can do
+## What's wired
 
-| Command | What it does | Status |
-|---------|--------------|--------|
-| `/mantis-agentic` | Full autonomous workflow: scan, **auth+logging audit**, validate, exploit, patch | Stable |
-| `/mantis-scan` | Static analysis with Semgrep and CodeQL | Stable |
-| `/mantis-auth-audit` | **Automatic JWT + cookie + audit-log security check** | Stable (Mantishack addition) |
-| `/mantis-understand` | Map attack surface, trace data flows, hunt vulnerability variants | Stable |
-| `/mantis-validate` | Multi-stage exploitability validation pipeline (Stages 0–F) | Stable |
-| `/mantis-codeql` | CodeQL-only deep analysis with SMT dataflow pre-screening | Stable |
-| `/mantis-exploit` | Generate proof-of-concept exploit code | Beta |
-| `/mantis-patch` | Generate secure patches for confirmed vulnerabilities | Beta |
-| `/mantis-fuzz` | Binary fuzzing with AFL++ and crash analysis | Stable |
-| `/mantis-crash-analysis` | Autonomous root-cause analysis for C/C++ crashes | Stable |
-| `/mantis-oss-forensics` | Evidence-backed forensic investigation for GitHub repositories | Stable |
-| `/mantis-project` | Named workspaces to organise runs and track findings over time | Stable |
-| `/mantis-sca` | Software composition analysis | Stable |
-| `/mantis-cve-diff` | Compare scanner runs across known CVE fixes | Stable |
-| `/mantis-web` | Web application scanning | Alpha/stub |
+| Layer | Where | What it does |
+|---|---|---|
+| **Capability servers (MCP)** | `.codex/mcp-servers/` | `semgrep_scan`, `codeql_create_database`/`codeql_analyze`, `osv_scan`, `trufflehog_scan`, `bandit_scan`, `trivy_scan` — SAST/SCA/secrets, all report-until-installed. |
+| **Program-analysis substrate** | `.codex/mcp-servers/program-analysis/` | `source_sink_scan` (heuristic, works now), `ast_grep_scan` (structural search), `smt_check_reachability` (z3-backed path-condition satisfiability). |
+| **Findings spine** | `.codex/mcp-servers/findings/` | Tool-owned finding state: `finding_create/update/get/list`. Enforces "no proof → no confirm" and "reject cites a roadblock" in code, not prose. Works now, zero deps. |
+| **Evidence** | `.codex/mcp-servers/http-audit/` | Turns a captured HTTP exchange into a bounded, redacted evidence pack with a stable request-ref hash. Works now, zero deps. |
+| **Injection defense** | `.codex/mcp-servers/canary/` | Decoy tools that alert if called — a tripwire for prompt injection or hallucinated tool use. Works now, zero deps. |
+| **Agent catalog** | `.codex/agents/*.toml` | The full pipeline as `spawn_agent` roles: `recon`, `context-enrich`, `detector`, `reachability`, `validator`, `verifier-balanced`/`brutalist`/`final`, `chain-builder`, `exploiter` (gated), `fixer`, `reporter`, `orchestrator`. |
+| **Knowledge** | `.codex/skills/*/SKILL.md` | Playbooks tying each tool/agent into the findings lifecycle: `mantis-pipeline` (master playbook), `semgrep-triage`, `codeql-audit`, `osv-dependency-scan`, `secrets-scan`, `detection-breadth`, `program-analysis`, `findings-spine`, `http-evidence`, `canary-tripwire-response`. |
+| **Identity** | `codex-rs/core/*_prompt.md`, `codex-rs/protocol/`, `codex-rs/models-manager/` | The agent's system prompts, rebranded to Mantis AI's authorized-vulnerability-discovery mission and safety contract. |
+| **TUI** | `codex-rs/tui/` | Mantis mascot ASCII boot animation (with a blink) and a green accent theme. |
+
+See `MANTIS.md` for the full map, the "how to extend" recipes, and the prioritized roadmap of what's next (recon/DAST toolchain, injection confirmers, OOB, fuzzing, CVE intel — each a report-until-installed MCP server on the existing pattern).
 
 ---
 
 ## How the pipeline works
 
-Start by creating a project so all your runs land in one place:
+Findings move through one lifecycle, owned by the findings service, never hand-edited in prose:
 
 ```
-/mantis-project create myapp --target /path/to/code   # create a project first
-/mantis-project use myapp                             # set it as active
-/mantis-understand --map                              # map the attack surface
-/mantis-agentic                                       # scan, audit, validate, exploit, patch
-/mantis-project findings                              # review everything in one place
+candidate → confirmed | rejected → exploited → fixed → verified
 ```
 
-`/mantis-understand` builds a context map of entry points, trust boundaries, and sinks before a line of scanning happens. `/mantis-agentic` then runs Semgrep and CodeQL, **executes the auth + logging audit lane automatically**, deduplicates findings, and dispatches each one for validation using the exploitation-validator methodology:
+- **Detect is generous.** SAST/SCA/secrets scanners plus LLM reasoning surface `candidate`s at high recall. Do not self-censor false positives here — that's Validate's job.
+- **Validate is ruthless.** Attacker-simulation reasons as an attacker with attacker-only capabilities: is the pattern real or noise, what does an attacker need to reach it, does the path actually exist, can it be reached from outside. A candidate only becomes `confirmed` with reachability evidence attached — the findings service refuses the transition otherwise. A `rejected` candidate must cite the specific roadblock (auth gate, sanitizer at the sink, provably-unreachable path, self-only harm) — "seems safe" isn't accepted.
+- **Chain, exploit, fix, verify** follow only for confirmed findings, with exploitation double-gated and off by default.
 
-- Stage A: is the pattern actually a vulnerability, or is the tool pattern-matching noise?
-- Stage B: what does an attacker need to reach it, and what gets in the way?
-- Stage C: does the code path actually exist? can it be reached from outside?
-- Stage D: final call — is this test code, does it need unrealistic preconditions, is the model hedging?
-
-Findings that clear validation get exploit PoCs and patches generated. A cross-finding analysis runs at the end to find shared root causes and attack chains.
-
-`/mantis-validate` runs this same pipeline as a standalone step if you already have findings from a previous scan.
-
----
-
-## Authentication + logging audit (Mantishack addition)
-
-Mantishack automatically runs an **auth + logging audit** on every `/mantis-agentic` invocation. The same checks are also exposed as a standalone `/mantis-auth-audit` slash command for faster, more-targeted runs.
-
-The lane uses Semgrep rules tagged `mantis_capability: auth-audit` plus pytest fixtures that assert audit-log coverage at runtime. What it looks for:
-
-**JWT** — `engine/semgrep/rules/auth/jwt-misuse.yaml`
-- `alg=none` accepted (token forgery)
-- Hardcoded HMAC secret (brute-force key recovery)
-- Missing `exp` claim (token never expires)
-- No audience / issuer pinning (cross-tenant token acceptance)
-
-**Cookies** — `engine/semgrep/rules/auth/cookie-security.yaml`
-- Missing `HttpOnly` (XSS-exfiltrable)
-- Missing `Secure` (plaintext-HTTP exposure)
-- Missing `SameSite` (CSRF)
-- Session id passed in URL query parameter (referer / log leak)
-
-**Logging** — `engine/semgrep/rules/logging/missing-auth-audit.yaml`
-- Auth-failure branch with no log line
-- Privileged action (delete / role-change / `is_admin = True`) with no audit log
-- Raw JWT / bearer / `session_id` written to logs (credential leak)
-
-**Pytest harness** — `conftest.py`
-- `@pytest.mark.auth_audit` marker + `assert_audit_log_emitted` fixture: tests that exercise auth-sensitive code paths fail the run if (a) no INFO/WARN log was emitted, or (b) any log record contains a raw JWT / session id / bearer token.
-
-Usage example for the pytest hook:
-
-```python
-import pytest
-
-@pytest.mark.auth_audit
-def test_login_logs_failure(client, assert_audit_log_emitted):
-    client.post("/login", data={"u": "alice", "p": "wrong"})
-    # fixture teardown asserts an audit log was emitted and no credential leaked
-```
-
-Run the standalone audit:
-
-```bash
-python3 mantishack.py scan --repo /path/to/code --policy-groups auth,logging
-```
+Establish scope and authorization first. Work only on targets you own or are explicitly authorized to test. If authorization for active/exploit testing is unclear, restrict the run to read-only static analysis until scope is established.
 
 ---
 
 ## Z3 SMT integration
 
-Mantishack has a two-layer Z3 integration (`pip install z3-solver`). It is optional. Everything works without it, but the results are better with it.
-
-**Dataflow pre-screening (CodeQL)** — When CodeQL produces a path result, the path constraints are checked for satisfiability before any LLM call is made. Paths that are provably unreachable get dropped immediately. For paths that are reachable, Z3 produces concrete candidate inputs that go into the analysis prompt.
-
-**One-gadget constraint analysis (binary feasibility)** — During binary exploit feasibility assessment, Z3 checks whether a one-gadget's register and memory constraints are satisfiable against the concrete crash state. Gadgets are ranked by actual reachability rather than heuristics.
-
-Z3 is pre-installed in the devcontainer. For manual installs: `pip install z3-solver`.
+The program-analysis MCP server wraps z3 for reachability (`smt_check_reachability`): construct the path condition for a candidate source-to-sink flow as an SMT-LIB2 script, hand it to the tool, and get back `sat` (an attacker-controlled assignment reaches the sink — proceed to Validate), `unsat` (provably unreachable — reject, citing the unsat result as the roadblock), or `unknown` (proves nothing either way). It degrades to `available: false` if `z3` isn't installed, same as every other scanner server.
 
 ---
 
-## Running offline and in air-gapped pipelines
+## Using a different model
 
-Semgrep scanning works fully offline. All registry packs that would normally be fetched from semgrep.dev at scan time are shipped in the repo under `engine/semgrep/rules/registry-cache/`. The scanner resolves pack IDs to local files before invoking semgrep, so no network call happens.
-
-Cached packs: `p/security-audit`, `p/owasp-top-ten`, `p/secrets`, `p/command-injection`, `p/jwt`, `p/default`, `p/xss`.
-
-CodeQL needs network access only during initial setup to download the CLI and query packs. Once installed it runs offline.
-
----
-
-## Using a different LLM
-
-Mantishack has two separate model layers:
-
-The **orchestration layer** is always Claude Code. The CLAUDE.md, skills, and commands all run as Claude Code instructions. To change which Claude model orchestrates Mantishack, use Claude Code's `--model` flag or the `/model` command inside a session.
-
-The **analysis dispatch layer** is the LLM that analyses individual vulnerability findings. This is separate from the orchestration layer and can be any supported provider. Configure it in `~/.config/mantishack/models.json`:
-
-```json
-{
-  "models": [
-    {
-      "provider": "anthropic",
-      "model": "claude-opus-4-6",
-      "api_key": "sk-ant-...",
-      "role": "analysis"
-    },
-    {
-      "provider": "openai",
-      "model": "gpt-5.4",
-      "api_key": "sk-...",
-      "role": "analysis"
-    },
-    {
-      "provider": "anthropic",
-      "model": "claude-sonnet-4-6",
-      "api_key": "sk-ant-...",
-      "role": "aggregate"
-    }
-  ]
-}
-```
-
-Or skip the config file and set environment variables:
-
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-export OPENAI_API_KEY=sk-...
-export GEMINI_API_KEY=...
-export MISTRAL_API_KEY=...
-export OLLAMA_HOST=http://localhost:11434
-```
-
-Budget control:
-
-```bash
-export MANTISHACK_MAX_COST=5.00   # cap analysis spend at $5 per run
-```
+Mantis AI inherits Codex CLI's provider-agnostic model routing — configure providers, API keys, and per-model settings the same way you would for upstream Codex CLI (see `codex-rs/config.md` and `codex-rs/model-provider/`). There's no separate "orchestration vs. analysis" split: one model runs the harness loop, calling the MCP tools and (when multi-agent mode is enabled) spawning the role agents in `.codex/agents/`.
 
 ---
 
 ## Architecture
 
-Mantishack is two layers.
+The invariant that governs everything (also documented in `MANTIS.md`):
 
-The **Python execution layer** (`mantishack.py`, `packages/`, `core/`, `engine/`) handles the heavy lifting: running Semgrep and CodeQL, managing subprocesses, parsing SARIF, deduplicating findings, dispatching LLM API calls, tracking costs, writing output files. It does not make decisions. It executes.
+- **Tool = code** — an MCP server handler that *does* something. Wired in `.codex/config.toml [mcp_servers.*]`, implemented under `.codex/mcp-servers/<name>/server.js`.
+- **Agent = prompt** — a system prompt + model tier + tool/permission policy. A TOML role file under `.codex/agents/<name>.toml`, auto-discovered and offered as a `spawn_agent` agent type.
+- **Skill = knowledge** — reference text the model reads. `.codex/skills/<name>/SKILL.md`.
 
-The **Claude Code decision layer** (`.claude/`, `tiers/`, `CLAUDE.md`) makes the calls: which findings to prioritise, how to interpret results, what the attack scenario is, whether the exploit is realistic. Implemented as Claude Code skills, commands, and agents that load progressively.
+The harness (Codex CLI, Rust — `codex-rs/`) runs the loop; it does zero security by itself. All actual security logic lives in the capability layer, the agent prompts, and the skills.
 
 ```
-CLAUDE.md              always loaded — bootstrap, routing, security rules
-.claude/commands/      slash commands (/mantis-agentic, /mantis-scan, …)
-.claude/skills/        methodology detail, loaded on demand
-tiers/                 adversarial thinking, recovery, expert personas
-.claude/agents/        specialist sub-agents (offsec, crash analysis, forensics)
+codex-rs/                the Codex CLI harness (sessions, sandboxing, TUI, MCP client)
+.codex/config.toml        project-scoped MCP server registration
+.codex/mcp-servers/       capability layer (the tools)
+.codex/agents/            role catalog (the agents)
+.codex/skills/            playbooks (the knowledge)
+.codex/MANTIS.md          map of what's wired + how to extend it
 ```
-
-The split means you can run the Python layer from a CI pipeline (`python3 mantishack.py scan --repo ...`) and get structured SARIF output without Claude Code, or run it interactively with the full agentic workflow.
 
 ---
 
 ## Licence
 
-MIT, dual-copyright:
+Apache-2.0, dual-copyright:
 
-- **Upstream framework code** — see [`LICENSE`](./LICENSE) for the full copyright notice.
-- **Mantishack modifications** (mantishack branding, `/mantis-*` rename, auth + logging audit rules, pytest fixtures, README/NOTICE) — Copyright (c) 2026 Deon Menezes. See [`LICENSE-MANTISHACK`](./LICENSE-MANTISHACK).
+- **Upstream framework code** (OpenAI Codex CLI) — see [`LICENSE`](./LICENSE) for the full copyright notice.
+- **Mantishack/Mantis AI modifications** (identity rebrand, capability layer, agent/skill catalog, TUI mascot + theme, README/NOTICE) — Copyright (c) 2026 Deon Menezes. See [`LICENSE-MANTISHACK`](./LICENSE-MANTISHACK).
 
-Both files are MIT; the Mantishack modification licence sits alongside the upstream licence and does not supersede it. See [`NOTICE`](./NOTICE) for combined attribution and the modification log. Review the licences for all dependencies before commercial use — **CodeQL in particular does not permit commercial use**.
+Both files' terms sit alongside each other; neither supersedes the other. See [`NOTICE`](./NOTICE) for combined attribution. Review the licences for all invoked components before commercial use — **CodeQL in particular does not permit commercial use**.
 
 **Mantishack issues:** https://github.com/deonmenezes/mantishack/issues
 
@@ -258,61 +138,20 @@ Both files are MIT; the Mantishack modification licence sits alongside the upstr
 
 ## Project history
 
-Earlier mantishack versions ran as an independent Rust daemon + MCP agent stack and **drew from many open-source projects**. That architecture has been retired and removed from this repository; the codebase you see here is a full rebrand of an upstream MIT framework — see [`LICENSE`](./LICENSE) and [`NOTICE`](./NOTICE) for its attribution. The acknowledgements below are historical — none of these projects ship as code in this tree today (the upstream framework has its own dependency set listed in [`requirements.txt`](./requirements.txt)) — but they shaped what mantishack used to be and we credit them here in good faith.
+Earlier mantishack versions ran as an independent Rust daemon + MCP agent stack and drew from many open-source projects; that architecture was retired. The codebase that followed was a full rebrand of an upstream MIT framework, [RAPTOR](https://github.com/gadievron/raptor) by Gadi Evron, Daniel Cuthbert, Thomas Dullien (Halvar Flake), Michael Bargury, and John Cartwright — built on Claude Code, adding an auth + logging audit lane, `/mantis-*` slash commands, and the mascot/branding you still see above.
 
-**Primary derivation:**
-- [vmihalis/hacker-bob](https://github.com/vmihalis/hacker-bob) (Apache-2.0) — agent prompts, role prompts, slash commands, capability playbook conventions, chain-attempt outcome enum, severity-ladder rules, and `bob-hunt` workflow shape were derived from Hacker Bob.
+That RAPTOR-derived codebase has now also been retired and replaced with the architecture described in this README: OpenAI's Codex CLI (Rust, Apache-2.0) as the harness, rebranded to Mantis AI, with the capability/agent/skill layers described above under "What's wired". None of RAPTOR's code ships in this tree today — see [`LICENSE`](./LICENSE), [`LICENSE-MANTISHACK`](./LICENSE-MANTISHACK), and [`NOTICE`](./NOTICE) for the current licensing, and [`CITATION.cff`](./CITATION.cff) for RAPTOR's original citation, preserved for the historical record. We credit RAPTOR's authors here in good faith for the work that shaped what mantishack used to be.
 
-**AI models and LLM ecosystem:**
-- [Nous Research — Hermes](https://huggingface.co/NousResearch) (Hermes 2/3 family, various licences)
-- [Anthropic Claude](https://www.anthropic.com/) (host LLM via API + Claude Code)
-- [OpenAI Codex CLI](https://github.com/openai/codex) (Apache-2.0)
-- [OpenCode](https://opencode.ai/)
-- [Model Context Protocol (MCP)](https://github.com/modelcontextprotocol) spec + [rmcp](https://github.com/modelcontextprotocol/rust-sdk) Rust SDK (MIT)
+---
 
-**Operating systems & runtimes:**
-- [Linux kernel](https://kernel.org/) (GPL-2.0)
-- [GNU userland / glibc / musl](https://www.gnu.org/)
-- [Rust toolchain](https://www.rust-lang.org/) (Apache-2.0 / MIT)
-- [Node.js](https://nodejs.org/), [Bun](https://bun.sh/), [Deno](https://deno.com/) (MIT)
-- [Docker](https://www.docker.com/) / [OCI](https://opencontainers.org/) (Apache-2.0)
-- [Homebrew](https://brew.sh/) (BSD-2-Clause)
+## Acknowledgements
 
-**Cryptography & integrity:**
-- [BLAKE3](https://github.com/BLAKE3-team/BLAKE3), [ed25519-dalek](https://github.com/dalek-cryptography/ed25519-dalek), [ring](https://github.com/briansmith/ring), [rustls](https://github.com/rustls/rustls), [zeroize](https://github.com/RustCrypto/utils/tree/master/zeroize)
+**Current architecture:**
+- [OpenAI Codex CLI](https://github.com/openai/codex) (Apache-2.0) — the harness this project is built on and rebranded from.
+- [Ratatui](https://github.com/ratatui/ratatui) (MIT) — terminal UI, via Codex CLI.
+- [Model Context Protocol (MCP)](https://github.com/modelcontextprotocol) — the tool-server protocol the capability layer speaks.
+- [Semgrep](https://semgrep.dev/), [CodeQL](https://codeql.github.com/), [osv-scanner](https://github.com/google/osv-scanner), [trufflehog](https://github.com/trufflesecurity/trufflehog), [bandit](https://bandit.readthedocs.io/), [Trivy](https://github.com/aquasecurity/trivy), [ast-grep](https://ast-grep.github.io/), [Z3](https://github.com/Z3Prover/z3) — the scanners and solvers the capability layer wraps.
 
-**Rust async ecosystem & core libraries:**
-- [Tokio](https://tokio.rs/), [Tower](https://github.com/tower-rs/tower), [Hyper](https://hyper.rs/), [reqwest](https://github.com/seanmonstar/reqwest), [Serde](https://serde.rs/) + [serde_json](https://github.com/serde-rs/json) / [serde_yaml_ng](https://github.com/acatton/serde-yaml-ng) / [toml](https://github.com/toml-rs/toml), [Tonic](https://github.com/hyperium/tonic) + [Prost](https://github.com/tokio-rs/prost), [anyhow](https://github.com/dtolnay/anyhow), [thiserror](https://github.com/dtolnay/thiserror), [tracing](https://github.com/tokio-rs/tracing), [clap](https://github.com/clap-rs/clap), [schemars](https://github.com/GREsau/schemars)
-
-**Storage:**
-- [RocksDB](https://rocksdb.org/) + [rust-rocksdb](https://github.com/rust-rocksdb/rust-rocksdb)
-- [Supabase](https://supabase.com/) (landing page auth + Postgres)
-
-**Offensive-security tooling invoked / integrated:**
-- ProjectDiscovery: [subfinder](https://github.com/projectdiscovery/subfinder), [httpx](https://github.com/projectdiscovery/httpx), [katana](https://github.com/projectdiscovery/katana), [nuclei](https://github.com/projectdiscovery/nuclei) + [nuclei-templates](https://github.com/projectdiscovery/nuclei-templates), [chaos](https://github.com/projectdiscovery/chaos-client), [dnsx](https://github.com/projectdiscovery/dnsx), [interactsh](https://github.com/projectdiscovery/interactsh), [notify](https://github.com/projectdiscovery/notify)
-- [OWASP Amass](https://github.com/owasp-amass/amass) (Apache-2.0)
-- [ticarpi/jwt_tool](https://github.com/ticarpi/jwt_tool) (GPL-3.0, subprocess-only)
-- [OJ/gobuster](https://github.com/OJ/gobuster) (Apache-2.0)
-- [Patchright](https://github.com/Kaliiiiiiiiii-Vinyzu/patchright) (headless browser automation)
-- [Bearer](https://github.com/Bearer/bearer) (Elastic-2.0)
-- [Trivy](https://github.com/aquasecurity/trivy) (Apache-2.0)
-- [trufflehog](https://github.com/trufflesecurity/trufflehog) (AGPL-3.0)
-- [hashcat](https://hashcat.net/) (MIT)
-- [Hydra](https://github.com/vanhauser-thc/thc-hydra) (AGPL-3.0)
-
-**Standards, taxonomies, reporting formats:**
-- [CVSS v3.1 / v4](https://www.first.org/cvss/) (FIRST.org)
-- [CWE](https://cwe.mitre.org/) (MITRE)
-- [SARIF v2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/) (OASIS)
-- [OpenVEX](https://github.com/openvex/spec)
-- [HackerOne report schema](https://api.hackerone.com/)
-- [Bugcrowd VRT](https://bugcrowd.com/vulnerability-rating-taxonomy)
-- [OWASP Top 10](https://owasp.org/Top10/)
-
-**Web stack (legacy landing page + dashboard):**
-- [Vite](https://vitejs.dev/), [React](https://react.dev/), [TypeScript](https://www.typescriptlang.org/), [Tailwind CSS](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com/), [Radix UI](https://www.radix-ui.com/), [lucide-react](https://lucide.dev/), [Supabase JS SDK](https://github.com/supabase/supabase-js)
-
-**Distribution & CI:**
-- [GitHub Actions](https://github.com/features/actions), [GitHub CLI](https://github.com/cli/cli), [cargo-chef](https://github.com/LukeMathWalker/cargo-chef), [cargo-deny](https://github.com/EmbarkStudios/cargo-deny), [rustup](https://rustup.rs/)
+**Historical (retired RAPTOR-era stack):** the previous version of this README credited a much longer list of tools and ecosystems (ProjectDiscovery's recon suite, jwt_tool, gobuster, Patchright, Bearer, Trivy, trufflehog, hashcat, Hydra, the Rust async/crypto ecosystem, a Vite/React/Supabase dashboard, and more) that shaped the RAPTOR-derived codebase this repository used to ship. None of that code is present today; the full historical acknowledgement list is preserved in this repository's git history for the record.
 
 If we drew from a project that isn't credited here, please open an issue — we want this list to reflect reality.

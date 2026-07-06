@@ -3,28 +3,35 @@ MIT License
 Copyright (c) 2026 Deon Menezes
 
 This licence applies to the mantishack-fork-specific modifications and
-additions layered on top of RAPTOR (https://github.com/gadievron/raptor),
-including but not limited to:
+additions layered on top of OpenAI Codex CLI
+(https://github.com/openai/codex), including but not limited to:
 
-  - The mantishack branding assets under docs/assets/, Formula/, and
-    .claude-plugin/marketplace.json
-  - The /mantis-* slash-command vocabulary and renames under
-    .claude/commands/
-  - The renamed Python entrypoints (mantishack.py and siblings) and
-    libexec/mantishack-* / packages/sca/scripts/mantishack-* scripts
-  - The auth + logging audit Semgrep rules under
-    engine/semgrep/rules/auth/jwt-misuse.yaml,
-    engine/semgrep/rules/auth/cookie-security.yaml, and
-    engine/semgrep/rules/logging/missing-auth-audit.yaml
-  - The pytest auth-audit fixtures in conftest.py
+  - The mantishack branding assets under docs/assets/
+  - The Mantis AI identity/persona rebrand of the agent's system prompts
+    (codex-rs/core/*_prompt.md, codex-rs/protocol/src/prompts/, and
+    codex-rs/models-manager/), including the security-research contract
+    in codex-rs/models-manager/security_research_prompt.md
+  - The MCP capability-server layer under .codex/mcp-servers/ (semgrep,
+    CodeQL, osv-scanner, trufflehog, bandit, trivy, program-analysis,
+    findings spine, HTTP-evidence, canary tripwire)
+  - The agent-role catalog under .codex/agents/*.toml and the knowledge
+    playbooks under .codex/skills/*/SKILL.md
+  - The mantis mascot ASCII boot animation and green accent theme in
+    codex-rs/tui/
   - The mantishack-native README.md and NOTICE file
 
-The unmodified upstream RAPTOR code in this repository remains
-covered by the original RAPTOR MIT licence in LICENSE (Copyright (c)
-2025-2026 Gadi Evron, Daniel Cuthbert, Thomas Dullien (Halvar Flake),
-Michael Bargury, John Cartwright). This file does not supersede that
-licence; it sits alongside it and covers only the fork-specific
-modifications.
+The unmodified upstream OpenAI Codex CLI code in this repository remains
+covered by the original Apache License, Version 2.0, in LICENSE
+(Copyright 2025 OpenAI). This file does not supersede that licence; it
+sits alongside it and covers only the fork-specific modifications.
+
+This repository previously shipped a RAPTOR-derived codebase
+(https://github.com/gadievron/raptor, MIT, Copyright (c) 2025-2026 Gadi
+Evron, Daniel Cuthbert, Thomas Dullien (Halvar Flake), Michael Bargury,
+John Cartwright). That codebase has been retired and replaced by the
+OpenAI Codex CLI based architecture described above — see "Project
+history" in README.md. RAPTOR's authors are credited there and in
+CITATION.cff in good faith; none of their code ships in this tree today.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

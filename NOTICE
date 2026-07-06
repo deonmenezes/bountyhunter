@@ -2,87 +2,76 @@ Mantishack
 ==========
 
 This repository (https://github.com/deonmenezes/mantishack) is built on
-top of RAPTOR. It ships the RAPTOR source tree with a repository-wide
-rebrand — see "Modifications" below for the full provenance disclosure.
+top of OpenAI Codex CLI. It ships the Codex CLI source tree with a
+repository-wide rebrand to Mantis AI plus an offensive-AppSec capability
+layer — see "Modifications" below for the full provenance disclosure.
 
 Upstream project
 ----------------
-RAPTOR — Recursive Autonomous Penetration Testing and Observation Robot
-https://github.com/gadievron/raptor
+OpenAI Codex CLI
+https://github.com/openai/codex
 
-Authors of RAPTOR:
-  Gadi Evron       (@gadievron)
-  Daniel Cuthbert  (@danielcuthbert)
-  Thomas Dullien   (Halvar Flake, @thomasdullien)
-  Michael Bargury  (@mbrg)
-  John Cartwright  (@grokjc)
+Copyright 2025 OpenAI
+
+This project includes code derived from [Ratatui](https://github.com/ratatui/ratatui), licensed under the MIT license.
+Copyright (c) 2016-2022 Florian Dehau
+Copyright (c) 2023-2025 The Ratatui Developers
 
 Licence
 -------
-This repository ships under MIT with two coexisting copyrights:
+This repository ships under Apache-2.0 for the upstream Codex CLI code,
+with a coexisting MIT licence for the Mantishack-specific modifications:
 
-  1. Upstream RAPTOR code — Copyright (c) 2025-2026 Gadi Evron,
-     Daniel Cuthbert, Thomas Dullien (Halvar Flake), Michael Bargury,
-     and John Cartwright. See LICENSE.
+  1. Upstream OpenAI Codex CLI code — Copyright 2025 OpenAI. Apache
+     License, Version 2.0. See LICENSE.
 
-  2. Mantishack-specific modifications (mantishack branding, /mantis-*
-     command rename, auth + logging audit rules, pytest fixtures,
-     README/NOTICE) — Copyright (c) 2026 Deon Menezes. See
-     LICENSE-MANTISHACK.
+  2. Mantishack-specific modifications (Mantis AI identity/prompt rebrand,
+     the `.codex/` MCP capability layer and agent/skill catalog, the TUI
+     mantis mascot boot animation and green theme, README/NOTICE) —
+     Copyright (c) 2026 Deon Menezes. See LICENSE-MANTISHACK.
 
-Both files are MIT. The Mantishack-specific licence does not supersede the
-upstream RAPTOR licence; it sits alongside it. The MIT licence
-requires that the copyright notice and permission notice below be
-included in all copies or substantial portions of the Software,
-which this NOTICE preserves verbatim alongside the LICENSE file.
+LICENSE-MANTISHACK does not supersede the upstream Apache-2.0 licence; it
+sits alongside it and covers only the fork-specific modifications. The
+Apache-2.0 licence requires that this NOTICE file be preserved and
+propagated with any redistribution of the covered work.
 
-    MIT License
-
-    Copyright (c) 2025-2026 Gadi Evron, Daniel Cuthbert,
-    Thomas Dullien (Halvar Flake), Michael Bargury, and John Cartwright
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE.
-
-Bundled third-party components
-------------------------------
-RAPTOR bundles or integrates with additional tools and rule sets that carry
-their own licences, including (non-exhaustive):
+Bundled/integrated third-party components
+------------------------------------------
+Mantishack invokes or integrates with additional tools that carry their own
+licences, including (non-exhaustive):
 
   - CodeQL (GitHub) — non-commercial licence; review before commercial use.
-  - Semgrep registry packs cached under engine/semgrep/rules/registry-cache/.
-  - Python dependencies listed in requirements.txt / requirements-dev.txt.
+  - Semgrep, osv-scanner, trufflehog, bandit, trivy, ast-grep, z3 — each
+    under its own upstream licence; see each project for terms.
 
-Consult each component's upstream licence before redistribution or commercial
-use. CodeQL specifically does not permit commercial use under its default
-licence.
+Consult each component's upstream licence before redistribution or
+commercial use. CodeQL specifically does not permit commercial use under
+its default licence.
 
 Modifications
--------------
-Mantishack ships the RAPTOR source tree with a repository-wide rebrand
-(raptor -> mantishack / mantis across file names, identifiers, and prose),
-the slash commands renamed to the /mantis-* namespace, a new authentication
-and security-logging Semgrep audit lane (engine/semgrep/rules/auth/*.yaml,
-engine/semgrep/rules/logging/missing-auth-audit.yaml, plus the pytest
-auth_audit fixtures), and a mascot asset (docs/assets/mascot/hero.png).
+--------------
+Mantishack ships the OpenAI Codex CLI source tree with a repository-wide
+rebrand of the agent identity and system prompts to "Mantis AI, an
+authorized vulnerability-discovery agent" (see codex-rs/core/*_prompt.md,
+codex-rs/protocol/src/prompts/base_instructions/default.md, and
+codex-rs/models-manager/), plus:
 
-The upstream LICENSE and CITATION.cff are preserved byte-for-byte and still
-credit the RAPTOR authors. Other files — including CLAUDE.md, agent prompts,
-skills, and source modules — were modified by the rebrand and are NOT
-preserved unmodified relative to the upstream commit. Attribution to RAPTOR
-is retained through this NOTICE, the LICENSE file, and CITATION.cff.
+  - A capability layer of MCP servers under `.codex/mcp-servers/`: SAST
+    (semgrep, CodeQL, bandit), SCA (osv-scanner, trivy), secrets
+    (trufflehog), a program-analysis substrate (ast-grep, a heuristic
+    source/sink scanner, z3-backed reachability), a tool-owned findings
+    spine, an HTTP-evidence redaction tool, and a prompt-injection canary.
+  - The PRD Appendix B agent-role catalog under `.codex/agents/*.toml`
+    (recon, context-enrich, detector, reachability, validator, three
+    verifier personas, chain-builder, exploiter, fixer, reporter,
+    orchestrator).
+  - Knowledge playbooks under `.codex/skills/*/SKILL.md` tying the tools
+    and agents into the candidate -> confirmed | rejected -> exploited ->
+    fixed -> verified findings lifecycle.
+  - A mantis mascot ASCII boot animation and a green accent theme in the
+    terminal UI (`codex-rs/tui/`).
+
+This NOTICE, the LICENSE file, and CITATION.cff preserve the project's
+prior provenance history — see "Project history" in README.md for the
+full lineage, including the retired RAPTOR-derived codebase this
+repository previously shipped.

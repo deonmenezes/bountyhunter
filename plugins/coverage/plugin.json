@@ -1,5 +1,0 @@
-{
-  "name": "mantishack-coverage",
-  "version": "0.1.0",
-  "description": "Track which source files the LLM reads during analysis for coverage reporting"
-}
