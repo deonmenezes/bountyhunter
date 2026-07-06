@@ -1,22 +1,25 @@
 #!/usr/bin/env node
-'use strict';
+"use strict";
 
-const { createServer } = require('../lib/mcp_stdio.js');
-const { runCommand, notFoundMessage } = require('../lib/run_tool.js');
+const { createServer } = require("../lib/mcp_stdio.js");
+const { runCommand, notFoundMessage } = require("../lib/run_tool.js");
 
 async function osvScan({ path: targetPath, offline = false }) {
-  if (!targetPath) throw new Error('path is required');
+  if (!targetPath) throw new Error("path is required");
 
-  const args = ['--json', '-r'];
-  if (offline) args.push('--offline', '--download-offline-databases');
+  const args = ["--json", "-r"];
+  if (offline) args.push("--offline", "--download-offline-databases");
   args.push(targetPath);
 
-  const result = await runCommand('osv-scanner', args, { timeoutMs: 300_000 });
+  const result = await runCommand("osv-scanner", args, { timeoutMs: 300_000 });
   if (result.notFound) {
     return {
-      tool: 'osv-scanner',
+      tool: "osv-scanner",
       available: false,
-      message: notFoundMessage('osv-scanner', 'go install github.com/google/osv-scanner/v2/cmd/osv-scanner@latest, or brew install osv-scanner'),
+      message: notFoundMessage(
+        "osv-scanner",
+        "go install github.com/google/osv-scanner/v2/cmd/osv-scanner@latest, or brew install osv-scanner",
+      ),
     };
   }
 
@@ -24,10 +27,10 @@ async function osvScan({ path: targetPath, offline = false }) {
   // as a hard failure if stdout isn't parseable JSON at all.
   let parsed;
   try {
-    parsed = JSON.parse(result.stdout || '{}');
+    parsed = JSON.parse(result.stdout || "{}");
   } catch {
     return {
-      tool: 'osv-scanner',
+      tool: "osv-scanner",
       available: true,
       error: `osv-scanner exited ${result.code} and did not return parseable JSON`,
       stderr: result.stderr.slice(0, 4000),
@@ -45,31 +48,46 @@ async function osvScan({ path: targetPath, offline = false }) {
           version: pkg.package && pkg.package.version,
           vuln_id: vuln.id,
           summary: vuln.summary,
-          severity: (vuln.database_specific && vuln.database_specific.severity) || 'unknown',
+          severity:
+            (vuln.database_specific && vuln.database_specific.severity) ||
+            "unknown",
           aliases: vuln.aliases || [],
         });
       }
     }
   }
 
-  return { tool: 'osv-scanner', available: true, candidate_count: findings.length, findings };
+  return {
+    tool: "osv-scanner",
+    available: true,
+    candidate_count: findings.length,
+    findings,
+  };
 }
 
 createServer({
-  name: 'mantis-osv-scanner',
-  version: '0.1.0',
+  name: "mantis-osv-scanner",
+  version: "0.1.0",
   tools: [
     {
-      name: 'osv_scan',
+      name: "osv_scan",
       description:
-        'SCA scan for known-vulnerable dependencies via osv-scanner, matched against the OSV database. Emits `candidate` findings keyed by package/version -- reachability/exploitability still needs the Validate stage.',
+        "SCA scan for known-vulnerable dependencies via osv-scanner, matched against the OSV database. Emits `candidate` findings keyed by package/version -- reachability/exploitability still needs the Validate stage.",
       inputSchema: {
-        type: 'object',
+        type: "object",
         properties: {
-          path: { type: 'string', description: 'Directory to scan recursively for dependency manifests/lockfiles.' },
-          offline: { type: 'boolean', description: 'Use a local offline vulnerability DB instead of querying the network.' },
+          path: {
+            type: "string",
+            description:
+              "Directory to scan recursively for dependency manifests/lockfiles.",
+          },
+          offline: {
+            type: "boolean",
+            description:
+              "Use a local offline vulnerability DB instead of querying the network.",
+          },
         },
-        required: ['path'],
+        required: ["path"],
       },
       handler: osvScan,
     },

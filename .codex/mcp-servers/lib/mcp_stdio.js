@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Minimal MCP (Model Context Protocol) stdio-transport server, zero deps.
@@ -17,31 +17,34 @@ function createServer({ name, version, tools }) {
 
   function replyResult(id, result) {
     if (id === undefined || id === null) return;
-    send({ jsonrpc: '2.0', id, result });
+    send({ jsonrpc: "2.0", id, result });
   }
 
   function replyError(id, code, message) {
     if (id === undefined || id === null) return;
-    send({ jsonrpc: '2.0', id, error: { code, message } });
+    send({ jsonrpc: "2.0", id, error: { code, message } });
   }
 
   async function handleRequest(message) {
     const { id, method, params } = message;
 
-    if (method === 'initialize') {
+    if (method === "initialize") {
       replyResult(id, {
-        protocolVersion: '2025-06-18',
+        protocolVersion: "2025-06-18",
         capabilities: { tools: {} },
         serverInfo: { name, version },
       });
       return;
     }
 
-    if (method === 'notifications/initialized' || method === 'notifications/cancelled') {
+    if (
+      method === "notifications/initialized" ||
+      method === "notifications/cancelled"
+    ) {
       return;
     }
 
-    if (method === 'tools/list') {
+    if (method === "tools/list") {
       replyResult(id, {
         tools: tools.map((tool) => ({
           name: tool.name,
@@ -52,7 +55,7 @@ function createServer({ name, version, tools }) {
       return;
     }
 
-    if (method === 'tools/call') {
+    if (method === "tools/call") {
       const tool = toolsByName.get(params && params.name);
       if (!tool) {
         replyError(id, -32602, `Unknown tool: ${params && params.name}`);
@@ -60,11 +63,12 @@ function createServer({ name, version, tools }) {
       }
       try {
         const result = await tool.handler((params && params.arguments) || {});
-        const text = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
-        replyResult(id, { content: [{ type: 'text', text }], isError: false });
+        const text =
+          typeof result === "string" ? result : JSON.stringify(result, null, 2);
+        replyResult(id, { content: [{ type: "text", text }], isError: false });
       } catch (err) {
         const text = err && err.message ? err.message : String(err);
-        replyResult(id, { content: [{ type: 'text', text }], isError: true });
+        replyResult(id, { content: [{ type: "text", text }], isError: true });
       }
       return;
     }
@@ -72,11 +76,11 @@ function createServer({ name, version, tools }) {
     replyError(id, -32601, `Method not found: ${method}`);
   }
 
-  let buffer = '';
-  process.stdin.setEncoding('utf8');
-  process.stdin.on('data', (chunk) => {
+  let buffer = "";
+  process.stdin.setEncoding("utf8");
+  process.stdin.on("data", (chunk) => {
     buffer += chunk;
-    let newlineIndex = buffer.indexOf('\n');
+    let newlineIndex = buffer.indexOf("\n");
     while (newlineIndex !== -1) {
       const line = buffer.slice(0, newlineIndex).trim();
       buffer = buffer.slice(newlineIndex + 1);
@@ -86,22 +90,22 @@ function createServer({ name, version, tools }) {
           message = JSON.parse(line);
         } catch (err) {
           send({
-            jsonrpc: '2.0',
+            jsonrpc: "2.0",
             id: null,
             error: { code: -32700, message: `Parse error: ${err.message}` },
           });
-          newlineIndex = buffer.indexOf('\n');
+          newlineIndex = buffer.indexOf("\n");
           continue;
         }
         handleRequest(message).catch((err) => {
           replyError(message.id, -32603, `Internal error: ${err.message}`);
         });
       }
-      newlineIndex = buffer.indexOf('\n');
+      newlineIndex = buffer.indexOf("\n");
     }
   });
 
-  process.stdin.on('end', () => process.exit(0));
+  process.stdin.on("end", () => process.exit(0));
 }
 
 module.exports = { createServer };

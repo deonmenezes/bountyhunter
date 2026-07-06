@@ -1,55 +1,82 @@
 #!/usr/bin/env node
-'use strict';
+"use strict";
 
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const { createServer } = require('../lib/mcp_stdio.js');
-const { runCommand, notFoundMessage } = require('../lib/run_tool.js');
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const { createServer } = require("../lib/mcp_stdio.js");
+const { runCommand, notFoundMessage } = require("../lib/run_tool.js");
 
 const CODEQL_NOT_FOUND = notFoundMessage(
-  'codeql',
-  'download the CodeQL CLI bundle from github.com/github/codeql-cli-binaries and put it on PATH'
+  "codeql",
+  "download the CodeQL CLI bundle from github.com/github/codeql-cli-binaries and put it on PATH",
 );
 
-async function codeqlCreateDatabase({ source_root: sourceRoot, language, database_path: databasePath }) {
+async function codeqlCreateDatabase({
+  source_root: sourceRoot,
+  language,
+  database_path: databasePath,
+}) {
   if (!sourceRoot || !language || !databasePath) {
-    throw new Error('source_root, language, and database_path are required');
+    throw new Error("source_root, language, and database_path are required");
   }
 
   const result = await runCommand(
-    'codeql',
-    ['database', 'create', databasePath, `--language=${language}`, `--source-root=${sourceRoot}`, '--overwrite'],
-    { timeoutMs: 600_000 }
+    "codeql",
+    [
+      "database",
+      "create",
+      databasePath,
+      `--language=${language}`,
+      `--source-root=${sourceRoot}`,
+      "--overwrite",
+    ],
+    { timeoutMs: 600_000 },
   );
-  if (result.notFound) return { tool: 'codeql', available: false, message: CODEQL_NOT_FOUND };
+  if (result.notFound)
+    return { tool: "codeql", available: false, message: CODEQL_NOT_FOUND };
 
   return {
-    tool: 'codeql',
+    tool: "codeql",
     available: true,
-    step: 'create_database',
+    step: "create_database",
     ok: result.code === 0,
     database_path: databasePath,
     stderr: result.code === 0 ? undefined : result.stderr.slice(0, 4000),
   };
 }
 
-async function codeqlAnalyze({ database_path: databasePath, query_suite: querySuite = 'security-extended' }) {
-  if (!databasePath) throw new Error('database_path is required');
+async function codeqlAnalyze({
+  database_path: databasePath,
+  query_suite: querySuite = "security-extended",
+}) {
+  if (!databasePath) throw new Error("database_path is required");
 
-  const outputPath = path.join(os.tmpdir(), `mantis-codeql-${process.pid}-${Date.now()}.sarif`);
-  const result = await runCommand(
-    'codeql',
-    ['database', 'analyze', databasePath, querySuite, '--format=sarifv2.1.0', `--output=${outputPath}`, '--download'],
-    { timeoutMs: 900_000 }
+  const outputPath = path.join(
+    os.tmpdir(),
+    `mantis-codeql-${process.pid}-${Date.now()}.sarif`,
   );
-  if (result.notFound) return { tool: 'codeql', available: false, message: CODEQL_NOT_FOUND };
+  const result = await runCommand(
+    "codeql",
+    [
+      "database",
+      "analyze",
+      databasePath,
+      querySuite,
+      "--format=sarifv2.1.0",
+      `--output=${outputPath}`,
+      "--download",
+    ],
+    { timeoutMs: 900_000 },
+  );
+  if (result.notFound)
+    return { tool: "codeql", available: false, message: CODEQL_NOT_FOUND };
 
   if (result.code !== 0 || !fs.existsSync(outputPath)) {
     return {
-      tool: 'codeql',
+      tool: "codeql",
       available: true,
-      step: 'analyze',
+      step: "analyze",
       ok: false,
       error: `codeql database analyze exited ${result.code}`,
       stderr: result.stderr.slice(0, 4000),
@@ -58,7 +85,7 @@ async function codeqlAnalyze({ database_path: databasePath, query_suite: querySu
 
   let sarif;
   try {
-    sarif = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
+    sarif = JSON.parse(fs.readFileSync(outputPath, "utf8"));
   } finally {
     fs.rmSync(outputPath, { force: true });
   }
@@ -66,10 +93,13 @@ async function codeqlAnalyze({ database_path: databasePath, query_suite: querySu
   const findings = [];
   for (const run of sarif.runs || []) {
     for (const result_ of run.results || []) {
-      const loc = result_.locations && result_.locations[0] && result_.locations[0].physicalLocation;
+      const loc =
+        result_.locations &&
+        result_.locations[0] &&
+        result_.locations[0].physicalLocation;
       findings.push({
         rule_id: result_.ruleId,
-        level: result_.level || 'warning',
+        level: result_.level || "warning",
         message: result_.message && result_.message.text,
         path: loc && loc.artifactLocation && loc.artifactLocation.uri,
         start_line: loc && loc.region && loc.region.startLine,
@@ -77,41 +107,65 @@ async function codeqlAnalyze({ database_path: databasePath, query_suite: querySu
     }
   }
 
-  return { tool: 'codeql', available: true, step: 'analyze', ok: true, candidate_count: findings.length, findings };
+  return {
+    tool: "codeql",
+    available: true,
+    step: "analyze",
+    ok: true,
+    candidate_count: findings.length,
+    findings,
+  };
 }
 
 createServer({
-  name: 'mantis-codeql',
-  version: '0.1.0',
+  name: "mantis-codeql",
+  version: "0.1.0",
   tools: [
     {
-      name: 'codeql_create_database',
-      description: 'Build a CodeQL database from a source tree (required once before codeql_analyze).',
+      name: "codeql_create_database",
+      description:
+        "Build a CodeQL database from a source tree (required once before codeql_analyze).",
       inputSchema: {
-        type: 'object',
+        type: "object",
         properties: {
-          source_root: { type: 'string', description: 'Read-only path to the source tree to index.' },
-          language: { type: 'string', description: 'CodeQL language id, e.g. javascript, python, go, java.' },
-          database_path: { type: 'string', description: 'Output path for the CodeQL database (will be created/overwritten).' },
+          source_root: {
+            type: "string",
+            description: "Read-only path to the source tree to index.",
+          },
+          language: {
+            type: "string",
+            description:
+              "CodeQL language id, e.g. javascript, python, go, java.",
+          },
+          database_path: {
+            type: "string",
+            description:
+              "Output path for the CodeQL database (will be created/overwritten).",
+          },
         },
-        required: ['source_root', 'language', 'database_path'],
+        required: ["source_root", "language", "database_path"],
       },
       handler: codeqlCreateDatabase,
     },
     {
-      name: 'codeql_analyze',
+      name: "codeql_analyze",
       description:
-        'Run CodeQL query-suite analysis (default security-extended) against a database built by codeql_create_database. Emits `candidate` SAST findings with dataflow-backed rule IDs.',
+        "Run CodeQL query-suite analysis (default security-extended) against a database built by codeql_create_database. Emits `candidate` SAST findings with dataflow-backed rule IDs.",
       inputSchema: {
-        type: 'object',
+        type: "object",
         properties: {
-          database_path: { type: 'string', description: 'Path to a database produced by codeql_create_database.' },
+          database_path: {
+            type: "string",
+            description:
+              "Path to a database produced by codeql_create_database.",
+          },
           query_suite: {
-            type: 'string',
-            description: 'CodeQL query suite name or path, e.g. "security-extended" or "security-and-quality". Defaults to security-extended.',
+            type: "string",
+            description:
+              'CodeQL query suite name or path, e.g. "security-extended" or "security-and-quality". Defaults to security-extended.',
           },
         },
-        required: ['database_path'],
+        required: ["database_path"],
       },
       handler: codeqlAnalyze,
     },

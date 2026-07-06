@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-'use strict';
+"use strict";
 
-const fs = require('node:fs');
-const path = require('node:path');
-const crypto = require('node:crypto');
-const { createServer } = require('../lib/mcp_stdio.js');
+const fs = require("node:fs");
+const path = require("node:path");
+const crypto = require("node:crypto");
+const { createServer } = require("../lib/mcp_stdio.js");
 
 /**
  * Mantis findings service -- the tool-owned findings spine (PRD section 9,
@@ -19,23 +19,23 @@ const { createServer } = require('../lib/mcp_stdio.js');
  * run is reconstructable (NFR-9). Zero external dependencies.
  */
 
-const DATA_DIR = path.join(__dirname, '..', '..', 'findings');
-const EVENT_LOG = path.join(DATA_DIR, 'events.jsonl');
+const DATA_DIR = path.join(__dirname, "..", "..", "findings");
+const EVENT_LOG = path.join(DATA_DIR, "events.jsonl");
 
 // Lifecycle: candidate -> confirmed|rejected -> exploited -> fixed -> verified
 // (PRD section 5). `rejected` is terminal for that finding id. Detect is
 // generous; Validate is ruthless.
 const STATUS_TRANSITIONS = {
-  candidate: ['confirmed', 'rejected'],
-  confirmed: ['exploited', 'fixed', 'rejected'],
-  exploited: ['fixed', 'rejected'],
-  fixed: ['verified', 'rejected'],
+  candidate: ["confirmed", "rejected"],
+  confirmed: ["exploited", "fixed", "rejected"],
+  exploited: ["fixed", "rejected"],
+  fixed: ["verified", "rejected"],
   verified: [],
   rejected: [],
 };
 
 const VALID_STATUSES = Object.keys(STATUS_TRANSITIONS);
-const VALID_SEVERITIES = ['info', 'low', 'medium', 'high', 'critical'];
+const VALID_SEVERITIES = ["info", "low", "medium", "high", "critical"];
 
 // Cheap secret-shaped-string guard so raw credentials never land in a finding
 // or evidence blob (PRD section 9 "never raw secrets/tokens/cookies/full
@@ -57,11 +57,11 @@ function nowIso() {
 }
 
 function newId() {
-  return `MANTIS-${crypto.randomBytes(5).toString('hex')}`;
+  return `MANTIS-${crypto.randomBytes(5).toString("hex")}`;
 }
 
 function scanForSecrets(value) {
-  const hay = typeof value === 'string' ? value : JSON.stringify(value ?? '');
+  const hay = typeof value === "string" ? value : JSON.stringify(value ?? "");
   return SECRET_PATTERNS.some((re) => re.test(hay));
 }
 
@@ -75,7 +75,7 @@ function appendEvent(event) {
 function loadState() {
   const findings = new Map();
   if (!fs.existsSync(EVENT_LOG)) return findings;
-  const lines = fs.readFileSync(EVENT_LOG, 'utf8').split('\n');
+  const lines = fs.readFileSync(EVENT_LOG, "utf8").split("\n");
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
@@ -85,9 +85,9 @@ function loadState() {
     } catch {
       continue; // Skip a corrupt line rather than losing the whole log.
     }
-    if (event.kind === 'create') {
+    if (event.kind === "create") {
       findings.set(event.finding.id, event.finding);
-    } else if (event.kind === 'update') {
+    } else if (event.kind === "update") {
       const existing = findings.get(event.id);
       if (!existing) continue;
       const merged = { ...existing, ...event.changes };
@@ -107,9 +107,9 @@ function gradeToDisposition(grade) {
     (grade.severity_accuracy || 0) +
     (grade.chain || 0) +
     (grade.report_quality || 0);
-  let disposition = 'SKIP';
-  if (total >= 40) disposition = 'SUBMIT';
-  else if (total >= 20) disposition = 'HOLD';
+  let disposition = "SKIP";
+  if (total >= 40) disposition = "SUBMIT";
+  else if (total >= 20) disposition = "HOLD";
   return { total, disposition };
 }
 
@@ -127,15 +127,21 @@ function findingCreate(args) {
     reasoning_trace_ref,
   } = args;
 
-  if (!vuln_class) throw new Error('vuln_class is required (e.g. "sql-injection", "idor", "ssrf")');
-  if (!claim) throw new Error('claim is required: one sentence describing the suspected weakness');
+  if (!vuln_class)
+    throw new Error(
+      'vuln_class is required (e.g. "sql-injection", "idor", "ssrf")',
+    );
+  if (!claim)
+    throw new Error(
+      "claim is required: one sentence describing the suspected weakness",
+    );
   if (severity && !VALID_SEVERITIES.includes(severity)) {
-    throw new Error(`severity must be one of ${VALID_SEVERITIES.join(', ')}`);
+    throw new Error(`severity must be one of ${VALID_SEVERITIES.join(", ")}`);
   }
   if (scanForSecrets(args)) {
     throw new Error(
-      'Refused: this finding payload looks like it contains a raw secret/token/key. ' +
-        'Store a redacted reference or hash instead -- never the raw credential (PRD section 9/11).',
+      "Refused: this finding payload looks like it contains a raw secret/token/key. " +
+        "Store a redacted reference or hash instead -- never the raw credential (PRD section 9/11).",
     );
   }
 
@@ -147,7 +153,7 @@ function findingCreate(args) {
     target: target || null,
     vuln_class,
     cwe: cwe || null,
-    status: 'candidate',
+    status: "candidate",
     severity: severity || null,
     location: location || null,
     claim,
@@ -163,20 +169,31 @@ function findingCreate(args) {
     last_seen_run: run || null,
     created_at: nowIso(),
     updated_at: nowIso(),
-    history: [{ at: nowIso(), status: 'candidate', note: 'created' }],
+    history: [{ at: nowIso(), status: "candidate", note: "created" }],
   };
 
-  appendEvent({ kind: 'create', at: nowIso(), finding });
-  return { ok: true, id, status: 'candidate', finding };
+  appendEvent({ kind: "create", at: nowIso(), finding });
+  return { ok: true, id, status: "candidate", finding };
 }
 
 function findingUpdate(args) {
-  const { id, status, severity, evidence, poc, patch, grade, rejected_reason, note, run } = args;
-  if (!id) throw new Error('id is required');
+  const {
+    id,
+    status,
+    severity,
+    evidence,
+    poc,
+    patch,
+    grade,
+    rejected_reason,
+    note,
+    run,
+  } = args;
+  if (!id) throw new Error("id is required");
   if (scanForSecrets(args)) {
     throw new Error(
-      'Refused: this update payload looks like it contains a raw secret/token/key. ' +
-        'Store a redacted reference or hash instead (PRD section 9/11).',
+      "Refused: this update payload looks like it contains a raw secret/token/key. " +
+        "Store a redacted reference or hash instead (PRD section 9/11).",
     );
   }
 
@@ -191,16 +208,16 @@ function findingUpdate(args) {
     if (!allowed.includes(status)) {
       throw new Error(
         `Illegal transition ${existing.status} -> ${status}. ` +
-          `Allowed from ${existing.status}: ${allowed.length ? allowed.join(', ') : '(terminal, none)'}.`,
+          `Allowed from ${existing.status}: ${allowed.length ? allowed.join(", ") : "(terminal, none)"}.`,
       );
     }
-    if (status === 'rejected' && !rejected_reason) {
+    if (status === "rejected" && !rejected_reason) {
       throw new Error(
-        'Rejecting a finding requires rejected_reason citing the SPECIFIC roadblock ' +
+        "Rejecting a finding requires rejected_reason citing the SPECIFIC roadblock " +
           '(auth gate, sanitizer at sink, unreachable path, self-only harm, ...), not "seems safe" (PRD section 8).',
       );
     }
-    if (status === 'confirmed') {
+    if (status === "confirmed") {
       const hasReach =
         args.reachability_note ||
         existing.reasoning_trace_ref ||
@@ -208,18 +225,18 @@ function findingUpdate(args) {
         (Array.isArray(evidence) && evidence.length > 0);
       if (!hasReach) {
         throw new Error(
-          'Confirming a finding requires reachability/attack-simulation evidence: pass ' +
-            'reachability_note or attach evidence first (PRD FR-6.1/6.3). No proof -> no confirm.',
+          "Confirming a finding requires reachability/attack-simulation evidence: pass " +
+            "reachability_note or attach evidence first (PRD FR-6.1/6.3). No proof -> no confirm.",
         );
       }
     }
     changes.status = status;
-    if (status === 'rejected') changes.rejected_reason = rejected_reason;
+    if (status === "rejected") changes.rejected_reason = rejected_reason;
   }
 
   if (severity) {
     if (!VALID_SEVERITIES.includes(severity)) {
-      throw new Error(`severity must be one of ${VALID_SEVERITIES.join(', ')}`);
+      throw new Error(`severity must be one of ${VALID_SEVERITIES.join(", ")}`);
     }
     changes.severity = severity;
   }
@@ -239,18 +256,35 @@ function findingUpdate(args) {
   const historyEntry = {
     at: nowIso(),
     status: changes.status || existing.status,
-    note: note || (changes.status ? `transition to ${changes.status}` : 'update'),
+    note:
+      note || (changes.status ? `transition to ${changes.status}` : "update"),
   };
 
-  appendEvent({ kind: 'update', at: nowIso(), id, changes, history_entry: historyEntry });
+  appendEvent({
+    kind: "update",
+    at: nowIso(),
+    id,
+    changes,
+    history_entry: historyEntry,
+  });
 
-  const merged = { ...existing, ...changes, history: [...(existing.history || []), historyEntry] };
-  return { ok: true, id, status: merged.status, disposition: merged.disposition || null, finding: merged };
+  const merged = {
+    ...existing,
+    ...changes,
+    history: [...(existing.history || []), historyEntry],
+  };
+  return {
+    ok: true,
+    id,
+    status: merged.status,
+    disposition: merged.disposition || null,
+    finding: merged,
+  };
 }
 
 function findingGet(args) {
   const { id } = args;
-  if (!id) throw new Error('id is required');
+  if (!id) throw new Error("id is required");
   const finding = loadState().get(id);
   if (!finding) throw new Error(`Unknown finding id: ${id}`);
   return finding;
@@ -262,18 +296,19 @@ function findingList(args = {}) {
   if (status) items = items.filter((f) => f.status === status);
   if (severity) items = items.filter((f) => f.severity === severity);
   if (vuln_class) items = items.filter((f) => f.vuln_class === vuln_class);
-  if (run) items = items.filter((f) => f.run === run || f.last_seen_run === run);
+  if (run)
+    items = items.filter((f) => f.run === run || f.last_seen_run === run);
 
   const by = (key) =>
     items.reduce((acc, f) => {
-      const k = f[key] || 'unknown';
+      const k = f[key] || "unknown";
       acc[k] = (acc[k] || 0) + 1;
       return acc;
     }, {});
 
   return {
     count: items.length,
-    summary: { by_status: by('status'), by_severity: by('severity') },
+    summary: { by_status: by("status"), by_severity: by("severity") },
     findings: items.map((f) => ({
       id: f.id,
       status: f.status,
@@ -287,92 +322,160 @@ function findingList(args = {}) {
 }
 
 createServer({
-  name: 'mantis-findings',
-  version: '0.1.0',
+  name: "mantis-findings",
+  version: "0.1.0",
   tools: [
     {
-      name: 'finding_create',
+      name: "finding_create",
       description:
-        'Register a new `candidate` finding in the tool-owned findings spine. Detect/recon stages call this; do NOT self-censor false positives here (that is Validate\'s job). Returns the assigned finding id. Never pass raw secrets -- store redacted references.',
+        "Register a new `candidate` finding in the tool-owned findings spine. Detect/recon stages call this; do NOT self-censor false positives here (that is Validate's job). Returns the assigned finding id. Never pass raw secrets -- store redacted references.",
       inputSchema: {
-        type: 'object',
+        type: "object",
         properties: {
-          vuln_class: { type: 'string', description: 'Vulnerability class, e.g. "sql-injection", "idor", "ssrf", "rce", "secret-exposure".' },
-          claim: { type: 'string', description: 'One sentence: the suspected weakness and why.' },
+          vuln_class: {
+            type: "string",
+            description:
+              'Vulnerability class, e.g. "sql-injection", "idor", "ssrf", "rce", "secret-exposure".',
+          },
+          claim: {
+            type: "string",
+            description: "One sentence: the suspected weakness and why.",
+          },
           location: {
-            type: 'object',
-            description: 'Where it lives.',
+            type: "object",
+            description: "Where it lives.",
             properties: {
-              file: { type: 'string' },
-              lines: { type: 'string', description: 'e.g. "42" or "42-58".' },
-              symbol: { type: 'string', description: 'Enclosing function/route/handler.' },
+              file: { type: "string" },
+              lines: { type: "string", description: 'e.g. "42" or "42-58".' },
+              symbol: {
+                type: "string",
+                description: "Enclosing function/route/handler.",
+              },
             },
           },
-          cwe: { type: 'string', description: 'CWE id if known, e.g. "CWE-89".' },
-          severity: { type: 'string', enum: VALID_SEVERITIES, description: 'Provisional severity; final severity = demonstrated outcome.' },
-          attack_vector: { type: 'string', description: 'How an attacker would reach/trigger it.' },
-          evidence: { type: 'array', items: { type: 'object' }, description: 'Bounded evidence refs (hashes, redacted samples, file:line refs). Never raw secrets/bodies.' },
-          reasoning_trace_ref: { type: 'string', description: 'Reference to the reasoning trace for this candidate.' },
-          run: { type: 'string', description: 'Run id, for cross-run dedup/first-last-seen.' },
-          target: { type: 'string', description: 'Target id/name.' },
+          cwe: {
+            type: "string",
+            description: 'CWE id if known, e.g. "CWE-89".',
+          },
+          severity: {
+            type: "string",
+            enum: VALID_SEVERITIES,
+            description:
+              "Provisional severity; final severity = demonstrated outcome.",
+          },
+          attack_vector: {
+            type: "string",
+            description: "How an attacker would reach/trigger it.",
+          },
+          evidence: {
+            type: "array",
+            items: { type: "object" },
+            description:
+              "Bounded evidence refs (hashes, redacted samples, file:line refs). Never raw secrets/bodies.",
+          },
+          reasoning_trace_ref: {
+            type: "string",
+            description: "Reference to the reasoning trace for this candidate.",
+          },
+          run: {
+            type: "string",
+            description: "Run id, for cross-run dedup/first-last-seen.",
+          },
+          target: { type: "string", description: "Target id/name." },
         },
-        required: ['vuln_class', 'claim'],
+        required: ["vuln_class", "claim"],
       },
       handler: findingCreate,
     },
     {
-      name: 'finding_update',
+      name: "finding_update",
       description:
-        'Advance a finding through its lifecycle (candidate -> confirmed|rejected -> exploited -> fixed -> verified) or attach evidence/poc/patch/grade. Confirming requires reachability/attack-sim evidence; rejecting requires a cited roadblock. Enforces legal transitions and grading (SUBMIT/HOLD/SKIP).',
+        "Advance a finding through its lifecycle (candidate -> confirmed|rejected -> exploited -> fixed -> verified) or attach evidence/poc/patch/grade. Confirming requires reachability/attack-sim evidence; rejecting requires a cited roadblock. Enforces legal transitions and grading (SUBMIT/HOLD/SKIP).",
       inputSchema: {
-        type: 'object',
+        type: "object",
         properties: {
-          id: { type: 'string', description: 'Finding id from finding_create.' },
-          status: { type: 'string', enum: VALID_STATUSES, description: 'Target lifecycle status.' },
-          severity: { type: 'string', enum: VALID_SEVERITIES },
-          reachability_note: { type: 'string', description: 'Required to move to `confirmed` if no evidence/trace is attached yet: how attacker input provably reaches the sink.' },
-          rejected_reason: { type: 'string', description: 'Required to move to `rejected`: the SPECIFIC roadblock that kills exploitability.' },
-          evidence: { type: 'array', items: { type: 'object' }, description: 'Additional bounded evidence refs to append.' },
-          poc: { type: 'object', description: 'PoC descriptor {kind, ref, reproduced}. Gated exploit stage only.' },
-          patch: { type: 'object', description: 'Patch descriptor {diff_ref, regression_checked, pr_url}.' },
+          id: {
+            type: "string",
+            description: "Finding id from finding_create.",
+          },
+          status: {
+            type: "string",
+            enum: VALID_STATUSES,
+            description: "Target lifecycle status.",
+          },
+          severity: { type: "string", enum: VALID_SEVERITIES },
+          reachability_note: {
+            type: "string",
+            description:
+              "Required to move to `confirmed` if no evidence/trace is attached yet: how attacker input provably reaches the sink.",
+          },
+          rejected_reason: {
+            type: "string",
+            description:
+              "Required to move to `rejected`: the SPECIFIC roadblock that kills exploitability.",
+          },
+          evidence: {
+            type: "array",
+            items: { type: "object" },
+            description: "Additional bounded evidence refs to append.",
+          },
+          poc: {
+            type: "object",
+            description:
+              "PoC descriptor {kind, ref, reproduced}. Gated exploit stage only.",
+          },
+          patch: {
+            type: "object",
+            description:
+              "Patch descriptor {diff_ref, regression_checked, pr_url}.",
+          },
           grade: {
-            type: 'object',
-            description: '5-axis grade; total + disposition (SUBMIT>=40 / HOLD 20-39 / SKIP<20) are computed for you.',
+            type: "object",
+            description:
+              "5-axis grade; total + disposition (SUBMIT>=40 / HOLD 20-39 / SKIP<20) are computed for you.",
             properties: {
-              impact: { type: 'number', description: '0-30' },
-              proof: { type: 'number', description: '0-25' },
-              severity_accuracy: { type: 'number', description: '0-15' },
-              chain: { type: 'number', description: '0-15' },
-              report_quality: { type: 'number', description: '0-15' },
+              impact: { type: "number", description: "0-30" },
+              proof: { type: "number", description: "0-25" },
+              severity_accuracy: { type: "number", description: "0-15" },
+              chain: { type: "number", description: "0-15" },
+              report_quality: { type: "number", description: "0-15" },
             },
           },
-          note: { type: 'string', description: 'Free-text history note for this transition.' },
-          run: { type: 'string', description: 'Run id (updates last_seen_run).' },
+          note: {
+            type: "string",
+            description: "Free-text history note for this transition.",
+          },
+          run: {
+            type: "string",
+            description: "Run id (updates last_seen_run).",
+          },
         },
-        required: ['id'],
+        required: ["id"],
       },
       handler: findingUpdate,
     },
     {
-      name: 'finding_get',
-      description: 'Fetch the full current state + history of one finding by id.',
+      name: "finding_get",
+      description:
+        "Fetch the full current state + history of one finding by id.",
       inputSchema: {
-        type: 'object',
-        properties: { id: { type: 'string' } },
-        required: ['id'],
+        type: "object",
+        properties: { id: { type: "string" } },
+        required: ["id"],
       },
       handler: findingGet,
     },
     {
-      name: 'finding_list',
-      description: 'List/triage findings with optional filters, plus a by-status/by-severity summary. Use this to see the current run\'s queue before reporting.',
+      name: "finding_list",
+      description:
+        "List/triage findings with optional filters, plus a by-status/by-severity summary. Use this to see the current run's queue before reporting.",
       inputSchema: {
-        type: 'object',
+        type: "object",
         properties: {
-          status: { type: 'string', enum: VALID_STATUSES },
-          severity: { type: 'string', enum: VALID_SEVERITIES },
-          vuln_class: { type: 'string' },
-          run: { type: 'string' },
+          status: { type: "string", enum: VALID_STATUSES },
+          severity: { type: "string", enum: VALID_SEVERITIES },
+          vuln_class: { type: "string" },
+          run: { type: "string" },
         },
       },
       handler: findingList,

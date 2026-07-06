@@ -1,21 +1,28 @@
 #!/usr/bin/env node
-'use strict';
+"use strict";
 
-const { createServer } = require('../lib/mcp_stdio.js');
-const { runCommand, notFoundMessage } = require('../lib/run_tool.js');
+const { createServer } = require("../lib/mcp_stdio.js");
+const { runCommand, notFoundMessage } = require("../lib/run_tool.js");
 
-const SEVERITY_MAP = { ERROR: 'high', WARNING: 'medium', INFO: 'low' };
+const SEVERITY_MAP = { ERROR: "high", WARNING: "medium", INFO: "low" };
 
-async function semgrepScan({ path: targetPath, config = 'auto', rules }) {
-  if (!targetPath) throw new Error('path is required');
+async function semgrepScan({ path: targetPath, config = "auto", rules }) {
+  if (!targetPath) throw new Error("path is required");
 
-  const args = ['--json', '--quiet', '--metrics=off'];
-  args.push('--config', rules || config);
+  const args = ["--json", "--quiet", "--metrics=off"];
+  args.push("--config", rules || config);
   args.push(targetPath);
 
-  const result = await runCommand('semgrep', args, { timeoutMs: 300_000 });
+  const result = await runCommand("semgrep", args, { timeoutMs: 300_000 });
   if (result.notFound) {
-    return { tool: 'semgrep', available: false, message: notFoundMessage('semgrep', 'pip install semgrep, or brew install semgrep') };
+    return {
+      tool: "semgrep",
+      available: false,
+      message: notFoundMessage(
+        "semgrep",
+        "pip install semgrep, or brew install semgrep",
+      ),
+    };
   }
 
   let parsed;
@@ -23,7 +30,7 @@ async function semgrepScan({ path: targetPath, config = 'auto', rules }) {
     parsed = JSON.parse(result.stdout);
   } catch {
     return {
-      tool: 'semgrep',
+      tool: "semgrep",
       available: true,
       error: `semgrep exited ${result.code} and did not return parseable JSON`,
       stderr: result.stderr.slice(0, 4000),
@@ -35,13 +42,13 @@ async function semgrepScan({ path: targetPath, config = 'auto', rules }) {
     path: r.path,
     start_line: r.start && r.start.line,
     end_line: r.end && r.end.line,
-    severity: SEVERITY_MAP[r.extra && r.extra.severity] || 'medium',
+    severity: SEVERITY_MAP[r.extra && r.extra.severity] || "medium",
     message: r.extra && r.extra.message,
     cwe: r.extra && r.extra.metadata && r.extra.metadata.cwe,
   }));
 
   return {
-    tool: 'semgrep',
+    tool: "semgrep",
     available: true,
     candidate_count: findings.length,
     findings,
@@ -50,24 +57,31 @@ async function semgrepScan({ path: targetPath, config = 'auto', rules }) {
 }
 
 createServer({
-  name: 'mantis-semgrep',
-  version: '0.1.0',
+  name: "mantis-semgrep",
+  version: "0.1.0",
   tools: [
     {
-      name: 'semgrep_scan',
+      name: "semgrep_scan",
       description:
-        'High-recall SAST scan with semgrep. Emits `candidate` findings for the Detect stage -- do not self-censor false positives here, that is the Validate stage\'s job.',
+        "High-recall SAST scan with semgrep. Emits `candidate` findings for the Detect stage -- do not self-censor false positives here, that is the Validate stage's job.",
       inputSchema: {
-        type: 'object',
+        type: "object",
         properties: {
-          path: { type: 'string', description: 'File or directory to scan (read-only).' },
-          config: {
-            type: 'string',
-            description: 'Semgrep --config value, e.g. "auto", "p/owasp-top-ten", or a local ruleset path. Defaults to "auto".',
+          path: {
+            type: "string",
+            description: "File or directory to scan (read-only).",
           },
-          rules: { type: 'string', description: 'Alias for config; takes precedence if set.' },
+          config: {
+            type: "string",
+            description:
+              'Semgrep --config value, e.g. "auto", "p/owasp-top-ten", or a local ruleset path. Defaults to "auto".',
+          },
+          rules: {
+            type: "string",
+            description: "Alias for config; takes precedence if set.",
+          },
         },
-        required: ['path'],
+        required: ["path"],
       },
       handler: semgrepScan,
     },

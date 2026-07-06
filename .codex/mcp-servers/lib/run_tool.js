@@ -1,6 +1,6 @@
-'use strict';
+"use strict";
 
-const { spawn } = require('node:child_process');
+const { spawn } = require("node:child_process");
 
 /**
  * Runs an external CLI tool and captures stdout/stderr/exit code.
@@ -11,32 +11,44 @@ const { spawn } = require('node:child_process');
 function runCommand(command, args, { cwd, input, timeoutMs = 120_000 } = {}) {
   return new Promise((resolve) => {
     const child = spawn(command, args, { cwd });
-    let stdout = '';
-    let stderr = '';
+    let stdout = "";
+    let stderr = "";
     let timedOut = false;
 
     const timer = setTimeout(() => {
       timedOut = true;
-      child.kill('SIGKILL');
+      child.kill("SIGKILL");
     }, timeoutMs);
 
-    child.on('error', (err) => {
+    child.on("error", (err) => {
       clearTimeout(timer);
-      if (err.code === 'ENOENT') {
-        resolve({ notFound: true, command, stdout: '', stderr: '', code: null });
+      if (err.code === "ENOENT") {
+        resolve({
+          notFound: true,
+          command,
+          stdout: "",
+          stderr: "",
+          code: null,
+        });
       } else {
-        resolve({ notFound: false, command, stdout: '', stderr: String(err), code: null });
+        resolve({
+          notFound: false,
+          command,
+          stdout: "",
+          stderr: String(err),
+          code: null,
+        });
       }
     });
 
-    child.stdout.on('data', (chunk) => {
+    child.stdout.on("data", (chunk) => {
       stdout += chunk;
     });
-    child.stderr.on('data', (chunk) => {
+    child.stderr.on("data", (chunk) => {
       stderr += chunk;
     });
 
-    child.on('close', (code) => {
+    child.on("close", (code) => {
       clearTimeout(timer);
       resolve({ notFound: false, command, stdout, stderr, code, timedOut });
     });
