@@ -1,9 +1,10 @@
 {
-  "name": "@openai/codex",
+  "name": "mantishack",
   "version": "0.0.0-dev",
-  "description": "Codex CLI is a coding agent from OpenAI that runs locally on your computer.",
+  "description": "Mantis AI is an authorized vulnerability-discovery agent (Codex CLI, rebranded) that runs locally on your computer.",
   "license": "Apache-2.0",
   "bin": {
+    "mantis": "bin/codex.js",
     "codex": "bin/codex.js"
   },
   "type": "module",
@@ -15,7 +16,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/openai/codex.git",
+    "url": "git+https://github.com/deonmenezes/mantishack.git",
     "directory": "codex-cli"
   },
   "packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319"
