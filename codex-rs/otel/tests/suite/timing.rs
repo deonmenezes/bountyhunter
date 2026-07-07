@@ -44,7 +44,7 @@ fn record_duration_seconds_uses_fractional_seconds_and_scaled_buckets() -> Resul
     ] {
         metrics.record_duration_seconds_with_description(
             "codex.request_duration_seconds",
-            "Duration of Codex requests in seconds.",
+            "Duration of Mantis requests in seconds.",
             duration,
             &[("method", "initialize")],
         )?;
@@ -71,7 +71,7 @@ fn record_duration_seconds_uses_fractional_seconds_and_scaled_buckets() -> Resul
     assert_eq!(metric.unit(), "s");
     assert_eq!(
         metric.description(),
-        "Duration of Codex requests in seconds."
+        "Duration of Mantis requests in seconds."
     );
 
     Ok(())

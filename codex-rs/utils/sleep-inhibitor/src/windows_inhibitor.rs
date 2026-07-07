@@ -14,7 +14,7 @@ use windows_sys::Win32::System::Threading::POWER_REQUEST_CONTEXT_SIMPLE_STRING;
 use windows_sys::Win32::System::Threading::REASON_CONTEXT;
 use windows_sys::Win32::System::Threading::REASON_CONTEXT_0;
 
-const ASSERTION_REASON: &str = "Codex is running an active turn";
+const ASSERTION_REASON: &str = "Mantis is running an active turn";
 
 #[derive(Debug, Default)]
 pub(crate) struct WindowsSleepInhibitor {

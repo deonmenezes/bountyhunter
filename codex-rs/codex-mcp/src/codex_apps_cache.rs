@@ -267,7 +267,7 @@ fn write_cached_codex_apps_tools(
         schema_version: CODEX_APPS_TOOLS_CACHE_SCHEMA_VERSION,
         tools: tools.to_vec(),
     })
-    .context("failed to serialize Codex Apps tools cache")?;
+    .context("failed to serialize Mantis Apps tools cache")?;
     write_codex_apps_cache_file(&cache_path, "tools", bytes)
 }
 
@@ -290,7 +290,7 @@ fn write_cached_codex_apps_server_info(
         schema_version: CODEX_APPS_SERVER_INFO_CACHE_SCHEMA_VERSION,
         server_info: server_info.clone(),
     })
-    .context("failed to serialize Codex Apps server info cache")?;
+    .context("failed to serialize Mantis Apps server info cache")?;
     write_codex_apps_cache_file(&cache_path, "server info", bytes)
 }
 
@@ -302,14 +302,14 @@ fn write_codex_apps_cache_file(
     if let Some(parent) = cache_path.parent() {
         std::fs::create_dir_all(parent).with_context(|| {
             format!(
-                "failed to create Codex Apps {cache_name} cache directory `{}`",
+                "failed to create Mantis Apps {cache_name} cache directory `{}`",
                 parent.display()
             )
         })?;
     }
     std::fs::write(cache_path, bytes).with_context(|| {
         format!(
-            "failed to write Codex Apps {cache_name} cache `{}`",
+            "failed to write Mantis Apps {cache_name} cache `{}`",
             cache_path.display()
         )
     })?;
@@ -324,11 +324,11 @@ fn persist_codex_apps_cache(
     let cache_write_start = Instant::now();
     let tools_result = write_cached_codex_apps_tools(cache_context, tools);
     if let Err(err) = &tools_result {
-        tracing::warn!("failed to write Codex Apps tools cache: {err:#}");
+        tracing::warn!("failed to write Mantis Apps tools cache: {err:#}");
     }
     let server_info_result = write_cached_codex_apps_server_info(cache_context, server_info);
     if let Err(err) = &server_info_result {
-        tracing::warn!("failed to write Codex Apps server info cache: {err:#}");
+        tracing::warn!("failed to write Mantis Apps server info cache: {err:#}");
     }
     let status = if tools_result.is_ok() && server_info_result.is_ok() {
         "success"

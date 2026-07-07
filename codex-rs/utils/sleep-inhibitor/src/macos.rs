@@ -20,7 +20,7 @@ type IOPMAssertionID = iokit::IOPMAssertionID;
 type IOPMAssertionLevel = iokit::IOPMAssertionLevel;
 type IOReturn = iokit::IOReturn;
 
-const ASSERTION_REASON: &str = "Codex is running an active turn";
+const ASSERTION_REASON: &str = "Mantis is running an active turn";
 // Apple exposes this assertion type as a `CFSTR(...)` macro, so bindgen cannot generate a
 // reusable `CFStringRef` constant for it.
 const ASSERTION_TYPE_PREVENT_USER_IDLE_SYSTEM_SLEEP: &str = "PreventUserIdleSystemSleep";

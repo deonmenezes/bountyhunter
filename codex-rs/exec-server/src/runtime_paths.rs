@@ -5,10 +5,10 @@ use codex_utils_absolute_path::AbsolutePathBuf;
 /// Runtime paths needed by exec-server child processes.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExecServerRuntimePaths {
-    /// Stable path to the Codex executable used to launch hidden helper modes.
+    /// Stable path to the Mantis executable used to launch hidden helper modes.
     pub codex_self_exe: AbsolutePathBuf,
     /// Path to the Linux sandbox helper alias used when the platform sandbox
-    /// needs to re-enter Codex by argv0.
+    /// needs to re-enter Mantis by argv0.
     pub codex_linux_sandbox_exe: Option<AbsolutePathBuf>,
 }
 
@@ -20,7 +20,7 @@ impl ExecServerRuntimePaths {
         let codex_self_exe = codex_self_exe.ok_or_else(|| {
             std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
-                "Codex executable path is not configured",
+                "Mantis executable path is not configured",
             )
         })?;
         Self::new(codex_self_exe, codex_linux_sandbox_exe)

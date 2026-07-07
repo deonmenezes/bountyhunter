@@ -49,7 +49,7 @@ where
     fn spec(&self) -> ToolSpec {
         memory_function_tool::<ReadArgs, ReadMemoryResponse>(
             READ_TOOL_NAME,
-            "Read a Codex memory file by relative path, optionally starting at a 1-indexed line offset and limiting the number of lines returned.",
+            "Read a Mantis memory file by relative path, optionally starting at a 1-indexed line offset and limiting the number of lines returned.",
         )
     }
 

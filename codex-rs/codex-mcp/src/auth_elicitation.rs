@@ -208,7 +208,7 @@ fn auth_elicitation_message(auth_failure: &CodexAppsConnectorAuthFailure) -> Str
             auth_failure.connector_name
         ),
         Some("missing_link") => format!(
-            "Sign in to {} on ChatGPT to use it in Codex.",
+            "Sign in to {} on ChatGPT to use it in Mantis.",
             auth_failure.connector_name
         ),
         _ => format!(

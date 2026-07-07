@@ -74,7 +74,7 @@ use tracing::Instrument;
 use tracing::instrument;
 use tracing::warn;
 
-/// MCP server capability indicating that Codex should include [`SandboxState`]
+/// MCP server capability indicating that Mantis should include [`SandboxState`]
 /// in tool-call request `_meta` under this key.
 pub const MCP_SANDBOX_STATE_META_CAPABILITY: &str = "codex/sandbox-state-meta";
 pub const OPENAI_FORM_CAPABILITY: &str = "openai/form";
@@ -883,7 +883,7 @@ fn mcp_initialize_request_params(
     }
     InitializeRequestParams::new(
         capabilities,
-        Implementation::new("codex-mcp-client", env!("CARGO_PKG_VERSION")).with_title("Codex"),
+        Implementation::new("codex-mcp-client", env!("CARGO_PKG_VERSION")).with_title("Mantis"),
     )
     .with_protocol_version(ProtocolVersion::V_2025_06_18)
 }
