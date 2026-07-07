@@ -218,9 +218,17 @@ function findingUpdate(args) {
       );
     }
     if (status === "confirmed") {
+      // NOTE: `reasoning_trace_ref` is deliberately excluded here. It is set
+      // at `finding_create` time as a pointer to the *detection* reasoning
+      // (why this candidate was flagged), not proof that attacker input
+      // reaches the sink. Since the detector attaches it to most/all
+      // candidates, treating it as reachability evidence let almost any
+      // finding satisfy this gate on its first confirm attempt, defeating
+      // the "no confirmed without reachability evidence" invariant (PRD
+      // section 5/8, findings-spine skill: only `reachability_note` or
+      // attached `evidence` count).
       const hasReach =
         args.reachability_note ||
-        existing.reasoning_trace_ref ||
         (Array.isArray(existing.evidence) && existing.evidence.length > 0) ||
         (Array.isArray(evidence) && evidence.length > 0);
       if (!hasReach) {
