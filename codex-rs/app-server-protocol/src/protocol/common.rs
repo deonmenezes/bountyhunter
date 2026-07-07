@@ -19,9 +19,9 @@ use ts_rs::TS;
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Display, JsonSchema, TS)]
 #[serde(rename_all = "lowercase")]
 pub enum AuthMode {
-    /// OpenAI API key provided by the caller and stored by Codex.
+    /// OpenAI API key provided by the caller and stored by Mantis.
     ApiKey,
-    /// ChatGPT OAuth managed by Codex (tokens persisted and refreshed by Codex).
+    /// ChatGPT OAuth managed by Mantis (tokens persisted and refreshed by Mantis).
     Chatgpt,
     /// [UNSTABLE] FOR OPENAI INTERNAL USE ONLY - DO NOT USE.
     ///
@@ -31,17 +31,17 @@ pub enum AuthMode {
     #[ts(rename = "chatgptAuthTokens")]
     #[strum(serialize = "chatgptAuthTokens")]
     ChatgptAuthTokens,
-    /// Programmatic Codex auth backed by a registered Agent Identity.
+    /// Programmatic Mantis auth backed by a registered Agent Identity.
     #[serde(rename = "agentIdentity")]
     #[ts(rename = "agentIdentity")]
     #[strum(serialize = "agentIdentity")]
     AgentIdentity,
-    /// Programmatic Codex auth backed by a personal access token.
+    /// Programmatic Mantis auth backed by a personal access token.
     #[serde(rename = "personalAccessToken")]
     #[ts(rename = "personalAccessToken")]
     #[strum(serialize = "personalAccessToken")]
     PersonalAccessToken,
-    /// Amazon Bedrock bearer token managed by Codex.
+    /// Amazon Bedrock bearer token managed by Mantis.
     #[serde(rename = "bedrockApiKey")]
     #[ts(rename = "bedrockApiKey")]
     #[strum(serialize = "bedrockApiKey")]
@@ -57,7 +57,7 @@ impl AuthMode {
         }
     }
 
-    /// Returns whether this mode is backed by Codex services rather than a direct model API.
+    /// Returns whether this mode is backed by Mantis services rather than a direct model API.
     pub fn uses_codex_backend(self) -> bool {
         match self {
             Self::Chatgpt

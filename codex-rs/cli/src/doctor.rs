@@ -847,7 +847,7 @@ fn installation_check(show_details: bool) -> DoctorCheck {
                 status = status.max(CheckStatus::Warning);
                 summary = "npm-managed launch is missing package-root provenance".to_string();
                 remediation = Some(
-                    "Reinstall or update Codex so the JS shim provides CODEX_MANAGED_PACKAGE_ROOT."
+                    "Reinstall or update Mantis so the JS shim provides CODEX_MANAGED_PACKAGE_ROOT."
                         .to_string(),
                 );
             }

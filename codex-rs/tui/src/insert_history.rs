@@ -1,6 +1,6 @@
 //! Inserts finalized history rows into terminal scrollback.
 //!
-//! Codex uses the terminal scrollback itself for finalized chat history, so inserting a history
+//! Mantis uses the terminal scrollback itself for finalized chat history, so inserting a history
 //! cell is an escape-sequence operation rather than a normal ratatui render.
 
 use std::fmt;
@@ -48,7 +48,7 @@ pub enum HistoryLineWrapPolicy {
 /// Selects the terminal escape strategy used when writing history above the viewport.
 ///
 /// Raw lines intentionally remain unbroken so terminal selection copies their source faithfully.
-/// Zellij does not constrain soft-wrapped continuation rows to Codex's scroll region, so its raw
+/// Zellij does not constrain soft-wrapped continuation rows to Mantis's scroll region, so its raw
 /// path appends history through the terminal and reserves blank rows for the next viewport draw.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum InsertHistoryMode {
@@ -906,7 +906,7 @@ mod tests {
         assert!(
             rows.iter()
                 .any(|row| row.trim_end() == "alpha beta gamma del"),
-            "expected terminal soft-wrap instead of Codex word pre-wrap, rows: {rows:?}"
+            "expected terminal soft-wrap instead of Mantis word pre-wrap, rows: {rows:?}"
         );
     }
 

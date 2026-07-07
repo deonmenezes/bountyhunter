@@ -60,11 +60,11 @@ use filter_specs::ConditionSpec;
 use filter_specs::FILTER_SPECS;
 use filter_specs::FilterSpec;
 
-const SESSION_NAME: &str = "Codex Windows Sandbox WFP";
-const PROVIDER_NAME: &str = "Codex Windows Sandbox WFP";
-const PROVIDER_DESCRIPTION: &str = "Persistent WFP provider for Codex Windows sandbox filters";
-const SUBLAYER_NAME: &str = "Codex Windows Sandbox WFP";
-const SUBLAYER_DESCRIPTION: &str = "Persistent WFP sublayer for Codex Windows sandbox filters";
+const SESSION_NAME: &str = "Mantis Windows Sandbox WFP";
+const PROVIDER_NAME: &str = "Mantis Windows Sandbox WFP";
+const PROVIDER_DESCRIPTION: &str = "Persistent WFP provider for Mantis Windows sandbox filters";
+const SUBLAYER_NAME: &str = "Mantis Windows Sandbox WFP";
+const SUBLAYER_DESCRIPTION: &str = "Persistent WFP sublayer for Mantis Windows sandbox filters";
 
 // WFP identifies persistent providers, sublayers, and filters by stable GUIDs.
 // These values are Codex-owned identities; do not regenerate them unless we
@@ -72,7 +72,7 @@ const SUBLAYER_DESCRIPTION: &str = "Persistent WFP sublayer for Codex Windows sa
 const PROVIDER_KEY: GUID = GUID::from_u128(0x2e31d31c_3948_4753_9117_e5d1a6496f41);
 const SUBLAYER_KEY: GUID = GUID::from_u128(0xe65054fd_4d32_4c7c_95ef_621f0cf6431a);
 
-/// Installs the persistent Codex WFP filters for `account`.
+/// Installs the persistent Mantis WFP filters for `account`.
 ///
 /// This is intended to run from the already-elevated setup helper. Callers
 /// should treat any returned error as non-fatal to the rest of setup.
@@ -223,7 +223,7 @@ impl Drop for UserMatchCondition {
     }
 }
 
-/// Ensures the persistent Codex WFP provider exists.
+/// Ensures the persistent Mantis WFP provider exists.
 fn ensure_provider(engine: HANDLE) -> Result<()> {
     let provider_name = to_wide(OsStr::new(PROVIDER_NAME));
     let provider_description = to_wide(OsStr::new(PROVIDER_DESCRIPTION));
@@ -242,7 +242,7 @@ fn ensure_provider(engine: HANDLE) -> Result<()> {
     ensure_success_or(result, "FwpmProviderAdd0", &[FWP_E_ALREADY_EXISTS as u32])
 }
 
-/// Ensures the persistent Codex sublayer exists under the Codex provider.
+/// Ensures the persistent Mantis sublayer exists under the Mantis provider.
 fn ensure_sublayer(engine: HANDLE) -> Result<()> {
     let sublayer_name = to_wide(OsStr::new(SUBLAYER_NAME));
     let sublayer_description = to_wide(OsStr::new(SUBLAYER_DESCRIPTION));

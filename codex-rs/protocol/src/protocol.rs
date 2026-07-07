@@ -191,13 +191,13 @@ pub struct McpServerRefreshConfig {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConversationStartParams {
-    /// Whether Codex response handoffs are managed through explicit client append calls.
+    /// Whether Mantis response handoffs are managed through explicit client append calls.
     pub client_managed_handoffs: bool,
-    /// Sends automatic Codex responses as realtime conversation items instead of handoff appends.
+    /// Sends automatic Mantis responses as realtime conversation items instead of handoff appends.
     pub codex_responses_as_items: bool,
-    /// Optional prefix added to automatic Codex response items when `codex_responses_as_items` is set.
+    /// Optional prefix added to automatic Mantis response items when `codex_responses_as_items` is set.
     pub codex_response_item_prefix: Option<String>,
-    /// Optional prefix added to automatic V1 Codex commentary sent with
+    /// Optional prefix added to automatic V1 Mantis commentary sent with
     /// `conversation.handoff.append` when `codex_responses_as_items` is not set. Final answers are
     /// sent without the prefix.
     pub codex_response_handoff_prefix: Option<String>,
@@ -205,7 +205,7 @@ pub struct ConversationStartParams {
     pub model: Option<String>,
     /// Selects whether the realtime session should produce text or audio output.
     pub output_modality: RealtimeOutputModality,
-    /// Whether to append Codex's startup context to the realtime backend prompt.
+    /// Whether to append Mantis's startup context to the realtime backend prompt.
     pub include_startup_context: bool,
     pub prompt: Option<Option<String>>,
     pub realtime_session_id: Option<String>,
@@ -645,7 +645,7 @@ pub enum Op {
     /// model.
     SetThreadMemoryMode { mode: ThreadMemoryMode },
 
-    /// Request Codex to drop the last N user turns from in-memory context.
+    /// Request Mantis to drop the last N user turns from in-memory context.
     ///
     /// This does not attempt to revert local filesystem changes. Clients are
     /// responsible for undoing any edits on disk.
@@ -881,7 +881,7 @@ impl Op {
 }
 
 /// Determines the conditions under which the user is consulted to approve
-/// running the command proposed by Codex.
+/// running the command proposed by Mantis.
 #[derive(
     Debug,
     Clone,
@@ -1720,7 +1720,7 @@ pub enum NonSteerableTurnKind {
     Compact,
 }
 
-/// Codex errors that we expose to clients.
+/// Mantis errors that we expose to clients.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema, TS)]
 #[serde(rename_all = "snake_case")]
 #[ts(rename_all = "snake_case")]

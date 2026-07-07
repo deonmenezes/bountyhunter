@@ -405,7 +405,7 @@ async fn run_add(config_overrides: &CliConfigOverrides, add_args: AddArgs) -> Re
         }
         McpOAuthLoginSupport::Unsupported => {}
         McpOAuthLoginSupport::Unknown(_) => println!(
-            "MCP server may or may not require login. Run `codex mcp login {name}` to login."
+            "MCP server may or may not require login. Run `mantis mcp login {name}` to login."
         ),
     }
 

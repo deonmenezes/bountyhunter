@@ -52,7 +52,7 @@ use codex_windows_sandbox::string_from_sid_bytes;
 use codex_windows_sandbox::to_wide;
 
 pub const SANDBOX_USERS_GROUP: &str = "CodexSandboxUsers";
-const SANDBOX_USERS_GROUP_COMMENT: &str = "Codex sandbox internal group (managed)";
+const SANDBOX_USERS_GROUP_COMMENT: &str = "Mantis sandbox internal group (managed)";
 const SID_ADMINISTRATORS: &str = "S-1-5-32-544";
 const SID_USERS: &str = "S-1-5-32-545";
 const SID_AUTHENTICATED_USERS: &str = "S-1-5-11";

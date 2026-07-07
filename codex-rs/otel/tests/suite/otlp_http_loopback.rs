@@ -188,7 +188,7 @@ fn otlp_http_exporter_sends_metrics_to_collector() -> Result<()> {
     metrics.counter("codex.turns", /*inc*/ 1, &[("source", "test")])?;
     metrics.gauge_with_description(
         "codex.active",
-        "Number of active Codex operations.",
+        "Number of active Mantis operations.",
         /*value*/ 1,
         &[("component", "test")],
     )?;

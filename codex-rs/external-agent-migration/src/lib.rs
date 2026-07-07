@@ -1298,7 +1298,7 @@ fn rewrite_external_agent_terms(content: &str) -> String {
         "AGENTS.md",
     );
     for from in external_agent_term_variants() {
-        rewritten = replace_case_insensitive_with_boundaries(&rewritten, &from, "Codex");
+        rewritten = replace_case_insensitive_with_boundaries(&rewritten, &from, "Mantis");
     }
     rewritten
 }
