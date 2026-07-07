@@ -3,6 +3,7 @@
 
 const crypto = require("node:crypto");
 const { createServer } = require("../lib/mcp_stdio.js");
+const { analyzeResponseSecurity } = require("./security_checks.js");
 
 /**
  * Mantis HTTP-audit + request-refs (PRD section 6 "Proxy / traffic:
@@ -118,44 +119,56 @@ function auditExchange({ request, response }) {
 
   const pack = { tool: "http-audit", kind: "evidence-pack" };
 
+  let parsedRequest = null;
   if (request) {
-    const parsed = parseHttpMessage(request);
-    if (!parsed)
+    parsedRequest = parseHttpMessage(request);
+    if (!parsedRequest)
       throw new Error(
         "`request` must be a non-empty raw HTTP request string (request line + headers + optional body).",
       );
-    const { headers, redactedNames } = redactHeaders(parsed.headers);
+    const { headers, redactedNames } = redactHeaders(parsedRequest.headers);
     // The request-ref hashes the RAW exchange so the same exchange always maps
     // to the same id (dedup/cross-reference), while only the redacted form is
     // ever returned.
     pack.request = {
-      request_line: redactValue(parsed.startLine),
+      request_line: redactValue(parsedRequest.startLine),
       headers,
       redacted_headers: redactedNames,
-      body: summarizeBody(parsed.body),
+      body: summarizeBody(parsedRequest.body),
       request_ref: `req-${sha256(request).slice(0, 16)}`,
     };
   }
 
   if (response) {
-    const parsed = parseHttpMessage(response);
-    if (!parsed)
+    const parsedResponse = parseHttpMessage(response);
+    if (!parsedResponse)
       throw new Error(
         "`response` must be a non-empty raw HTTP response string (status line + headers + optional body).",
       );
-    const { headers, redactedNames } = redactHeaders(parsed.headers);
+    const { headers, redactedNames } = redactHeaders(parsedResponse.headers);
+    // Misconfiguration/session checks run on the pre-redaction headers (they
+    // only ever read attribute flags, domains, and cookie names -- never a
+    // secret value -- so this stays consistent with the DLP rule above).
+    const security_findings = analyzeResponseSecurity(
+      parsedRequest ? parsedRequest.headers : null,
+      parsedResponse.headers,
+    );
+
     pack.response = {
-      status_line: redactValue(parsed.startLine),
+      status_line: redactValue(parsedResponse.startLine),
       headers,
       redacted_headers: redactedNames,
-      body: summarizeBody(parsed.body),
+      body: summarizeBody(parsedResponse.body),
       response_ref: `res-${sha256(response).slice(0, 16)}`,
+      security_findings,
     };
   }
 
   pack.note =
     "Bounded, redacted evidence pack. Secret-bearing headers and inline secrets are stripped; " +
-    "bodies are hashed + previewed, never stored in full. Attach the *_ref ids to a finding via mantis_findings.";
+    "bodies are hashed + previewed, never stored in full. Attach the *_ref ids to a finding via mantis_findings. " +
+    "response.security_findings are heuristic misconfiguration/session-cookie candidates (CWE-tagged) -- " +
+    "still require Validate-stage confirmation before becoming a `confirmed` finding, same as any other candidate.";
   return pack;
 }
 
