@@ -129,6 +129,20 @@ const RULES = [
     pattern: /\byaml\.load\s*\((?!.*Loader=yaml\.SafeLoader)/g,
     cwe: "CWE-502",
   },
+  {
+    lang: "py",
+    kind: "sink",
+    id: "py.django.mark_safe",
+    pattern: /\bmark_safe\s*\(/g,
+    cwe: "CWE-79",
+  },
+  {
+    lang: "py",
+    kind: "sink",
+    id: "py.flask.render_template_string",
+    pattern: /\brender_template_string\s*\(/g,
+    cwe: "CWE-1336",
+  },
 
   // Go
   {
@@ -187,6 +201,13 @@ const RULES = [
     id: "java.statement.execute",
     pattern: /\bstatement\.execute(Query|Update)?\s*\(/gi,
     cwe: "CWE-89",
+  },
+  {
+    lang: "java",
+    kind: "sink",
+    id: "java.servlet.writer_output",
+    pattern: /\bresponse\.getWriter\(\)\.(print|println)\s*\(/g,
+    cwe: "CWE-79",
   },
 ];
 
