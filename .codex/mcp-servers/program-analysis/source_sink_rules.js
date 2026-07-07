@@ -79,6 +79,29 @@ const RULES = [
     pattern: /\b(node-serialize|serialize\.unserialize)\s*\(/g,
     cwe: "CWE-502",
   },
+  {
+    lang: "js",
+    kind: "sink",
+    id: "js.sql.query_template_literal",
+    pattern: /\.(query|execute)\s*\(\s*`[^`]*\$\{/g,
+    cwe: "CWE-89",
+  },
+  {
+    lang: "js",
+    kind: "sink",
+    id: "js.sql.query_string_concat",
+    pattern:
+      /\.(query|execute)\s*\(\s*(['"][^'"]*['"]\s*\+|[A-Za-z_$][\w$]*\s*\+\s*['"])/g,
+    cwe: "CWE-89",
+  },
+  {
+    lang: "js",
+    kind: "sink",
+    id: "js.ssrf.dynamic_url",
+    pattern:
+      /\b(axios(\.\w+)?|fetch|got)\s*\(\s*(`[^`]*\$\{|[A-Za-z_$][\w$.]*\s*\+\s*)/g,
+    cwe: "CWE-918",
+  },
 
   // Python
   {
@@ -129,6 +152,28 @@ const RULES = [
     pattern: /\byaml\.load\s*\((?!.*Loader=yaml\.SafeLoader)/g,
     cwe: "CWE-502",
   },
+  {
+    lang: "py",
+    kind: "sink",
+    id: "py.sql.execute_fstring",
+    pattern: /\.execute\s*\(\s*f["']/g,
+    cwe: "CWE-89",
+  },
+  {
+    lang: "py",
+    kind: "sink",
+    id: "py.sql.execute_format_concat",
+    pattern: /\.execute\s*\(\s*["'][^"']*["']\s*(%|\.format\s*\(|\+)/g,
+    cwe: "CWE-89",
+  },
+  {
+    lang: "py",
+    kind: "sink",
+    id: "py.ssrf.dynamic_url",
+    pattern:
+      /\brequests\.(get|post|put|delete|patch|head|request)\s*\(\s*(f["']|[A-Za-z_][\w]*\s*\+|["'][^"']*["']\s*(%|\.format\s*\())/g,
+    cwe: "CWE-918",
+  },
 
   // Go
   {
@@ -151,6 +196,22 @@ const RULES = [
     id: "go.template.html",
     pattern: /\btemplate\.HTML\s*\(/g,
     cwe: "CWE-79",
+  },
+  {
+    lang: "go",
+    kind: "sink",
+    id: "go.sql.query_sprintf",
+    pattern:
+      /\.(Query|QueryRow|QueryContext|Exec|ExecContext)\s*\(\s*fmt\.Sprintf/g,
+    cwe: "CWE-89",
+  },
+  {
+    lang: "go",
+    kind: "sink",
+    id: "go.ssrf.dynamic_url",
+    pattern:
+      /\bhttp\.(Get|Post|NewRequest|NewRequestWithContext)\s*\(\s*(fmt\.Sprintf|[A-Za-z_]\w*\s*\+)/g,
+    cwe: "CWE-918",
   },
 
   // Java
