@@ -42,12 +42,24 @@ fn split_image_ref(reference: &str) -> (String, Option<String>) {
 fn extract_images(doc: &Value, kind: &str) -> Vec<(String, String, Option<String>)> {
     let mut out = Vec::new();
     let Some(spec) = doc.get("spec").and_then(Value::as_object) else { return out };
-    // Higher-level workloads nest containers under template.spec.
-    let template_spec = spec
-        .get("template")
+    // Higher-level workloads nest containers under template.spec; CronJob adds
+    // jobTemplate.spec before the Pod template.
+    let cronjob_template_spec = spec
+        .get("jobTemplate")
+        .and_then(Value::as_object)
+        .and_then(|j| j.get("spec"))
+        .and_then(Value::as_object)
+        .and_then(|s| s.get("template"))
         .and_then(Value::as_object)
         .and_then(|t| t.get("spec"))
-        .and_then(Value::as_object)
+        .and_then(Value::as_object);
+    let template_spec = cronjob_template_spec
+        .or_else(|| {
+            spec.get("template")
+                .and_then(Value::as_object)
+                .and_then(|t| t.get("spec"))
+                .and_then(Value::as_object)
+        })
         .unwrap_or(spec);
 
     let workload_name = doc
@@ -150,5 +162,20 @@ mod tests {
         assert_eq!(by("nginx").version.as_deref(), Some("1.25"));
         assert_eq!(by("busybox").source_extra.as_ref().unwrap()["context"], "Deployment/web initContainers");
         assert_eq!(by("ghcr.io/x/y").version.as_deref(), Some("sha256:abc"));
+    }
+
+    #[test]
+    fn cronjob_workload_images() {
+        let src = "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: backup\nspec:\n  schedule: '0 2 * * *'\n  jobTemplate:\n    spec:\n      template:\n        spec:\n          containers:\n            - name: dump\n              image: registry.local:5000/tools/backup:2.1\n          restartPolicy: OnFailure\n";
+        let deps = parse(src, "cronjob.yaml");
+        assert_eq!(deps.len(), 1);
+        let dep = &deps[0];
+        assert_eq!(dep.name, "registry.local:5000/tools/backup");
+        assert_eq!(dep.version.as_deref(), Some("2.1"));
+        assert_eq!(
+            dep.source_extra.as_ref().unwrap()["context"],
+            "CronJob/backup containers"
+        );
+        assert_eq!(dep.source_extra.as_ref().unwrap()["container"], "dump");
     }
 }
