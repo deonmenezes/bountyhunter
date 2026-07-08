@@ -48,7 +48,13 @@ const RULES = [
     lang: "js",
     kind: "sink",
     id: "js.child_process.exec",
-    pattern: /\b(child_process\.)?(exec|execSync)\s*\(/g,
+    // Scoped to an explicit child_process-style receiver, or a bare
+    // (non-member) call -- NOT preceded by a `.`. Without the dot exclusion
+    // this matched RegExp.prototype.exec()/Array.prototype.find(...).exec(),
+    // one of the most common JS idioms, flagging nearly every regex match as
+    // an OS command injection sink.
+    pattern:
+      /\b(?:child_process|cp|childProcess)\.(?:exec|execSync)\s*\(|require\(\s*["']child_process["']\s*\)\.(?:exec|execSync)\s*\(|(?<!\.)\b(?:exec|execSync)\s*\(/g,
     cwe: "CWE-78",
   },
   {
