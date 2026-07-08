@@ -79,6 +79,22 @@ const RULES = [
     pattern: /\b(node-serialize|serialize\.unserialize)\s*\(/g,
     cwe: "CWE-502",
   },
+  {
+    lang: "js",
+    kind: "sink",
+    id: "js.path.join_source",
+    pattern:
+      /\bpath\.(join|resolve)\s*\([^)]*\b(req\.(query|params|body|headers|cookies)|process\.argv)\b/g,
+    cwe: "CWE-22",
+  },
+  {
+    lang: "js",
+    kind: "sink",
+    id: "js.fs.dynamic_concat",
+    pattern:
+      /\bfs\.(readFile|readFileSync|createReadStream|writeFile|writeFileSync|unlink|unlinkSync)\s*\([^)]*\+[^)]*\)/g,
+    cwe: "CWE-22",
+  },
 
   // Python
   {
@@ -129,6 +145,28 @@ const RULES = [
     pattern: /\byaml\.load\s*\((?!.*Loader=yaml\.SafeLoader)/g,
     cwe: "CWE-502",
   },
+  {
+    lang: "py",
+    kind: "sink",
+    id: "py.path.join_source",
+    pattern:
+      /\bos\.path\.join\s*\([^)]*\brequest\.(args|form|values|GET|POST)\b/g,
+    cwe: "CWE-22",
+  },
+  {
+    lang: "py",
+    kind: "sink",
+    id: "py.open.fstring",
+    pattern: /\bopen\s*\(\s*f['"]/g,
+    cwe: "CWE-22",
+  },
+  {
+    lang: "py",
+    kind: "sink",
+    id: "py.flask.send_file_source",
+    pattern: /\bsend_file\s*\([^)]*\brequest\.(args|form|values)\b/g,
+    cwe: "CWE-22",
+  },
 
   // Go
   {
@@ -151,6 +189,21 @@ const RULES = [
     id: "go.template.html",
     pattern: /\btemplate\.HTML\s*\(/g,
     cwe: "CWE-79",
+  },
+  {
+    lang: "go",
+    kind: "sink",
+    id: "go.path.join_source",
+    pattern:
+      /\bfilepath\.Join\s*\([^)]*\br\.(URL\.Query\(\)|FormValue|PostFormValue)\b/g,
+    cwe: "CWE-22",
+  },
+  {
+    lang: "go",
+    kind: "sink",
+    id: "go.os.open_sprintf",
+    pattern: /\bos\.(Open|OpenFile|ReadFile)\s*\(\s*fmt\.Sprintf/g,
+    cwe: "CWE-22",
   },
 
   // Java
@@ -187,6 +240,20 @@ const RULES = [
     id: "java.statement.execute",
     pattern: /\bstatement\.execute(Query|Update)?\s*\(/gi,
     cwe: "CWE-89",
+  },
+  {
+    lang: "java",
+    kind: "sink",
+    id: "java.file.request_param",
+    pattern: /\bnew\s+File\s*\([^)]*\brequest\.getParameter\s*\(/g,
+    cwe: "CWE-22",
+  },
+  {
+    lang: "java",
+    kind: "sink",
+    id: "java.paths.get_request_param",
+    pattern: /\bPaths\.get\s*\([^)]*\brequest\.getParameter\s*\(/g,
+    cwe: "CWE-22",
   },
 ];
 
