@@ -188,6 +188,50 @@ const RULES = [
     pattern: /\bstatement\.execute(Query|Update)?\s*\(/gi,
     cwe: "CWE-89",
   },
+
+  // Ruby
+  {
+    lang: "rb",
+    kind: "source",
+    id: "rb.rails.params",
+    pattern: /\bparams(\[[^\]]*\]|\.\w+)/g,
+  },
+  {
+    lang: "rb",
+    kind: "source",
+    id: "rb.rails.request",
+    pattern: /\brequest\.(query_parameters|body|raw_post|headers|cookies)\b/g,
+  },
+  {
+    lang: "rb",
+    kind: "sink",
+    id: "rb.eval",
+    pattern: /\beval\s*\(/g,
+    cwe: "CWE-95",
+  },
+  {
+    lang: "rb",
+    kind: "sink",
+    id: "rb.command_exec",
+    pattern:
+      /(`[^`]*`|%x[\(\{\[][^)\}\]]*[\)\}\]]|\b(Kernel\.)?(system|exec|spawn)\s*\(|\bIO\.popen\s*\()/g,
+    cwe: "CWE-78",
+  },
+  {
+    lang: "rb",
+    kind: "sink",
+    id: "rb.unsafe_deserialize",
+    pattern: /\b(Marshal\.load|YAML\.(load|unsafe_load))\s*\(/g,
+    cwe: "CWE-502",
+  },
+  {
+    lang: "rb",
+    kind: "sink",
+    id: "rb.sql.raw",
+    pattern:
+      /\b(find_by_sql|connection\.execute|\.where)\s*\(\s*(["'])(?:(?!\2)[\s\S])*?#\{/g,
+    cwe: "CWE-89",
+  },
 ];
 
 module.exports = { RULES };
