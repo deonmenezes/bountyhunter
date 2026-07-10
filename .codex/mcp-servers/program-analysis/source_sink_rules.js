@@ -126,7 +126,14 @@ const RULES = [
     lang: "py",
     kind: "sink",
     id: "py.yaml.load_unsafe",
-    pattern: /\byaml\.load\s*\((?!.*Loader=yaml\.SafeLoader)/g,
+    // The lookahead is bounded to `[^)]*` (not `.*`) so it (a) sees a
+    // `Loader=yaml.SafeLoader` kwarg that lands on a later line of a
+    // multi-line call -- `.` never matches `\n` without the `s` flag, which
+    // was silently defeating this rule's own exemption on wrapped calls --
+    // and (b) still stops at this call's own closing paren instead of
+    // reading into a *different*, later `yaml.load(...)` call the way an
+    // unbounded dotall `[\s\S]*` lookahead would.
+    pattern: /\byaml\.load\s*\((?![^)]*Loader=yaml\.SafeLoader)/g,
     cwe: "CWE-502",
   },
 
