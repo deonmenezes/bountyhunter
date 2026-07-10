@@ -79,6 +79,36 @@ const RULES = [
     pattern: /\b(node-serialize|serialize\.unserialize)\s*\(/g,
     cwe: "CWE-502",
   },
+  {
+    lang: "js",
+    kind: "sink",
+    id: "js.proto.dunder_proto_assign",
+    // Assignment through `__proto__` (dot or bracket form). The `=(?!=)`
+    // excludes the common safe idiom `key === "__proto__"` / `!==`, which is
+    // the denylist *mitigation* for this class, not an instance of it.
+    pattern: /(?:\.__proto__|\[\s*["']__proto__["']\s*\])\s*=(?!=)/g,
+    cwe: "CWE-1321",
+  },
+  {
+    lang: "js",
+    kind: "sink",
+    id: "js.proto.constructor_prototype_chain",
+    pattern:
+      /\.constructor\s*\.\s*prototype\b|\.constructor\s*\[\s*["']prototype["']\s*\]|\[\s*["']constructor["']\s*\]\s*\[\s*["']prototype["']\s*\]/g,
+    cwe: "CWE-1321",
+  },
+  {
+    lang: "js",
+    kind: "sink",
+    id: "js.proto.vulnerable_merge_call",
+    // Deep-merge helpers with a well-documented prototype-pollution history
+    // (lodash CVE-2018-3721/CVE-2019-10744, jQuery.extend(true, ...), the
+    // `deepmerge` package) -- merging an attacker-controlled object into a
+    // target via one of these can set `__proto__`/`constructor.prototype`.
+    pattern:
+      /\b_\.(?:merge|defaultsDeep)\s*\(|\$\.extend\s*\(\s*true\s*,|\bdeepmerge\s*\(/g,
+    cwe: "CWE-1321",
+  },
 
   // Python
   {
