@@ -79,6 +79,24 @@ const RULES = [
     pattern: /\b(node-serialize|serialize\.unserialize)\s*\(/g,
     cwe: "CWE-502",
   },
+  {
+    lang: "js",
+    kind: "sink",
+    id: "js.crypto.weak_hash",
+    pattern: /\bcreateHash\s*\(\s*["'](?:md5|sha1)["']/gi,
+    cwe: "CWE-327",
+  },
+  {
+    lang: "js",
+    kind: "sink",
+    id: "js.crypto.weak_cipher",
+    // `createCipher`/`createDecipher` (no `iv`) are deprecated Node APIs that
+    // derive the key via a weak KDF; explicit DES/RC4/ECB algorithm ids are
+    // broken regardless of API.
+    pattern:
+      /\bcreate(?:Cipher|Decipher)\s*\(|\bcreate(?:Cipher|Decipher)iv\s*\(\s*["'](?:des|des-ede3|rc4|aes-128-ecb|aes-192-ecb|aes-256-ecb)["']/gi,
+    cwe: "CWE-327",
+  },
 
   // Python
   {
@@ -129,6 +147,20 @@ const RULES = [
     pattern: /\byaml\.load\s*\((?!.*Loader=yaml\.SafeLoader)/g,
     cwe: "CWE-502",
   },
+  {
+    lang: "py",
+    kind: "sink",
+    id: "py.crypto.weak_hash",
+    pattern: /\bhashlib\.(?:md5|sha1)\s*\(/g,
+    cwe: "CWE-327",
+  },
+  {
+    lang: "py",
+    kind: "sink",
+    id: "py.crypto.weak_cipher",
+    pattern: /\b(?:DES|ARC4|Blowfish)\.new\s*\(|\bMODE_ECB\b/g,
+    cwe: "CWE-327",
+  },
 
   // Go
   {
@@ -151,6 +183,13 @@ const RULES = [
     id: "go.template.html",
     pattern: /\btemplate\.HTML\s*\(/g,
     cwe: "CWE-79",
+  },
+  {
+    lang: "go",
+    kind: "sink",
+    id: "go.crypto.weak_hash_cipher",
+    pattern: /\b(?:md5|sha1)\.(?:Sum|New)\s*\(|\b(?:des|rc4)\.NewCipher\s*\(/g,
+    cwe: "CWE-327",
   },
 
   // Java
@@ -187,6 +226,21 @@ const RULES = [
     id: "java.statement.execute",
     pattern: /\bstatement\.execute(Query|Update)?\s*\(/gi,
     cwe: "CWE-89",
+  },
+  {
+    lang: "java",
+    kind: "sink",
+    id: "java.crypto.weak_hash",
+    pattern: /MessageDigest\.getInstance\s*\(\s*["'](?:MD5|SHA1|SHA-1)["']/gi,
+    cwe: "CWE-327",
+  },
+  {
+    lang: "java",
+    kind: "sink",
+    id: "java.crypto.weak_cipher",
+    pattern:
+      /Cipher\.getInstance\s*\(\s*["'](?:DES|RC4|ARCFOUR|[^"']*\/ECB\/[^"']*)["']/gi,
+    cwe: "CWE-327",
   },
 ];
 
