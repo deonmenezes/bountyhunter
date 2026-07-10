@@ -55,7 +55,11 @@ const RULES = [
     lang: "js",
     kind: "sink",
     id: "js.dom.innerhtml",
-    pattern: /\b(innerHTML|outerHTML)\s*=/g,
+    // Requires an assignment operator (`=` or `+=`), not just any `=`-bearing
+    // token -- a bare trailing `=` also matches the first `=` of `==`/`===`/
+    // `!==`, so `if (el.innerHTML === safe)` was flagging every equality
+    // comparison against innerHTML/outerHTML as a write sink.
+    pattern: /\b(innerHTML|outerHTML)\s*(\+=|=(?!=))/g,
     cwe: "CWE-79",
   },
   {
