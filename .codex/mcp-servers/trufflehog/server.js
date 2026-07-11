@@ -1,16 +1,26 @@
 #!/usr/bin/env node
 "use strict";
 
+const crypto = require("node:crypto");
 const { createServer } = require("../lib/mcp_stdio.js");
 const { runCommand, notFoundMessage } = require("../lib/run_tool.js");
 
 // Never forward raw secret material. Per the Mantis evidence-handling
 // contract, findings/evidence/reports must never contain live secrets --
-// only enough to prove a match exists and where.
+// only enough to prove a match exists and where. Previously this echoed the
+// first/last 4 characters of the actual secret, which leaks real credential
+// material (especially for `--only-verified` hits, i.e. LIVE, working
+// secrets) into findings/reports that may be shared or persisted. A content
+// hash gives the same dedup/cross-reference value as the *_ref ids used by
+// mantis_http_audit without ever exposing a byte of the real secret.
 function redact(secret) {
   if (!secret) return "[REDACTED_SECRET]";
-  if (secret.length <= 8) return "[REDACTED_SECRET]";
-  return `${secret.slice(0, 4)}...[REDACTED ${secret.length} chars]...${secret.slice(-4)}`;
+  const hash = crypto
+    .createHash("sha256")
+    .update(secret, "utf8")
+    .digest("hex")
+    .slice(0, 12);
+  return `[REDACTED_SECRET sha256:${hash} len:${secret.length}]`;
 }
 
 async function trufflehogScan({ path: targetPath, only_verified = false }) {
