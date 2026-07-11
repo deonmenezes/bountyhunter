@@ -30,6 +30,7 @@ const EXTENSION_TO_LANG = {
   ".py": "py",
   ".go": "go",
   ".java": "java",
+  ".cs": "cs",
 };
 
 function langForFile(file) {
@@ -245,7 +246,7 @@ createServer({
           path: { type: "string", description: "File or directory to scan." },
           languages: {
             type: "array",
-            items: { type: "string", enum: ["js", "py", "go", "java"] },
+            items: { type: "string", enum: ["js", "py", "go", "java", "cs"] },
             description:
               "Restrict to these language rule sets. Defaults to all.",
           },
