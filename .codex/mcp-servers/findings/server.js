@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
 const { createServer } = require("../lib/mcp_stdio.js");
+const { gradeToDisposition } = require("./grading.js");
 
 /**
  * Mantis findings service -- the tool-owned findings spine (PRD section 9,
@@ -96,21 +97,6 @@ function loadState() {
     }
   }
   return findings;
-}
-
-// 5-axis grade -> disposition (PRD section 9, FR-10.1, Appendix C).
-function gradeToDisposition(grade) {
-  if (!grade) return null;
-  const total =
-    (grade.impact || 0) +
-    (grade.proof || 0) +
-    (grade.severity_accuracy || 0) +
-    (grade.chain || 0) +
-    (grade.report_quality || 0);
-  let disposition = "SKIP";
-  if (total >= 40) disposition = "SUBMIT";
-  else if (total >= 20) disposition = "HOLD";
-  return { total, disposition };
 }
 
 function findingCreate(args) {
@@ -246,7 +232,11 @@ function findingUpdate(args) {
   if (poc) changes.poc = poc;
   if (patch) changes.patch = patch;
   if (grade) {
-    const disp = gradeToDisposition(grade);
+    // A grade update may arrive alongside a severity update in the same
+    // call, or the severity may already be set from an earlier update --
+    // either way, SUBMIT requires a real medium+ severity (see grading.js).
+    const effectiveSeverity = changes.severity || existing.severity;
+    const disp = gradeToDisposition(grade, effectiveSeverity);
     changes.grade = { ...grade, total: disp.total };
     changes.disposition = disp.disposition;
   }
@@ -432,7 +422,8 @@ createServer({
           grade: {
             type: "object",
             description:
-              "5-axis grade; total + disposition (SUBMIT>=40 / HOLD 20-39 / SKIP<20) are computed for you.",
+              "5-axis grade; total + disposition are computed for you: SUBMIT requires total>=40 AND the finding's " +
+              "severity is medium/high/critical, HOLD is 20-39 (or >=40 with no medium+ severity), SKIP is <20.",
             properties: {
               impact: { type: "number", description: "0-30" },
               proof: { type: "number", description: "0-25" },
