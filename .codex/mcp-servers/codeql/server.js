@@ -6,6 +6,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { createServer } = require("../lib/mcp_stdio.js");
 const { runCommand, notFoundMessage } = require("../lib/run_tool.js");
+const { buildRuleSeverityIndex, severityForResult } = require("./severity.js");
 
 const CODEQL_NOT_FOUND = notFoundMessage(
   "codeql",
@@ -92,6 +93,7 @@ async function codeqlAnalyze({
 
   const findings = [];
   for (const run of sarif.runs || []) {
+    const ruleSeverityIndex = buildRuleSeverityIndex(run);
     for (const result_ of run.results || []) {
       const loc =
         result_.locations &&
@@ -100,6 +102,7 @@ async function codeqlAnalyze({
       findings.push({
         rule_id: result_.ruleId,
         level: result_.level || "warning",
+        severity: severityForResult(result_, ruleSeverityIndex),
         message: result_.message && result_.message.text,
         path: loc && loc.artifactLocation && loc.artifactLocation.uri,
         start_line: loc && loc.region && loc.region.startLine,
@@ -150,7 +153,7 @@ createServer({
     {
       name: "codeql_analyze",
       description:
-        "Run CodeQL query-suite analysis (default security-extended) against a database built by codeql_create_database. Emits `candidate` SAST findings with dataflow-backed rule IDs.",
+        "Run CodeQL query-suite analysis (default security-extended) against a database built by codeql_create_database. Emits `candidate` SAST findings with dataflow-backed rule IDs; each finding's `severity` is normalized to info/low/medium/high/critical (from the rule's security-severity score where present, else SARIF level) so it can be passed straight into finding_create/finding_update.",
       inputSchema: {
         type: "object",
         properties: {
