@@ -19,7 +19,7 @@ Pipeline, stage -> subagent (`spawn_agent` agent_type) -> tools:
 8. Exploit (GATED, off by default) -> `exploiter` -> only under explicit exploit authorization; minimal benign sandboxed PoC; move to `exploited` only if it reproduced.
 9. Fix -> `fixer` -> root-cause patch as a reviewable diff (framework-blessed, never auto-merged); move to `fixed`.
 10. Verify fix -> re-validate the exploit no longer fires and behavior is preserved; move to `verified`.
-11. Grade/Report -> `reporter` -> 5-axis grade (Impact30/Proof25/SevAcc15/Chain15/RptQual15) -> SUBMIT/HOLD/SKIP; report from `finding_list`, no secrets.
+11. Grade/Report -> `reporter` -> 5-axis grade (Impact30/Proof25/SevAcc15/Chain15/RptQual15) -> SUBMIT (>=40 AND medium+ severity) / HOLD / SKIP; report from `finding_list`, no secrets.
 
 Orchestration: the root agent (or a spawned `orchestrator`) assigns independent attack surfaces to separate workers to parallelize, and keeps ALL finding state in the `mantis_findings` service -- never track findings in prose (see the `findings-spine` skill). Lifecycle: `candidate -> confirmed | rejected -> exploited -> fixed -> verified`.
 
