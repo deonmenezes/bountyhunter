@@ -188,6 +188,55 @@ const RULES = [
     pattern: /\bstatement\.execute(Query|Update)?\s*\(/gi,
     cwe: "CWE-89",
   },
+
+  // C# / .NET
+  {
+    lang: "cs",
+    kind: "source",
+    id: "cs.aspnet.request",
+    pattern: /\bRequest\.(Query|Form|Headers|Cookies|QueryString)\b/g,
+  },
+  {
+    lang: "cs",
+    kind: "source",
+    id: "cs.environment.args",
+    pattern: /\bEnvironment\.GetCommandLineArgs\s*\(/g,
+  },
+  {
+    lang: "cs",
+    kind: "sink",
+    id: "cs.process.start",
+    pattern: /\bProcess\.Start\s*\(/g,
+    cwe: "CWE-78",
+  },
+  {
+    lang: "cs",
+    kind: "sink",
+    id: "cs.sqlcommand",
+    pattern: /\bnew\s+SqlCommand\s*\(/g,
+    cwe: "CWE-89",
+  },
+  {
+    lang: "cs",
+    kind: "sink",
+    id: "cs.response.write",
+    pattern: /\bResponse\.Write\s*\(/g,
+    cwe: "CWE-79",
+  },
+  {
+    lang: "cs",
+    kind: "sink",
+    id: "cs.html.raw",
+    pattern: /\bHtml\.Raw\s*\(/g,
+    cwe: "CWE-79",
+  },
+  {
+    lang: "cs",
+    kind: "sink",
+    id: "cs.binaryformatter",
+    pattern: /\bnew\s+BinaryFormatter\s*\(/g,
+    cwe: "CWE-502",
+  },
 ];
 
 module.exports = { RULES };
