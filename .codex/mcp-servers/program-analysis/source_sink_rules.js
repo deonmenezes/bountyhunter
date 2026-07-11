@@ -188,6 +188,35 @@ const RULES = [
     pattern: /\bstatement\.execute(Query|Update)?\s*\(/gi,
     cwe: "CWE-89",
   },
+
+  // Rust
+  {
+    lang: "rust",
+    kind: "source",
+    id: "rust.web.extractor",
+    pattern: /:\s*(web::)?(Query|Json|Path|Form)\s*</g,
+  },
+  {
+    lang: "rust",
+    kind: "source",
+    id: "rust.std.env_args",
+    pattern: /\benv::args\s*\(\)/g,
+  },
+  {
+    lang: "rust",
+    kind: "sink",
+    id: "rust.process.command",
+    pattern: /\bCommand::new\s*\(/g,
+    cwe: "CWE-78",
+  },
+  {
+    lang: "rust",
+    kind: "sink",
+    id: "rust.sql.format_query",
+    pattern:
+      /\b(query|query_as|execute|raw_sql|sql_query)\s*\(\s*&?format!\s*\(/g,
+    cwe: "CWE-89",
+  },
 ];
 
 module.exports = { RULES };
