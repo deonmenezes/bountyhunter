@@ -129,6 +129,27 @@ const RULES = [
     pattern: /\byaml\.load\s*\((?!.*Loader=yaml\.SafeLoader)/g,
     cwe: "CWE-502",
   },
+  {
+    lang: "py",
+    kind: "sink",
+    id: "py.xxe.lxml_etree",
+    pattern: /\blxml\.etree\.(parse|fromstring|XMLParser)\s*\(/g,
+    cwe: "CWE-611",
+  },
+  {
+    lang: "py",
+    kind: "sink",
+    id: "py.xxe.xml_sax",
+    pattern: /\bxml\.sax\.(make_parser|parse|parseString)\s*\(/g,
+    cwe: "CWE-611",
+  },
+  {
+    lang: "py",
+    kind: "sink",
+    id: "py.xxe.xml_minidom",
+    pattern: /\bxml\.dom\.minidom\.(parse|parseString)\s*\(/g,
+    cwe: "CWE-611",
+  },
 
   // Go
   {
@@ -187,6 +208,27 @@ const RULES = [
     id: "java.statement.execute",
     pattern: /\bstatement\.execute(Query|Update)?\s*\(/gi,
     cwe: "CWE-89",
+  },
+  {
+    lang: "java",
+    kind: "sink",
+    id: "java.xxe.documentbuilderfactory",
+    pattern: /\bDocumentBuilderFactory\.newInstance\s*\(/g,
+    cwe: "CWE-611",
+  },
+  {
+    lang: "java",
+    kind: "sink",
+    id: "java.xxe.saxparserfactory",
+    pattern: /\bSAXParserFactory\.newInstance\s*\(/g,
+    cwe: "CWE-611",
+  },
+  {
+    lang: "java",
+    kind: "sink",
+    id: "java.xxe.xmlinputfactory",
+    pattern: /\bXMLInputFactory\.new(Instance|Factory)\s*\(/g,
+    cwe: "CWE-611",
   },
 ];
 
