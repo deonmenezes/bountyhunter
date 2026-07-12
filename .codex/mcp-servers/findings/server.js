@@ -218,9 +218,16 @@ function findingUpdate(args) {
       );
     }
     if (status === "confirmed") {
+      // `reasoning_trace_ref` is just a pointer to the candidate's reasoning
+      // trace, set freely at finding_create time -- it is not proof of a
+      // traced source->sink path. Treating its mere presence as sufficient
+      // reachability evidence let a candidate self-confirm without ever
+      // calling reachability/attack-sim, defeating the "no proof -> no
+      // confirm" invariant (PRD FR-6.1/6.3, findings-spine skill). Only an
+      // explicit reachability_note on this call, or an actual evidence entry
+      // (existing or freshly attached), counts.
       const hasReach =
         args.reachability_note ||
-        existing.reasoning_trace_ref ||
         (Array.isArray(existing.evidence) && existing.evidence.length > 0) ||
         (Array.isArray(evidence) && evidence.length > 0);
       if (!hasReach) {
