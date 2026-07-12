@@ -49,6 +49,13 @@ const SECRET_VALUE_PATTERNS = [
     /\b(token|api[_-]?key|access[_-]?token|refresh[_-]?token|secret|password|passwd|auth|session[_-]?id|sig|signature)=([^&\s]+)/gi,
     (_match, name) => `${name}=[REDACTED]`,
   ],
+  // Same generic key family, but in JSON body shape ("key": "value") rather
+  // than form/query shape (key=value) -- REST APIs overwhelmingly send
+  // credentials this way and the key= pattern above never matches a colon.
+  [
+    /"(token|api[_-]?key|access[_-]?token|refresh[_-]?token|secret|password|passwd|auth|session[_-]?id|sig|signature)"\s*:\s*"(?:[^"\\]|\\.)*"/gi,
+    (_match, name) => `"${name}":"[REDACTED]"`,
+  ],
 ];
 
 const MAX_BODY_PREVIEW = 512;
