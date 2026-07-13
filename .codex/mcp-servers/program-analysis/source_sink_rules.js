@@ -188,6 +188,49 @@ const RULES = [
     pattern: /\bstatement\.execute(Query|Update)?\s*\(/gi,
     cwe: "CWE-89",
   },
+
+  // PHP
+  {
+    lang: "php",
+    kind: "source",
+    id: "php.superglobals",
+    pattern: /\$_(GET|POST|REQUEST|COOKIE|FILES)\b/g,
+  },
+  {
+    lang: "php",
+    kind: "sink",
+    id: "php.eval",
+    pattern: /\beval\s*\(/g,
+    cwe: "CWE-95",
+  },
+  {
+    lang: "php",
+    kind: "sink",
+    id: "php.shell_exec",
+    pattern: /\b(system|exec|shell_exec|passthru|popen|proc_open)\s*\(/g,
+    cwe: "CWE-78",
+  },
+  {
+    lang: "php",
+    kind: "sink",
+    id: "php.file_inclusion",
+    pattern: /\b(include|include_once|require|require_once)\s*\(/g,
+    cwe: "CWE-98",
+  },
+  {
+    lang: "php",
+    kind: "sink",
+    id: "php.unserialize",
+    pattern: /\bunserialize\s*\(/g,
+    cwe: "CWE-502",
+  },
+  {
+    lang: "php",
+    kind: "sink",
+    id: "php.sql_query",
+    pattern: /\b(mysqli_query|mysql_query|->query)\s*\(/g,
+    cwe: "CWE-89",
+  },
 ];
 
 module.exports = { RULES };
