@@ -49,6 +49,15 @@ const SECRET_VALUE_PATTERNS = [
     /\b(token|api[_-]?key|access[_-]?token|refresh[_-]?token|secret|password|passwd|auth|session[_-]?id|sig|signature)=([^&\s]+)/gi,
     (_match, name) => `${name}=[REDACTED]`,
   ],
+  // Same generically-named secret keys, but in JSON/JS-object body shape
+  // ("key": "value" or key: 'value') instead of form/query encoding -- JSON
+  // is the dominant modern API body format and was previously missed
+  // entirely, so a JSON request/response body sailed through un-redacted.
+  [
+    /(["']?)\b(token|api[_-]?key|access[_-]?token|refresh[_-]?token|secret|password|passwd|auth|session[_-]?id|sig|signature)\1\s*:\s*(["'])[^"']*\3/gi,
+    (_match, keyQuote, name, valueQuote) =>
+      `${keyQuote}${name}${keyQuote}: ${valueQuote}[REDACTED]${valueQuote}`,
+  ],
 ];
 
 const MAX_BODY_PREVIEW = 512;
