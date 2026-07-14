@@ -4,6 +4,23 @@
 const { createServer } = require("../lib/mcp_stdio.js");
 const { runCommand, notFoundMessage } = require("../lib/run_tool.js");
 
+// OSV's database_specific.severity uses GHSA's vocabulary (upper-case, and
+// "MODERATE" instead of "MEDIUM"), which doesn't line up with the findings
+// spine's VALID_SEVERITIES (info/low/medium/high/critical). Passing it
+// through raw makes finding_create reject every OSV-sourced candidate.
+const SEVERITY_MAP = {
+  CRITICAL: "critical",
+  HIGH: "high",
+  MODERATE: "medium",
+  MEDIUM: "medium",
+  LOW: "low",
+};
+
+function normalizeSeverity(raw) {
+  if (!raw) return "medium";
+  return SEVERITY_MAP[String(raw).toUpperCase()] || "medium";
+}
+
 async function osvScan({ path: targetPath, offline = false }) {
   if (!targetPath) throw new Error("path is required");
 
@@ -48,9 +65,9 @@ async function osvScan({ path: targetPath, offline = false }) {
           version: pkg.package && pkg.package.version,
           vuln_id: vuln.id,
           summary: vuln.summary,
-          severity:
-            (vuln.database_specific && vuln.database_specific.severity) ||
-            "unknown",
+          severity: normalizeSeverity(
+            vuln.database_specific && vuln.database_specific.severity,
+          ),
           aliases: vuln.aliases || [],
         });
       }
