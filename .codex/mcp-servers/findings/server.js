@@ -98,9 +98,36 @@ function loadState() {
   return findings;
 }
 
+// Documented per-axis ceilings (PRD section 9, FR-10.1, Appendix C; mirrored
+// in the finding_update input schema below). Enforced, not just documented --
+// without this, a single out-of-range axis (e.g. impact: 1000) can force a
+// SUBMIT disposition regardless of how the finding actually scored on every
+// other axis, defeating the 5-axis rubric's whole point.
+const GRADE_AXIS_MAX = {
+  impact: 30,
+  proof: 25,
+  severity_accuracy: 15,
+  chain: 15,
+  report_quality: 15,
+};
+
+function validateGradeAxes(grade) {
+  for (const [axis, max] of Object.entries(GRADE_AXIS_MAX)) {
+    if (!(axis in grade)) continue;
+    const value = grade[axis];
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      throw new Error(`grade.${axis} must be a finite number (0-${max})`);
+    }
+    if (value < 0 || value > max) {
+      throw new Error(`grade.${axis} must be within 0-${max}, got ${value}`);
+    }
+  }
+}
+
 // 5-axis grade -> disposition (PRD section 9, FR-10.1, Appendix C).
 function gradeToDisposition(grade) {
   if (!grade) return null;
+  validateGradeAxes(grade);
   const total =
     (grade.impact || 0) +
     (grade.proof || 0) +
@@ -432,7 +459,7 @@ createServer({
           grade: {
             type: "object",
             description:
-              "5-axis grade; total + disposition (SUBMIT>=40 / HOLD 20-39 / SKIP<20) are computed for you.",
+              "5-axis grade; total + disposition (SUBMIT>=40 / HOLD 20-39 / SKIP<20) are computed for you. Each axis is enforced against its documented ceiling -- an out-of-range value throws rather than silently skewing the total.",
             properties: {
               impact: { type: "number", description: "0-30" },
               proof: { type: "number", description: "0-25" },
