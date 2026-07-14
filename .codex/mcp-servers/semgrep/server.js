@@ -6,6 +6,29 @@ const { runCommand, notFoundMessage } = require("../lib/run_tool.js");
 
 const SEVERITY_MAP = { ERROR: "high", WARNING: "medium", INFO: "low" };
 
+// Semgrep rule metadata carries `cwe` as an array of full description strings
+// (e.g. ["CWE-79: Improper Neutralization of Input During Web Page Generation
+// (XSS)"]) or occasionally a single such string -- never a bare id. Every
+// other scanner in this stack (bandit, program-analysis) and the findings
+// spine's own `cwe` field (mantis_findings) use a bare "CWE-89" id string, so
+// passing semgrep's raw metadata straight through breaks cross-tool
+// correlation/dedup on CWE. Extract the bare id(s) to match that shape.
+function normalizeCwe(raw) {
+  if (!raw) return null;
+  const list = Array.isArray(raw) ? raw : [raw];
+  const ids = [
+    ...new Set(
+      list
+        .map((entry) => {
+          const m = /CWE-\d+/i.exec(String(entry));
+          return m ? m[0].toUpperCase() : null;
+        })
+        .filter(Boolean),
+    ),
+  ];
+  return ids.length ? ids.join(", ") : null;
+}
+
 async function semgrepScan({ path: targetPath, config = "auto", rules }) {
   if (!targetPath) throw new Error("path is required");
 
@@ -44,7 +67,7 @@ async function semgrepScan({ path: targetPath, config = "auto", rules }) {
     end_line: r.end && r.end.line,
     severity: SEVERITY_MAP[r.extra && r.extra.severity] || "medium",
     message: r.extra && r.extra.message,
-    cwe: r.extra && r.extra.metadata && r.extra.metadata.cwe,
+    cwe: normalizeCwe(r.extra && r.extra.metadata && r.extra.metadata.cwe),
   }));
 
   return {
