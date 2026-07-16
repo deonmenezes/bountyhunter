@@ -12,6 +12,23 @@ const CODEQL_NOT_FOUND = notFoundMessage(
   "download the CodeQL CLI bundle from github.com/github/codeql-cli-binaries and put it on PATH",
 );
 
+// SARIF's `level` vocabulary (error/warning/note/none, SARIF 2.1.0 §3.27.10)
+// is not the findings spine's severity vocabulary (info/low/medium/high/
+// critical, see .codex/mcp-servers/findings/server.js VALID_SEVERITIES).
+// Passing SARIF levels straight through made every codeql-sourced candidate
+// fail finding_create's severity check -- the same class of bug already
+// fixed for semgrep/bandit/trivy/osv-scanner's own SEVERITY_MAPs.
+const SARIF_LEVEL_SEVERITY_MAP = {
+  error: "high",
+  warning: "medium",
+  note: "low",
+  none: "info",
+};
+
+function normalizeSeverity(level) {
+  return SARIF_LEVEL_SEVERITY_MAP[level] || "medium";
+}
+
 async function codeqlCreateDatabase({
   source_root: sourceRoot,
   language,
@@ -99,7 +116,7 @@ async function codeqlAnalyze({
         result_.locations[0].physicalLocation;
       findings.push({
         rule_id: result_.ruleId,
-        level: result_.level || "warning",
+        severity: normalizeSeverity(result_.level),
         message: result_.message && result_.message.text,
         path: loc && loc.artifactLocation && loc.artifactLocation.uri,
         start_line: loc && loc.region && loc.region.startLine,
@@ -150,7 +167,7 @@ createServer({
     {
       name: "codeql_analyze",
       description:
-        "Run CodeQL query-suite analysis (default security-extended) against a database built by codeql_create_database. Emits `candidate` SAST findings with dataflow-backed rule IDs.",
+        "Run CodeQL query-suite analysis (default security-extended) against a database built by codeql_create_database. Emits `candidate` SAST findings with dataflow-backed rule IDs; `severity` is normalized from SARIF level (error/warning/note/none) to the shared info/low/medium/high/critical vocabulary used by finding_create.",
       inputSchema: {
         type: "object",
         properties: {
