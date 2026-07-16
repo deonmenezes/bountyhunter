@@ -46,6 +46,11 @@ const SECRET_PATTERNS = [
   /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/, // Slack tokens
   /-----BEGIN [A-Z ]*PRIVATE KEY-----/, // PEM private keys
   /\bey[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/, // JWTs
+  /\b[A-Za-z0-9._%+-]+:[^@\s/]{6,}@/, // user:pass@ in URLs
+  // Generically-named secret-bearing params -- same shape http-audit already
+  // redacts; without this the findings spine's own DLP backstop misses the
+  // most common secret shape (a raw password/token/api key value).
+  /\b(?:token|api[_-]?key|access[_-]?token|refresh[_-]?token|secret|password|passwd|auth|session[_-]?id|sig|signature)=[^&\s]{6,}/i,
 ];
 
 function ensureDataDir() {
