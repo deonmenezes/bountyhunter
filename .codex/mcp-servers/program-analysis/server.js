@@ -238,7 +238,7 @@ createServer({
     {
       name: "source_sink_scan",
       description:
-        "Fast, dependency-free heuristic scan tagging attacker-controlled-input sources and dangerous sinks (Recon/Detect stages, FR-3.1/FR-3.2). NOT a taint engine -- surfaces candidates for the agent to trace and connect.",
+        "Fast, dependency-free heuristic scan tagging attacker-controlled-input sources and dangerous sinks, including NoSQL-injection-prone $where/$regex query operators (Recon/Detect stages, FR-3.1/FR-3.2). NOT a taint engine -- surfaces candidates for the agent to trace and connect.",
       inputSchema: {
         type: "object",
         properties: {
