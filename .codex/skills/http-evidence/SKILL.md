@@ -7,7 +7,7 @@ Use `http_audit` (mantis_http_audit MCP server) whenever you have a captured HTT
 
 Why go through it instead of pasting the raw exchange into the finding:
 
-- It strips secret-bearing headers (`Authorization`, `Cookie`, `Set-Cookie`, `X-Api-Key`, CSRF tokens, ...) and inline secrets (AWS keys, GitHub/Slack tokens, JWTs, private keys, `user:pass@` in URLs). Raw secrets must never land in a finding, artifact, report, or prompt (PRD section 9/11).
+- It strips secret-bearing headers (`Authorization`, `Cookie`, `Set-Cookie`, `X-Api-Key`, CSRF tokens, ...) and inline secrets (AWS keys, GitHub/Slack tokens, Slack webhook URLs, Google/Stripe/npm/SendGrid API keys, JWTs, private keys, `user:pass@` in URLs, and generically-named secret fields like `password`/`token`/`api_key` in both query/form params and JSON bodies). Raw secrets must never land in a finding, artifact, report, or prompt (PRD section 9/11).
 - It bounds the body: full bodies are hashed and previewed (first 512 bytes), never stored whole.
 - The `request_ref` is a stable hash of the exchange, so the same request always maps to the same id -- use it to cross-reference and dedup evidence across findings.
 
