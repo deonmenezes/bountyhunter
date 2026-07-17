@@ -49,6 +49,14 @@ const SECRET_VALUE_PATTERNS = [
     /\b(token|api[_-]?key|access[_-]?token|refresh[_-]?token|secret|password|passwd|auth|session[_-]?id|sig|signature)=([^&\s]+)/gi,
     (_match, name) => `${name}=[REDACTED]`,
   ],
+  // Same generically-named secret fields, but in JSON body shape
+  // (`"password": "value"`) rather than query/form shape -- the overwhelming
+  // majority of modern API request/response bodies are JSON, and without this
+  // the query/form pattern above never fires on them.
+  [
+    /"(token|api[_-]?key|access[_-]?token|refresh[_-]?token|secret|password|passwd|auth|session[_-]?id|sig|signature)"\s*:\s*"[^"]*"/gi,
+    (_match, name) => `"${name}":"[REDACTED]"`,
+  ],
 ];
 
 const MAX_BODY_PREVIEW = 512;
