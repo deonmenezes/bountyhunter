@@ -6,7 +6,7 @@ canonical map of the `.codex/` layer; keep it in sync when you add capability.
 
 The invariant that governs everything (PRD Appendix D):
 
-- **Tool = code** — an MCP server handler that *does* something. Wired in `.codex/config.toml [mcp_servers.*]`, implemented under `.codex/mcp-servers/<name>/server.js`.
+- **Tool = code** — an MCP server handler that _does_ something. Wired in `.codex/config.toml [mcp_servers.*]`, implemented under `.codex/mcp-servers/<name>/server.js`.
 - **Agent = prompt** — a system prompt + model tier + tool/permission policy. A TOML role file under `.codex/agents/<name>.toml`, auto-discovered and offered as a `spawn_agent` `agent_type`.
 - **Skill = knowledge** — reference text the model reads. `.codex/skills/<name>/SKILL.md`.
 
@@ -20,18 +20,19 @@ roadblocks). "What survives attacker-simulation is real."
 
 ### Capability layer — MCP servers (`.codex/config.toml`)
 
-| Server | Tool(s) | PRD stage | Status in this env |
-|---|---|---|---|
-| `mantis_semgrep` | `semgrep_scan` | Detect / SAST ★ | report-until-`semgrep` installed |
-| `mantis_codeql` | `codeql_create_database`, `codeql_analyze` | Detect / dataflow SAST ★ | report-until-`codeql` installed |
-| `mantis_osv_scanner` | `osv_scan` | Detect / SCA ★ | report-until-`osv-scanner` installed |
-| `mantis_trufflehog` | `trufflehog_scan` | Detect / secrets ★ | report-until-`trufflehog` installed |
-| `mantis_bandit` | `bandit_scan` | Detect / Python SAST | report-until-`bandit` installed |
-| `mantis_trivy` | `trivy_scan` | Detect / SCA+IaC+secrets | report-until-`trivy` installed |
+| Server                    | Tool(s)                                                       | PRD stage                  | Status in this env                              |
+| ------------------------- | ------------------------------------------------------------- | -------------------------- | ----------------------------------------------- |
+| `mantis_semgrep`          | `semgrep_scan`                                                | Detect / SAST ★            | report-until-`semgrep` installed                |
+| `mantis_codeql`           | `codeql_create_database`, `codeql_analyze`                    | Detect / dataflow SAST ★   | report-until-`codeql` installed                 |
+| `mantis_osv_scanner`      | `osv_scan`                                                    | Detect / SCA ★             | report-until-`osv-scanner` installed            |
+| `mantis_trufflehog`       | `trufflehog_scan`                                             | Detect / secrets ★         | report-until-`trufflehog` installed             |
+| `mantis_bandit`           | `bandit_scan`                                                 | Detect / Python SAST       | report-until-`bandit` installed                 |
+| `mantis_trivy`            | `trivy_scan`                                                  | Detect / SCA+IaC+secrets   | report-until-`trivy` installed                  |
 | `mantis_program_analysis` | `source_sink_scan`, `ast_grep_scan`, `smt_check_reachability` | Substrate / reachability ★ | `ast-grep` present; `z3` report-until-installed |
-| `mantis_http_audit` | `http_audit` | Validate/DAST evidence | **works now (pure Node)** |
-| `mantis_findings` | `finding_create/update/get/list` | Findings spine ★ | **works now (pure Node)** |
-| `mantis_canary` | decoy tripwire tools | Prompt-injection defense ★ | **works now (pure Node)** |
+| `mantis_http_audit`       | `http_audit`                                                  | Validate/DAST evidence     | **works now (pure Node)**                       |
+| `mantis_http_recon`       | `http_recon`                                                  | Recon/DAST, passive tier   | **works now (pure Node)**                       |
+| `mantis_findings`         | `finding_create/update/get/list`                              | Findings spine ★           | **works now (pure Node)**                       |
+| `mantis_canary`           | decoy tripwire tools                                          | Prompt-injection defense ★ | **works now (pure Node)**                       |
 
 Every scanner server degrades gracefully: if its binary is absent it returns
 `available: false` and says so, instead of fabricating findings
@@ -53,7 +54,8 @@ a safety backstop and is off by default):
 
 `mantis-pipeline` (master playbook) · `findings-spine` · `semgrep-triage` ·
 `codeql-audit` · `osv-dependency-scan` · `secrets-scan` · `detection-breadth`
-(bandit+trivy) · `program-analysis` · `http-evidence` · `canary-tripwire-response`.
+(bandit+trivy) · `program-analysis` · `http-evidence` · `http-recon` ·
+`canary-tripwire-response`.
 
 ### The findings spine
 
@@ -74,7 +76,7 @@ looks like it carries a raw secret.
 1. `mkdir .codex/mcp-servers/<name>` and write `server.js` following
    `.codex/mcp-servers/semgrep/server.js`: `require('../lib/mcp_stdio.js')` +
    `require('../lib/run_tool.js')`, one handler per tool, return `available:
-   false` via `notFoundMessage(...)` when the binary is missing. Normalize every
+false` via `notFoundMessage(...)` when the binary is missing. Normalize every
    result to a `candidate`, never a severity.
 2. Register it in `.codex/config.toml`:
    ```toml
@@ -119,11 +121,12 @@ one job and cross-link with the pipeline.
 
 ## The best way to go further — prioritized roadmap
 
-Ordered by value given the PRD phase gates and this environment. P0/P1 detection
-+ the validation agents + the findings spine are done; the gaps below are mostly
-P2/P3 and need a running target and external tooling.
+Ordered by value given the PRD phase gates and this environment. P0/P1
+detection, the validation agents, and the findings spine are done; the gaps
+below are mostly P2/P3 and need a running target and external tooling.
 
 **Now (highest leverage, low risk):**
+
 1. Install the P0 binaries (`semgrep`, `osv-scanner`, `trufflehog`, `codeql`,
    `z3`, `bandit`) so the wired detectors actually run. No code changes.
 2. Enable multi-agent spawning so the 13 roles are usable as subagents; until
@@ -134,21 +137,17 @@ P2/P3 and need a running target and external tooling.
    `recon`/`context-enrich`/`reporter` by adding `model = "..."` to those role
    files, once the target model ids are confirmed valid in this fork.
 
-**P2 (needs a running app + external binaries) — add as MCP servers + skills:**
-4. Recon/DAST toolchain: `httpx`, `subfinder`, `naabu`, `nmap`, `katana`,
-   `wafw00f`, `nuclei`, `wapiti`, `ZAP`, `ffuf`/`dirsearch`/`arjun`. Each is a
-   report-until-installed server on the existing pattern; they only run when
-   scope is `active`/`exploit` against an authorized target.
-5. Injection confirmers: `sqlmap` + per-class HTTP confirm tools (idor/xss/cors)
-   that build on `http_audit` for evidence.
-6. OOB/blind: `interactsh-client`; Auth: `jwt_tool` + auth-profiles; Browser:
-   headless chromium for DOM/client-side XSS.
+**P2 (needs a running app + external binaries) — add as MCP servers + skills:** 4. Recon/DAST toolchain: passive tier (`mantis_http_recon` -- header/cookie/
+version-disclosure candidates via a single bounded GET) is now wired and
+needs no external binary. Still open: `httpx`, `subfinder`, `naabu`, `nmap`,
+`katana`, `wafw00f`, `nuclei`, `wapiti`, `ZAP`, `ffuf`/`dirsearch`/`arjun`.
+Each is a report-until-installed server on the existing pattern; they only
+run when scope is `active`/`exploit` against an authorized target. 5. Injection confirmers: `sqlmap` + per-class HTTP confirm tools (idor/xss/cors)
+that build on `http_audit` for evidence. 6. OOB/blind: `interactsh-client`; Auth: `jwt_tool` + auth-profiles; Browser:
+headless chromium for DOM/client-side XSS.
 
-**P3 (deep verticals):**
-7. Fuzzing/binary/crash: AFL++/libFuzzer/atheris, gdb crash-analyzer, Frida.
-8. CVE intel + OSS forensics: `cve-diff`, `cvemap`, git/wayback provenance
-   (git is present — a pure-ish server is feasible sooner).
-9. Web3 vertical (Foundry/Halmos/Anchor) — gated on the PRD's D-Web3 go/no-go.
+**P3 (deep verticals):** 7. Fuzzing/binary/crash: AFL++/libFuzzer/atheris, gdb crash-analyzer, Frida. 8. CVE intel + OSS forensics: `cve-diff`, `cvemap`, git/wayback provenance
+(git is present — a pure-ish server is feasible sooner). 9. Web3 vertical (Foundry/Halmos/Anchor) — gated on the PRD's D-Web3 go/no-go.
 
 **Cross-cutting infra the PRD calls for but the `.codex/` layer can't fully own:**
 per-stage LLM gateway with budget/DLP/reliability-scorecard (FR-14.4), the

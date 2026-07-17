@@ -9,7 +9,7 @@ Establish scope and authorization FIRST. Work only on targets the user owns or i
 
 Pipeline, stage -> subagent (`spawn_agent` agent_type) -> tools:
 
-1. Recon -> `recon` -> program-analysis (`source_sink_scan`, `ast_grep_scan`), read code. Output: ranked attack-surface map.
+1. Recon -> `recon` -> program-analysis (`source_sink_scan`, `ast_grep_scan`), read code only; the `recon` agent never touches the network. Output: ranked attack-surface map. For a black-box live target with no source available, run `http_recon` (passive GET-only header/cookie/disclosure check, see `http-recon` skill) yourself before/alongside Detect -- it is not part of the `recon` agent's read-only role.
 2. Context/Enrich -> `context-enrich` -> program-analysis, code retrieval. Output: per-sink context + reachability pre-classification.
 3. Detect -> `detector` -> `semgrep_scan`, `codeql_analyze`, `osv_scan`, `trufflehog_scan`, `bandit_scan`, `trivy_scan` + LLM reasoning for classes scanners miss (IDOR, authz, logic, SSRF, deserialization, SSTI). Registers `candidate`s via `finding_create`. Do NOT self-censor here.
 4. Reachability -> `reachability` -> `smt_check_reachability` (z3), taint tracing. `unsat` -> reject with the unsat as roadblock.

@@ -77,6 +77,18 @@ startup_timeout_sec = 10
 tool_timeout_sec = 30
 default_tools_approval_mode = "auto"
 
+# Passive HTTP recon (PRD section 6 Recon/DAST toolchain, passive tier).
+# Single bounded GET against a live target -- hardening-header, cookie-flag,
+# and version-disclosure candidates. Complements mantis_http_audit, which
+# makes no network calls itself. Refuses loopback/link-local/private targets.
+# Pure Node; zero deps.
+[mcp_servers.mantis_http_recon]
+command = "node"
+args = [".codex/mcp-servers/http-recon/server.js"]
+startup_timeout_sec = 10
+tool_timeout_sec = 30
+default_tools_approval_mode = "auto"
+
 # Python SAST (PRD section 6 SAST/code). Complements semgrep for Python.
 # Reports available:false until `bandit` is installed rather than fabricating.
 [mcp_servers.mantis_bandit]
