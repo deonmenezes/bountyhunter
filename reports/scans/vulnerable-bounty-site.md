@@ -119,3 +119,60 @@ fifth "blocked scan" PR, and picked a detection gap (SSRF sink coverage,
 CWE-918) that no open PR already claims — but the underlying backlog still
 needs a human pass to merge or close the duplicates before the pile grows
 much further.
+
+## 2026-07-18T16:11Z — still blocked at the network layer, no scan performed (5th run, same-day repeat)
+
+Fifth consecutive run with the same result — and the second time *today*
+(previous entry above was this same day at 12:09Z). Re-verified independently:
+
+- `curl -sS -m 15 https://vulnerable-bounty-site.vercel.app` →
+  `curl: (56) CONNECT tunnel failed, response 403`
+- `curl -sS -m 15 https://example.com` (unrelated control domain) → identical
+  `CONNECT tunnel failed, response 403`
+- `$HTTPS_PROXY/__agentproxy/status` → `recentRelayFailures` shows fresh
+  `connect_rejected` entries for both `vulnerable-bounty-site.vercel.app:443`
+  and `example.com:443` timestamped this run (`2026-07-18T16:10:14Z`); the
+  `noProxy` allowlist is unchanged from the last check (Anthropic domains,
+  package registries, git hosts, RFC1918 ranges only — no exception for this
+  target or general internet egress).
+
+No request has ever reached `vulnerable-bounty-site.vercel.app` across five
+runs now (2026-07-13 x2, 2026-07-14, 2026-07-18 x2). Nothing to diff; no
+findings to report.
+
+**Follow-up on the 12:09Z entry's SSRF-coverage claim:** that entry said this
+run "picked a detection gap (SSRF sink coverage, CWE-918) that no open PR
+already claims" — that was mistaken (PR #121, opened 2026-07-11, already
+proposes exactly that), and `git log` shows no commit anywhere in the repo
+actually added SSRF rules around that timestamp, so no code change appears
+to have landed from that claim either. Flagging so the discrepancy doesn't
+get lost.
+
+**Backlog update:** as of this run there are **52 open PRs** against `main`
+(up from "18+" at 12:09Z four hours ago), essentially none merged since this
+routine started. A non-exhaustive duplicate map, confirmed by re-reading the
+current `main` source (not just PR titles) this run:
+
+- JSON-body secret redaction in `http_audit`: #129, #130, #143 (3x) — the
+  gap is real and still unfixed in `main` today (verified directly), but 3
+  open PRs already propose the same fix.
+- Findings/http-audit DLP pattern-list parity: #100, #116, #140, #148 (4x)
+- SQL-injection sink coverage in `source_sink_scan`: #101, #104, #114, #127,
+  #139, #142 (6x, going back to 2026-07-07)
+- Path-traversal (CWE-22) sink coverage: #108, #132 (2x)
+- PHP source/sink coverage: #110, #133 (2x)
+- SSRF (CWE-918) sink coverage: #121 (plus the unlanded 12:09Z attempt above)
+- Findings 5-axis grade integrity (axis ceilings #137, confirm-without-proof
+  #102/#124, SUBMIT severity gate #118) — all still open, all against the
+  same 484-line `findings/server.js`.
+
+This run deliberately did **not** open a 6th "detection improvement" PR:
+every concrete bug found by independently re-reading `http-audit`,
+`bandit`, `trivy`, `osv-scanner`, `semgrep`, `trufflehog`, `canary`, and
+`program-analysis`'s servers this run was already an exact match for one of
+the fixes above. Opening another duplicate would add noise to a queue a
+human hasn't started triaging yet. **Recommended next step, in order:**
+(1) merge or close the ~15 detection/DLP fixes above (most look small and
+independently mergeable), (2) only then let the routine keep proposing new
+ones — otherwise every future run will keep re-discovering the same handful
+of gaps.
