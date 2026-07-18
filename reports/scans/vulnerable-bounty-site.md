@@ -88,3 +88,34 @@ environment's outbound network policy. Until that happens, every future
 firing of this routine will keep producing the same "blocked, no scan"
 result — worth fixing the policy once rather than re-discovering this every
 4 hours.
+
+## 2026-07-18T12:09Z — still blocked at the network layer, no scan performed
+
+Fourth consecutive run with the same result. Re-verified:
+
+- `curl -sS -m 15 https://vulnerable-bounty-site.vercel.app` →
+  `curl: (56) CONNECT tunnel failed, response 403`
+- `$HTTPS_PROXY/__agentproxy/status` → `recentRelayFailures` shows a fresh
+  `connect_rejected` entry for `vulnerable-bounty-site.vercel.app:443`
+  timestamped this run (`2026-07-18T12:06:18Z`); the proxy's `noProxy`
+  allowlist still only covers `anthropic.com`, package registries, git
+  hosts, and RFC1918 ranges — no general internet egress and no exception
+  for this target.
+
+No request has ever reached `vulnerable-bounty-site.vercel.app` across four
+runs now (2026-07-13 x2, 2026-07-14, 2026-07-18). Nothing to diff; no
+findings to report.
+
+**Process note for whoever reviews this queue:** this routine has now
+opened a large number of open, unmerged PRs against `main` (18+ as of this
+run) across its "detection improvement" half, and several of them overlap
+significantly — e.g. four separate PRs touching `http-audit`/`findings`
+secret redaction (#129, #130, #143, #148) and two separate PRs adding SQL
+injection sink rules (#139, #142). Each run currently opens a *new* branch
+without checking what's already open, so duplicate effort compounds every
+4 hours. This run updated this existing branch/PR
+(`mantis-routine/2026-07-14-scan-log`, #136) in place instead of opening a
+fifth "blocked scan" PR, and picked a detection gap (SSRF sink coverage,
+CWE-918) that no open PR already claims — but the underlying backlog still
+needs a human pass to merge or close the duplicates before the pile grows
+much further.
