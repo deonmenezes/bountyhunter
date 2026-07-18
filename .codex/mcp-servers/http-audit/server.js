@@ -3,6 +3,10 @@
 
 const crypto = require("node:crypto");
 const { createServer } = require("../lib/mcp_stdio.js");
+const {
+  SECRET_PATTERNS,
+  globalPatterns,
+} = require("../lib/secret_patterns.js");
 
 /**
  * Mantis HTTP-audit + request-refs (PRD section 6 "Proxy / traffic:
@@ -29,27 +33,13 @@ const SENSITIVE_HEADERS = new Set([
   "x-xsrf-token",
 ]);
 
-// Inline secret shapes that can appear anywhere in a body/URL.
-const SECRET_VALUE_PATTERNS = [
-  [/\bAKIA[0-9A-Z]{16}\b/g, "[REDACTED_AWS_KEY]"],
-  [/\bgh[pousr]_[A-Za-z0-9]{20,}\b/g, "[REDACTED_GH_TOKEN]"],
-  [/\bxox[baprs]-[A-Za-z0-9-]{10,}\b/g, "[REDACTED_SLACK_TOKEN]"],
-  [
-    /\bey[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g,
-    "[REDACTED_JWT]",
-  ],
-  [
-    /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g,
-    "[REDACTED_PRIVATE_KEY]",
-  ],
-  [/\b[A-Za-z0-9._%+-]+:[^@\s/]{6,}@/g, "[REDACTED_USERINFO]@"], // user:pass@ in URLs
-  // Generically-named secret-bearing query/form params -- shape-based patterns above
-  // can't catch these since the secret value itself has no distinctive shape.
-  [
-    /\b(token|api[_-]?key|access[_-]?token|refresh[_-]?token|secret|password|passwd|auth|session[_-]?id|sig|signature)=([^&\s]+)/gi,
-    (_match, name) => `${name}=[REDACTED]`,
-  ],
-];
+// Inline secret shapes that can appear anywhere in a body/URL. Pattern list
+// lives in lib/secret_patterns.js, shared with the findings-spine DLP guard
+// so the two never drift out of sync with each other.
+const SECRET_VALUE_PATTERNS = globalPatterns().map((re, i) => [
+  re,
+  SECRET_PATTERNS[i].replacement,
+]);
 
 const MAX_BODY_PREVIEW = 512;
 
