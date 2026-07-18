@@ -188,6 +188,53 @@ const RULES = [
     pattern: /\bstatement\.execute(Query|Update)?\s*\(/gi,
     cwe: "CWE-89",
   },
+
+  // Open Redirect (CWE-601) -- redirecting to an attacker-controlled URL.
+  // `mantis-pipeline`'s Detect stage names SQLi/XSS/SSRF/deserialization
+  // explicitly but this class had zero sink coverage across every language
+  // already represented here, despite being a routine bug-bounty finding.
+  {
+    lang: "js",
+    kind: "sink",
+    id: "js.express.redirect",
+    pattern: /\bres\.redirect\s*\(/g,
+    cwe: "CWE-601",
+  },
+  {
+    lang: "js",
+    kind: "sink",
+    id: "js.http.location_header",
+    pattern: /\bsetHeader\s*\(\s*["']Location["']/gi,
+    cwe: "CWE-601",
+  },
+  {
+    lang: "py",
+    kind: "sink",
+    id: "py.flask.redirect",
+    pattern: /\bredirect\s*\(/g,
+    cwe: "CWE-601",
+  },
+  {
+    lang: "py",
+    kind: "sink",
+    id: "py.django.http_response_redirect",
+    pattern: /\bHttpResponseRedirect\s*\(/g,
+    cwe: "CWE-601",
+  },
+  {
+    lang: "go",
+    kind: "sink",
+    id: "go.http.redirect",
+    pattern: /\bhttp\.Redirect\s*\(/g,
+    cwe: "CWE-601",
+  },
+  {
+    lang: "java",
+    kind: "sink",
+    id: "java.response.send_redirect",
+    pattern: /\bsendRedirect\s*\(/g,
+    cwe: "CWE-601",
+  },
 ];
 
 module.exports = { RULES };
