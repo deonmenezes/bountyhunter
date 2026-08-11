@@ -33,3 +33,4 @@ tuning.json
 
 # Local Claude Code tool state
 .omc/
+.venv-tools/

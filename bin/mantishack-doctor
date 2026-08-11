@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+#
+# mantishack-doctor - one-screen readiness check for a Mantishack install.
+#
+# Prints a green/yellow/red checklist and exits non-zero if any HARD
+# requirement (python, core deps, semgrep) is missing, so it doubles as
+# a CI gate:  mantishack-doctor || exit 1
+#
+set -uo pipefail
+
+# Resolve the install root from this script's location (handles symlinks).
+SCRIPT="$0"
+while [ -L "$SCRIPT" ]; do
+    D="$(cd "$(dirname "$SCRIPT")" && pwd)"; SCRIPT="$(readlink "$SCRIPT")"
+    [[ "$SCRIPT" != /* ]] && SCRIPT="$D/$SCRIPT"
+done
+ROOT="$(cd "$(dirname "$SCRIPT")/.." && pwd)"
+
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+    R=$'\033[0m'; B=$'\033[1m'; DIM=$'\033[2m'
+    GRN=$'\033[32m'; YLW=$'\033[33m'; RED=$'\033[31m'; CYN=$'\033[36m'
+else
+    R=""; B=""; DIM=""; GRN=""; YLW=""; RED=""; CYN=""
+fi
+
+HARD_FAIL=0
+pass() { printf '  %s %s\n' "${GRN}✓${R}" "$1"; }
+fail() { printf '  %s %s\n' "${RED}✗${R}" "$1"; HARD_FAIL=1; }
+soft() { printf '  %s %s\n' "${YLW}○${R}" "$1"; }
+hint() { printf '      %s\n' "${DIM}$1${R}"; }
+
+have() { command -v "$1" >/dev/null 2>&1; }
+
+printf '\n%s %s\n\n' "${B}${CYN}Mantishack doctor${R}" "${DIM}$ROOT${R}"
+
+# --- Python -----------------------------------------------------------------
+if have python3; then
+    PYV="$(python3 -c 'import sys;print("%d.%d.%d"%sys.version_info[:3])' 2>/dev/null)"
+    if python3 -c 'import sys;raise SystemExit(0 if sys.version_info[:2]>=(3,10) else 1)' 2>/dev/null; then
+        pass "python3 $PYV"
+    else
+        fail "python3 $PYV (need >= 3.10)"
+    fi
+else
+    fail "python3 not found"
+    hint "install Python 3.10+ and re-run ./install.sh"
+fi
+
+# --- venv + core deps -------------------------------------------------------
+VENV_PY="$ROOT/.venv/bin/python"
+if [ -x "$VENV_PY" ]; then
+    pass ".venv present"
+    CHECK_PY="$VENV_PY"
+else
+    soft ".venv not found - falling back to system python3"
+    hint "run ./install.sh to create an isolated environment"
+    CHECK_PY="$(command -v python3 || true)"
+fi
+
+if [ -n "${CHECK_PY:-}" ]; then
+    MISSING="$("$CHECK_PY" - <<'PY'
+import importlib.util as u
+mods = ["requests","urllib3","pydantic","typer","instructor","tabulate","yaml","defusedxml","packaging","bs4"]
+print(" ".join(m for m in mods if u.find_spec(m) is None))
+PY
+)"
+    if [ -z "$MISSING" ]; then
+        pass "core dependencies importable"
+    else
+        fail "missing Python deps:$MISSING"
+        hint "run ./install.sh  (or: .venv/bin/pip install -r requirements.txt)"
+    fi
+fi
+
+# --- Semgrep ----------------------------------------------------------------
+if [ -x "$ROOT/.venv/bin/semgrep" ] || have semgrep; then
+    SGV="$({ "$ROOT/.venv/bin/semgrep" --version 2>/dev/null || semgrep --version 2>/dev/null; } | head -1)"
+    pass "semgrep ${SGV:-present}"
+else
+    fail "semgrep not found (required for static scanning)"
+    hint ".venv/bin/pip install semgrep"
+fi
+
+# --- Claude Code (orchestration) -------------------------------------------
+if have claude; then
+    pass "Claude Code $(claude --version 2>/dev/null | head -1)"
+else
+    soft "Claude Code not found (needed for the interactive agent)"
+    hint "npm install -g @anthropic-ai/claude-code"
+fi
+
+# --- CodeQL (optional) ------------------------------------------------------
+if have codeql || have gh; then
+    pass "CodeQL toolchain available"
+else
+    soft "CodeQL not installed (optional - deep dataflow analysis)"
+    hint "install the CodeQL CLI, or: ./install.sh --with-codeql"
+fi
+
+# --- analysis-layer config --------------------------------------------------
+CFG="${XDG_CONFIG_HOME:-$HOME/.config}/mantishack/models.json"
+if [ -f "$CFG" ]; then
+    pass "config: $CFG"
+elif [ -n "${ANTHROPIC_API_KEY:-}${OPENAI_API_KEY:-}${GEMINI_API_KEY:-}${MISTRAL_API_KEY:-}" ]; then
+    pass "analysis LLM configured via environment variable"
+else
+    soft "no analysis-layer LLM configured"
+    hint "export ANTHROPIC_API_KEY=...  (or edit $CFG)"
+fi
+
+# --- launcher on PATH -------------------------------------------------------
+if have mantishack; then
+    pass "'mantishack' is on PATH"
+else
+    soft "'mantishack' not on PATH"
+    hint "add the launcher: ln -sf \"$ROOT/bin/mantishack\" ~/.local/bin/mantishack"
+fi
+
+printf '\n'
+if [ "$HARD_FAIL" = "0" ]; then
+    printf '%s\n\n' "${GRN}${B}READY${R} - core requirements satisfied. Launch with: ${B}mantishack${R}"
+    exit 0
+else
+    printf '%s\n\n' "${RED}${B}NOT READY${R} - fix the ${RED}✗${R} items above, then re-run ${B}mantishack-doctor${R}."
+    exit 1
+fi

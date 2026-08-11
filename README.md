@@ -23,12 +23,42 @@ It is not polished software. It is held together with enthusiasm and duct tape, 
 
 ## Quick start
 
-### Option 1: Install manually
+### Option 1: One command (recommended)
+
+```bash
+git clone https://github.com/deonmenezes/mantishack.git
+cd mantishack
+./install.sh
+```
+
+`install.sh` is idempotent. It creates an isolated `.venv`, installs the pinned
+Python dependencies, installs Semgrep in its **own** environment (Semgrep and the
+framework pin incompatible `click` versions, so they must not share a venv),
+installs Claude Code if `npm` is present, drops an analysis-layer config template
+at `~/.config/mantishack/models.json`, and links the `mantishack` launcher onto
+your PATH. It finishes by running `mantishack-doctor`.
+
+Prefer not to run a script you have not read? Open `install.sh` first, or run the
+manual steps below. Useful flags: `--minimal` (deps + Semgrep only), `--with-llm`
+(add the anthropic + openai SDKs), `--with-codeql`, `--no-path`, `-y` for CI.
+
+Verify a working install at any time:
+
+```bash
+mantishack-doctor      # one-screen readiness check; exits non-zero if not ready
+```
+
+`make install` / `make doctor` / `make run` wrap the same steps.
+
+### Option 2: Install manually
 
 ```bash
 # Clone the repo
 git clone https://github.com/deonmenezes/mantishack.git
 cd mantishack
+
+# Isolated environment for the framework
+python3 -m venv .venv && source .venv/bin/activate
 
 # Install Python dependencies
 pip install -r requirements.txt
@@ -36,14 +66,15 @@ pip install -r requirements.txt
 # Install Claude Code (required)
 npm install -g @anthropic-ai/claude-code
 
-# Install Semgrep (required for scanning)
-pip install semgrep
+# Install Semgrep in a SEPARATE env so it cannot downgrade the framework's click
+python3 -m venv .venv-tools && .venv-tools/bin/pip install semgrep
+ln -sf "$PWD/.venv-tools/bin/semgrep" .venv/bin/semgrep
 
 # Open Mantishack
 claude
 ```
 
-### Option 2: Devcontainer (recommended)
+### Option 3: Devcontainer (fully isolated)
 
 Everything pre-installed. Open in VS Code with **Dev Containers: Open Folder in Container**, or build manually:
 
